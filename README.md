@@ -10,44 +10,51 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 1 — Architecture and design documentation completed**
+**Phase 2 — MockUSDC contract and tests completed locally**
 
-Phase 1 deliverables:
+Phase 2 deliverables:
 
-- `docs/ARCHITECTURE.md`
-- `docs/SECURITY.md`
-- `docs/UI_UX_PLAN.md`
-- `docs/DESIGN_DECISIONS.md`
-- Phase 1 README update
+- `contracts/MockUSDC.sol`
+- `test/MockUSDC.test.ts`
+- `data/abi/contracts/MockUSDC.sol/MockUSDC.json`
+- Phase 2 README update
 
-Phase 1 validation completed:
+Phase 2 validation completed:
 
-- documentation structure checks;
-- Personal Variant consistency checks;
-- README link checks;
-- implementation-claim checks;
-- UTF-8 and Markdown checks;
-- secret scans;
-- TypeScript regression check;
-- Hardhat compile regression check;
-- Hardhat test regression check;
-- empty-project coverage command check;
-- staged-file and whitespace checks.
+- local OpenZeppelin ERC20 API inspection;
+- TypeScript validation with `npx tsc --noEmit`;
+- real Solidity compilation with Solidity `0.8.28`;
+- optimizer validation with `1,000` runs;
+- successful `viaIR` compilation;
+- TypeChain generation;
+- ABI exporter validation;
+- contract-size reporting;
+- focused MockUSDC test execution;
+- full Hardhat test execution;
+- real Solidity coverage generation;
+- whitespace checks.
+
+Current verified results:
+
+- `MockUSDC` compiled successfully;
+- deployed bytecode size is approximately `1.901 KiB`;
+- initcode size is approximately `2.700 KiB`;
+- `13 passing` tests;
+- `MockUSDC.sol` currently reports 100% statements, branches, functions, and lines coverage.
 
 Important interpretation:
 
-- no Solidity contract exists yet;
-- no frontend exists yet;
-- test result remains `0 passing`;
-- the displayed empty coverage table is not meaningful contract coverage;
-- Phase 2 must not begin without explicit user confirmation.
+- the 100% coverage result applies only to the current `MockUSDC.sol` source;
+- it is not the final coverage result for the complete SafeBank system;
+- MockUSDC public minting exists only for testing and demonstration;
+- no savings, vault, deposit, NFT, withdrawal, or renewal flow exists yet;
+- no frontend or AI assistant exists yet;
+- Phase 3 must not begin without explicit user confirmation.
 
-Phase 0 base commit:
+Previous completed phases:
 
-- Commit: `2e46bb4`
-- Message: `chore: initialize online banking capstone`
-- Branch: `main`
-- Remote: `origin/main`
+- Phase 0: project, environment, Git, and GitHub initialization;
+- Phase 1: architecture, security, UI/UX, and design-decision documentation.
 ## Current Implementation Status
 
 Completed:
@@ -60,14 +67,23 @@ Completed:
 - Git repository initialization
 - GitHub remote setup
 - Phase 0 root commit and push
-- Initial architecture documentation
-- Initial security-model documentation
-- Initial UI/UX planning
-- Initial design-decision records
+- Architecture documentation
+- Security-model documentation
+- UI/UX planning
+- Design-decision records
+- Six-decimal `MockUSDC` ERC20 implementation
+- Permissionless test-token minting
+- MockUSDC metadata validation
+- MockUSDC transfer and allowance validation
+- MockUSDC failure-case validation
+- Real Solidity compilation with `viaIR`
+- MockUSDC TypeChain generation
+- MockUSDC ABI export
+- Thirteen passing MockUSDC tests
+- Real MockUSDC coverage report
 
 Not implemented yet:
 
-- `MockUSDC.sol`
 - `VaultManager.sol`
 - `SavingCore.sol`
 - Saving-plan management
@@ -78,8 +94,8 @@ Not implemented yet:
 - Manual renewal
 - Auto-renewal
 - Contract pause behavior
-- Contract unit and security tests
-- Real contract coverage
+- Vault and SavingCore unit tests
+- Security and boundary test suites
 - Bonus C1
 - Bonus C2
 - Deployment scripts
@@ -94,21 +110,35 @@ Not implemented yet:
 - Demo video
 - Final submission audit
 
-No banking feature should currently be treated as implemented.
-
-## Planned Core Contracts
+No savings or vault business flow should currently be treated as implemented.
+## Core Contracts
 
 ### MockUSDC
 
-A six-decimal ERC20 test token used only for local and Sepolia demonstrations.
+`MockUSDC` is now implemented as a six-decimal ERC20 test token using OpenZeppelin Contracts `5.3.0`.
 
-Planned characteristics:
+Implemented characteristics:
 
-- 6 decimals
-- Public minting for testing
-- No real monetary value
-- Not intended for production
+- contract name: `MockUSDC`;
+- token name: `Mock USD Coin`;
+- token symbol: `mUSDC`;
+- 6 decimals;
+- permissionless public minting for tests and demonstrations;
+- no owner restriction on minting;
+- no tax, blacklist, redemption, backing, or production stablecoin behavior;
+- no real-world monetary value.
 
+The exported project ABI is located at:
+
+`data/abi/contracts/MockUSDC.sol/MockUSDC.json`
+
+MockUSDC amounts must use six-decimal units.
+
+Examples:
+
+- `ethers.parseUnits("1", 6)` equals `1,000,000` smallest units;
+- `ethers.parseUnits("1000", 6)` equals `1,000,000,000` smallest units;
+- `parseEther` must not be used for MockUSDC amounts.
 ### VaultManager
 
 The planned interest-liquidity contract.
@@ -321,21 +351,26 @@ The project currently uses npm and `package-lock.json`.
 | `npm run size` | Report compiled contract sizes |
 | `npm run node` | Start a local Hardhat node |
 
-At the current Phase 1 checkpoint:
+At the current Phase 2 checkpoint:
 
-- compile is expected to report that there is nothing to compile;
-- tests are expected to report zero passing tests;
-- coverage is expected to be empty because no Solidity contracts exist.
-
-The empty coverage report is not evidence of meaningful contract coverage.
-
+- the Solidity toolchain has successfully compiled `MockUSDC`;
+- Solidity `0.8.28`, optimizer, and `viaIR` have been validated with a real contract;
+- the full test suite reports `13 passing`;
+- coverage reports 100% statements, branches, functions, and lines for `MockUSDC.sol`;
+- `artifacts/`, `cache/`, `typechain/`, `coverage/`, and `coverage.json` remain ignored;
+- the project-owned MockUSDC ABI is exported for later application integration.
 ## Project Structure
 
 Current relevant structure:
 
     online-banking-capstone/
     ├── contracts/
-    │   └── .gitkeep
+    │   └── MockUSDC.sol
+    ├── data/
+    │   └── abi/
+    │       └── contracts/
+    │           └── MockUSDC.sol/
+    │               └── MockUSDC.json
     ├── deploy/
     │   └── .gitkeep
     ├── docs/
@@ -346,7 +381,7 @@ Current relevant structure:
     ├── scripts/
     │   └── .gitkeep
     ├── test/
-    │   └── .gitkeep
+    │   └── MockUSDC.test.ts
     ├── .env.example
     ├── .gitignore
     ├── hardhat.config.ts
@@ -357,6 +392,7 @@ Current relevant structure:
 
 The `frontend/` directory has not been created.
 
+Generated Hardhat artifacts, cache files, TypeChain output, and coverage reports are not part of the tracked source structure.
 ## Security Notice
 
 SafeBank follows a defense-in-depth approach.
@@ -403,15 +439,20 @@ Current development branch:
 
 The next planned phase is:
 
-**Phase 2 — MockUSDC contract and tests**
+**Phase 3 — Basic VaultManager contract and tests**
 
-Phase 2 must not begin automatically.
+Phase 3 must not begin automatically.
 
-Before moving to Phase 2:
+Before moving to Phase 3:
 
-1. commit the completed Phase 1 documentation;
-2. push the commit to `origin/main`;
-3. verify the local and remote commit;
-4. verify that the working tree is clean;
-5. produce the complete Phase 1 checkpoint;
-6. wait for explicit user approval.
+1. review the complete Phase 2 source diff;
+2. verify generated-file policy and scope;
+3. run final TypeScript, compile, test, and coverage checks;
+4. run whitespace and secret checks;
+5. stage only the approved Phase 2 files;
+6. commit with `feat: add six-decimal mock USDC token`;
+7. push the commit to `origin/main`;
+8. confirm that local and remote commits match;
+9. confirm that the working tree is clean;
+10. produce the complete Phase 2 checkpoint;
+11. wait for explicit user approval.
