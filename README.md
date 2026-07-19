@@ -10,19 +10,37 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 3 — Basic VaultManager contract and tests completed locally**
+**Phase 4 — SavingCore skeleton and saving-plan management implemented and validated locally**
 
-Phase 3 deliverables:
+Phase 4 deliverables:
 
-- `contracts/VaultManager.sol`
-- `contracts/mocks/MockSavingCoreCaller.sol`
-- `test/VaultManager.test.ts`
-- `data/abi/contracts/VaultManager.sol/VaultManager.json`
-- Phase 3 README update
+- `contracts/SavingCore.sol`
+- `test/SavingCore.test.ts`
+- `data/abi/contracts/SavingCore.sol/SavingCore.json`
+- Phase 4 README update
 
-Phase 3 validation completed:
+Phase 4 implementation includes:
 
-- local OpenZeppelin `5.3.0` API inspection;
+- non-upgradeable `SavingCore`;
+- standard OpenZeppelin ERC721 foundation;
+- immutable MockUSDC-compatible token reference;
+- immutable `VaultManager` reference;
+- dependency zero-address and deployed-bytecode validation;
+- `Ownable2Step`;
+- independent SavingCore pause state;
+- `ReentrancyGuard` foundation for later financial entry points;
+- fixed two-day personal-variant grace period;
+- personal-variant constants for 180-day tenor, 200-bps APR, and 750-bps penalty;
+- plan identifiers beginning at `1`;
+- saving-plan creation;
+- APR-only plan updates;
+- plan enable and disable operations;
+- explicit tenor, APR, penalty, and deposit-limit validation;
+- custom errors and plan-administration events.
+
+Phase 4 validation completed:
+
+- local OpenZeppelin Contracts `5.3.0` API inspection;
 - TypeScript validation with `npx tsc --noEmit`;
 - Solidity compilation with Solidity `0.8.28`;
 - optimizer validation with `1,000` runs;
@@ -30,37 +48,40 @@ Phase 3 validation completed:
 - TypeChain generation;
 - ABI exporter validation;
 - contract-size reporting;
-- focused VaultManager test execution;
+- focused SavingCore test execution;
 - full Hardhat regression test execution;
 - real Solidity coverage generation;
-- scope, six-decimal usage, and whitespace checks.
+- ABI-scope, generated-file, six-decimal, and out-of-scope business-logic checks.
 
 Current verified results:
 
-- `VaultManager` compiled successfully;
-- VaultManager deployed bytecode size is approximately `2.991 KiB`;
-- VaultManager initcode size is approximately `3.391 KiB`;
-- the test-only MockSavingCoreCaller deployed size is approximately `0.334 KiB`;
-- `47 passing` focused VaultManager tests;
-- `60 passing` tests in the complete current suite;
-- current Solidity coverage reports 100% statements, 94% branches, 100% functions, and 100% lines.
+- `SavingCore` compiled successfully;
+- SavingCore deployed bytecode size is approximately `5.755 KiB`;
+- SavingCore initcode size is approximately `6.944 KiB`;
+- `58 passing` focused SavingCore tests;
+- `118 passing` tests in the complete current suite;
+- SavingCore coverage reports 100% statements, 100% branches, 100% functions, and 100% lines;
+- overall current coverage reports 100% statements, 96.67% branches, 100% functions, and 100% lines;
+- no uncovered Solidity lines are reported.
 
 Important interpretation:
 
-- the coverage result applies to the currently implemented MockUSDC, VaultManager, and test mock sources;
+- the current coverage applies only to the implemented MockUSDC, VaultManager, SavingCore plan-management foundation, and test mock;
 - it is not the final coverage result for the complete SafeBank system;
-- MockSavingCoreCaller is test-only and is not a SavingCore implementation;
-- VaultManager currently implements only the mandatory base interest-liquidity behavior;
-- Bonus C1 pending-interest behavior is not implemented;
-- Bonus C2 reserved-interest and solvency accounting are not implemented;
-- no saving plans, deposits, ERC721 certificates, withdrawal lifecycle, renewal flow, frontend, or AI assistant exists yet;
-- Phase 4 must not begin without explicit user confirmation.
+- SavingCore currently contains no deposit-opening, principal-transfer, certificate-minting, withdrawal, renewal, C1, or C2 business flow;
+- inheriting ERC721 does not mean deposit certificates have already been minted;
+- inheriting ReentrancyGuard provides a foundation, but no SavingCore token-moving financial entry point exists yet;
+- plan updates affect only the stored plan APR intended for future deposits;
+- no active deposit snapshot exists yet;
+- Phase 4 Git staging, commit, push, local/remote comparison, and final checkpoint are still pending.
 
 Previous completed phases:
 
 - Phase 0: project, environment, Git, and GitHub initialization;
 - Phase 1: architecture, security, UI/UX, and design-decision documentation;
-- Phase 2: six-decimal MockUSDC contract and tests.
+- Phase 2: six-decimal MockUSDC contract and tests;
+- Phase 3: base VaultManager contract and tests.
+
 ## Current Implementation Status
 
 Completed:
@@ -81,33 +102,49 @@ Completed:
 - Permissionless test-token minting
 - MockUSDC metadata, transfer, allowance, and failure-case validation
 - Basic `VaultManager` interest-liquidity custody
-- Immutable ERC20 token reference
+- Immutable VaultManager ERC20 token reference
 - Owner-controlled vault funding
 - Owner withdrawal to the current owner
 - One-time deployed-contract SavingCore authorization
 - Authorized SavingCore-only interest payout
 - Fee receiver configuration
 - Independent VaultManager pause and unpause
-- `Ownable2Step`, `SafeERC20`, and `ReentrancyGuard` integration
 - Vault balance derived from the actual ERC20 balance
-- MockUSDC and VaultManager ABI export
+- SavingCore contract foundation
+- Standard ERC721 certificate foundation
+- SavingCore immutable token and VaultManager references
+- SavingCore dependency address and bytecode validation
+- Independent SavingCore pause and unpause
+- SavingCore two-step ownership
+- Personal-variant constants
+- Plan identifiers beginning at one
+- Saving-plan creation
+- APR-only plan updates
+- Plan enable and disable
+- Saving-plan bounds and deposit-range validation
+- MockUSDC, VaultManager, and SavingCore ABI export
 - Thirteen passing MockUSDC tests
 - Forty-seven passing focused VaultManager tests
-- Sixty passing tests in the complete current suite
-- Current Solidity coverage of 100% statements, 94% branches, 100% functions, and 100% lines
+- Fifty-eight passing focused SavingCore tests
+- One hundred eighteen passing tests in the complete current suite
+- Current overall Solidity coverage of 100% statements, 96.67% branches, 100% functions, and 100% lines
 
 Not implemented yet:
 
-- `SavingCore.sol`
-- Saving-plan management
+- Deposit storage and lifecycle
+- Principal transfer into SavingCore
 - Deposit opening
-- ERC721 deposit certificates
+- ERC721 deposit-certificate minting
+- NFT metadata strategy
+- APR snapshot per deposit
+- Penalty snapshot per deposit
+- Maturity timestamp calculation
 - Maturity withdrawal
 - Early withdrawal
 - Manual renewal
-- Auto-renewal
-- SavingCore pause behavior
-- Deposit lifecycle and timestamp-boundary tests
+- Permissionless auto-renewal
+- Timestamp-boundary deposit tests
+- SavingCore token-transfer and vault-payout integration
 - SavingCore reentrancy and malicious-token security suites
 - Bonus C1
 - Bonus C2
@@ -123,7 +160,8 @@ Not implemented yet:
 - Demo video
 - Final submission audit
 
-No principal custody, deposit, NFT, withdrawal, or renewal business flow should currently be treated as implemented.
+No principal custody transaction, deposit, NFT mint, withdrawal, or renewal business flow should currently be treated as implemented.
+
 ## Core Contracts
 
 ### MockUSDC
@@ -191,20 +229,65 @@ The current base implementation intentionally does not include:
 
 ### SavingCore
 
-The planned primary savings contract.
+`SavingCore` is now implemented as the contract foundation and saving-plan administration layer.
 
-Its responsibilities will include:
+Implemented characteristics:
 
-- holding user principal;
-- managing saving plans;
-- opening deposits;
-- snapshotting APR and penalty;
-- minting ERC721 deposit certificates;
+- non-upgradeable deployment model;
+- standard OpenZeppelin ERC721 inheritance;
+- collection name `SafeBank Deposit Certificate`;
+- collection symbol `SBDC`;
+- immutable MockUSDC-compatible ERC20 reference;
+- immutable deployed `VaultManager` reference;
+- nonzero dependency validation;
+- deployed-bytecode validation for token and vault dependencies;
+- initial owner configured through OpenZeppelin `Ownable`;
+- two-step ownership transfers through `Ownable2Step`;
+- independent pause and unpause through `Pausable`;
+- `ReentrancyGuard` foundation for later financial entry points;
+- fixed `GRACE_PERIOD` of two days;
+- personal-variant constants:
+  - `DEFAULT_TENOR_DAYS = 180`;
+  - `DEFAULT_APR_BPS = 200`;
+  - `DEFAULT_EARLY_WITHDRAW_PENALTY_BPS = 750`;
+- plan identifiers beginning at `1`;
+- plan ID `0` treated as invalid;
+- saving plans containing tenor, APR, minimum deposit, maximum deposit, penalty, and enabled state;
+- owner-only plan creation;
+- owner-only APR update;
+- owner-only plan enable and disable;
+- tenor validation from 1 through 3,650 days;
+- APR validation from 1 through 10,000 basis points;
+- penalty validation from 0 through 10,000 basis points;
+- zero minimum interpreted as no lower plan limit;
+- zero maximum interpreted as no upper plan limit;
+- rejection when both limits are nonzero and minimum exceeds maximum;
+- duplicate enable and disable operations rejected explicitly;
+- read-only plan access available while paused;
+- plan administration intentionally available while paused.
+
+The exported project ABI is located at:
+
+`data/abi/contracts/SavingCore.sol/SavingCore.json`
+
+The current Phase 4 implementation intentionally does not include:
+
+- deposit records;
+- principal token transfers;
+- `openDeposit`;
+- `_safeMint` execution;
+- deposit certificate issuance;
 - maturity withdrawal;
 - early withdrawal;
 - manual renewal;
-- permissionless auto-renewal;
-- pending-interest accounting after Bonus C1.
+- auto-renewal;
+- VaultManager interest requests;
+- pending-interest accounting;
+- reserved-interest accounting;
+- Bonus C1;
+- Bonus C2.
+
+ERC721 inheritance establishes the future certificate interface, but no NFT can currently be minted through the public SafeBank business API.
 
 ## Architecture Principle
 
@@ -380,22 +463,25 @@ The project currently uses npm and `package-lock.json`.
 | `npm install` | Install dependencies |
 | `npx tsc --noEmit` | Check TypeScript without generating output |
 | `npm run compile` | Compile Solidity contracts |
-| `npm test` | Run Hardhat tests |
+| `npm test` | Run the complete Hardhat test suite |
+| `npx hardhat test test\SavingCore.test.ts` | Run focused SavingCore tests |
 | `npm run coverage` | Generate Solidity coverage |
 | `npm run clean` | Remove Hardhat-generated files |
 | `npm run size` | Report compiled contract sizes |
 | `npm run node` | Start a local Hardhat node |
 
-At the current Phase 3 checkpoint:
+At the current locally validated Phase 4 state:
 
-- the Solidity toolchain has successfully compiled `MockUSDC`, `VaultManager`, and the test-only mock;
-- Solidity `0.8.28`, optimizer with `1,000` runs, and `viaIR` remain validated;
-- the complete current test suite reports `60 passing`;
-- focused VaultManager testing reports `47 passing`;
-- coverage reports 100% statements, 94% branches, 100% functions, and 100% lines;
+- Solidity `0.8.28`, optimizer with `1,000` runs, and `viaIR` compile successfully;
+- focused SavingCore testing reports `58 passing`;
+- the complete current suite reports `118 passing`;
+- SavingCore coverage reports 100% statements, branches, functions, and lines;
+- overall coverage reports 100% statements, 96.67% branches, 100% functions, and 100% lines;
+- no uncovered Solidity lines are reported;
 - `artifacts/`, `cache/`, `typechain/`, `coverage/`, and `coverage.json` remain ignored;
-- project-owned MockUSDC and VaultManager ABIs are exported for later application integration;
-- test-mock ABIs are not retained as project integration artifacts.
+- project-owned MockUSDC, VaultManager, and SavingCore ABIs are retained;
+- test-mock ABIs are removed before staging and are not project integration artifacts.
+
 ## Project Structure
 
 Current relevant structure:
@@ -405,12 +491,15 @@ Current relevant structure:
     │   ├── mocks/
     │   │   └── MockSavingCoreCaller.sol
     │   ├── MockUSDC.sol
+    │   ├── SavingCore.sol
     │   └── VaultManager.sol
     ├── data/
     │   └── abi/
     │       └── contracts/
     │           ├── MockUSDC.sol/
     │           │   └── MockUSDC.json
+    │           ├── SavingCore.sol/
+    │           │   └── SavingCore.json
     │           └── VaultManager.sol/
     │               └── VaultManager.json
     ├── deploy/
@@ -424,6 +513,7 @@ Current relevant structure:
     │   └── .gitkeep
     ├── test/
     │   ├── MockUSDC.test.ts
+    │   ├── SavingCore.test.ts
     │   └── VaultManager.test.ts
     ├── .env.example
     ├── .gitignore
@@ -433,11 +523,12 @@ Current relevant structure:
     ├── README.md
     └── tsconfig.json
 
-`MockSavingCoreCaller.sol` is a minimal test-only authorization caller and is not the SavingCore implementation.
+`MockSavingCoreCaller.sol` remains a minimal test-only authorization caller and is not the SavingCore implementation.
 
 The `frontend/` directory has not been created.
 
 Generated Hardhat artifacts, cache files, TypeChain output, coverage reports, and test-mock ABIs are not part of the tracked source structure.
+
 ## Security Notice
 
 SafeBank follows a defense-in-depth approach.
@@ -482,23 +573,27 @@ Current development branch:
 
 ## Next Step
 
-The next planned phase is:
+The current action is to finalize:
 
 **Phase 4 — SavingCore skeleton and saving-plan management**
 
-Phase 4 must not begin automatically.
+Before Phase 4 may be declared complete:
 
-Before moving to Phase 4:
-
-1. review the complete Phase 3 source diff;
-2. confirm that VaultManager contains no principal, deposit, C1, or C2 logic;
-3. verify that only project-owned MockUSDC and VaultManager ABIs are retained;
-4. run final TypeScript, compile, focused test, full test, and coverage checks;
+1. review the complete SavingCore source, test, ABI, and README diff;
+2. confirm that no deposit, NFT-minting, withdrawal, renewal, C1, or C2 business logic exists;
+3. confirm that only the project-owned SavingCore ABI is retained;
+4. run final TypeScript, compile, focused test, full regression, and coverage checks;
 5. run whitespace, generated-file, scope, and secret checks;
-6. stage only the approved Phase 3 files;
-7. commit with `feat: add secure interest vault manager`;
+6. stage only the approved Phase 4 files;
+7. commit with `feat: add saving plan management`;
 8. push the commit to `origin/main`;
 9. confirm that local and remote commits match;
 10. confirm that the working tree is clean;
-11. produce the complete Phase 3 checkpoint;
-12. wait for explicit user approval.
+11. produce the complete Phase 4 checkpoint;
+12. stop and wait for explicit user approval.
+
+After Phase 4 is fully committed, pushed, and approved, the next planned phase is:
+
+**Phase 5 — Deposit opening, financial-term snapshots, and ERC721 deposit certificates**
+
+Phase 5 must not begin automatically.
