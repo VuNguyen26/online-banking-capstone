@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -13,11 +14,12 @@ import {VaultManager} from "./VaultManager.sol";
 /**
  * @title SavingCore
  * @notice Central SafeBank contract for saving-plan and deposit management.
- * @dev Phase 4 implements only the contract foundation and saving-plan
- *      administration. Principal custody, deposits, certificate minting,
- *      withdrawals, renewals, C1, and C2 are intentionally deferred.
+ * @dev Implements saving-plan administration and Phase 5 deposit opening,
+ *      principal custody, financial-term snapshots, and ERC721 certificates.
+ *      Withdrawals, renewals, C1, and C2 remain intentionally deferred.
  */
 contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
     /**
      * @notice Number of seconds in the fixed personal-variant grace period.
      */
@@ -82,6 +84,30 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     }
 
     /**
+     * @notice Lifecycle state of a deposit certificate.
+     */
+    enum DepositStatus {
+        Active,
+        Withdrawn,
+        ManualRenewed,
+        AutoRenewed
+    }
+
+    /**
+     * @notice Immutable financial terms and lifecycle state of one deposit.
+     */
+    struct Deposit {
+        uint256 planId;
+        uint256 principal;
+        uint256 startedAt;
+        uint256 maturityAt;
+        uint256 tenorDays;
+        uint256 aprBpsAtOpen;
+        uint256 penaltyBpsAtOpen;
+        DepositStatus status;
+    }
+
+    /**
      * @dev A required contract address is zero.
      */
     error InvalidAddress();
@@ -127,6 +153,31 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     error PlanAlreadyDisabled(uint256 planId);
 
     /**
+     * @dev The supplied deposit identifier does not exist.
+     */
+    error InvalidDepositId(uint256 depositId);
+
+    /**
+     * @dev A deposit principal amount must be greater than zero.
+     */
+    error InvalidAmount();
+
+    /**
+     * @dev The selected plan does not currently accept new deposits.
+     */
+    error PlanNotEnabled(uint256 planId);
+
+    /**
+     * @dev The supplied amount is below the selected plan's minimum.
+     */
+    error DepositBelowMinimum(uint256 amount, uint256 minimum);
+
+    /**
+     * @dev The supplied amount is above the selected plan's maximum.
+     */
+    error DepositAboveMaximum(uint256 amount, uint256 maximum);
+
+    /**
      * @notice Emitted when a new saving plan is created.
      */
     event PlanCreated(
@@ -151,6 +202,18 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     event PlanDisabled(uint256 indexed planId);
 
     /**
+     * @notice Emitted after principal custody and certificate issuance succeed.
+     */
+    event DepositOpened(
+        uint256 indexed depositId,
+        address indexed owner,
+        uint256 indexed planId,
+        uint256 principal,
+        uint256 maturityAt,
+        uint256 aprBpsAtOpen
+    );
+
+    /**
      * @notice MockUSDC-compatible token used by SafeBank.
      */
     IERC20 public immutable token;
@@ -166,7 +229,14 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
      */
     uint256 public planCount;
 
+    /**
+     * @notice Number of deposits created.
+     * @dev Valid deposit identifiers range from 1 through depositCount.
+     */
+    uint256 public depositCount;
+
     mapping(uint256 planId => Plan plan) private _plans;
+    mapping(uint256 depositId => Deposit deposit) private _deposits;
 
     /**
      * @param token_ MockUSDC-compatible ERC20 contract address.
@@ -298,6 +368,81 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     }
 
     /**
+     * @notice Opens a fixed-term deposit and mints its ERC721 certificate.
+     * @param planId Enabled saving-plan identifier.
+     * @param amount Principal transferred from the caller into SavingCore.
+     * @return depositId Newly assigned deposit and certificate identifier.
+     */
+    function openDeposit(
+        uint256 planId,
+        uint256 amount
+    )
+        external
+        whenNotPaused
+        nonReentrant
+        returns (uint256 depositId)
+    {
+        _requirePlanExists(planId);
+
+        Plan memory plan = _plans[planId];
+
+        if (!plan.enabled) {
+            revert PlanNotEnabled(planId);
+        }
+
+        if (amount == 0) {
+            revert InvalidAmount();
+        }
+
+        if (plan.minDeposit != 0 && amount < plan.minDeposit) {
+            revert DepositBelowMinimum(amount, plan.minDeposit);
+        }
+
+        if (plan.maxDeposit != 0 && amount > plan.maxDeposit) {
+            revert DepositAboveMaximum(amount, plan.maxDeposit);
+        }
+
+        uint256 startedAt = block.timestamp;
+        uint256 maturityAt = startedAt + plan.tenorDays * 1 days;
+
+        depositId = ++depositCount;
+
+        _deposits[depositId] = Deposit({
+            planId: planId,
+            principal: amount,
+            startedAt: startedAt,
+            maturityAt: maturityAt,
+            tenorDays: plan.tenorDays,
+            aprBpsAtOpen: plan.aprBps,
+            penaltyBpsAtOpen: plan.earlyWithdrawPenaltyBps,
+            status: DepositStatus.Active
+        });
+
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        _safeMint(msg.sender, depositId);
+
+        emit DepositOpened(
+            depositId,
+            msg.sender,
+            planId,
+            amount,
+            maturityAt,
+            plan.aprBps
+        );
+    }
+
+    /**
+     * @notice Returns an existing deposit and its snapshotted terms.
+     * @param depositId Existing deposit identifier.
+     */
+    function getDeposit(
+        uint256 depositId
+    ) external view returns (Deposit memory) {
+        _requireDepositExists(depositId);
+        return _deposits[depositId];
+    }
+
+    /**
      * @notice Pauses future pause-protected SavingCore financial entry points.
      */
     function pause() external onlyOwner {
@@ -317,6 +462,15 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     function _requirePlanExists(uint256 planId) internal view {
         if (planId == 0 || planId > planCount) {
             revert InvalidPlanId(planId);
+        }
+    }
+
+    /**
+     * @dev Reverts unless depositId identifies an existing deposit.
+     */
+    function _requireDepositExists(uint256 depositId) internal view {
+        if (depositId == 0 || depositId > depositCount) {
+            revert InvalidDepositId(depositId);
         }
     }
 

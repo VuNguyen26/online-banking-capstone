@@ -6,25 +6,26 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Security Model and Threat Analysis |
-| Current project phase | Phase 1 — Architecture and design documentation |
-| Implementation status | Security controls are planned; smart contracts and security tests are not implemented yet |
+| Current project phase | Phase 5 — Deposit opening, financial-term snapshots, and ERC721 deposit certificates |
+| Implementation status | Security controls through Phase 5 are implemented and validated locally; withdrawal, renewal, bonuses, frontend, AI, and deployment controls remain pending |
 | Security approach | Defense-in-depth and risk reduction |
 | Smart contract model | Non-upgradeable |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document defines the intended SafeBank security model before smart contract implementation begins.
+This document records implemented security controls together with the planned security model for later SafeBank phases.
+
+As of Phase 5, the project has locally validated access control, pause behavior, dependency validation, SafeERC20 principal transfers, deposit validation, deposit snapshot integrity, safe ERC721 minting, atomic rollback, and ERC721 callback reentrancy protection.
 
 It does not claim that:
 
-- the contracts have been implemented;
-- the contracts have been audited;
+- the contracts have been independently audited;
 - the project is production-ready;
-- every described mitigation is already active;
-- the system cannot be hacked;
-- the current empty-project coverage report proves security.
+- later withdrawal, renewal, C1, C2, frontend, AI, or deployment mitigations are already active;
+- every possible attack has been eliminated;
+- passing tests or high coverage alone prove security.
 
-Every security statement must later be validated against actual Solidity code, tests, deployment configuration, and observed execution results.
+Every security statement must remain consistent with the actual Solidity code, tests, deployment configuration, and observed execution results.
 
 ## 1.1 Personal Variant Security Baseline
 
@@ -131,7 +132,7 @@ The selected bonuses are:
 - C1 — Principal-First Settlement;
 - C2 — Solvency Guard.
 
-They are planned security and resilience extensions, not Phase 1 implementation.
+They remain planned security and resilience extensions and are not implemented as of Phase 5.
 
 ### 3.4 Product Security Extensions
 
@@ -568,7 +569,7 @@ This is a critical contract boundary.
 
 ERC20 transfers are external calls.
 
-The project plans to use `SafeERC20` to handle tokens that:
+The Phase 5 SavingCore implementation uses `SafeERC20` to handle tokens that:
 
 - return `true`;
 - return `false`;
@@ -1134,7 +1135,7 @@ Deposit opening must safely handle:
 
 ## 19.4 SafeERC20
 
-SafeBank plans to use `SafeERC20` for token interactions.
+SafeBank uses `SafeERC20` for implemented ERC20 token interactions.
 
 This improves compatibility but does not make every malicious ERC20 economically safe.
 
@@ -1879,7 +1880,7 @@ The planned Solidity coding practices include:
 
 ## 35. Security Test Plan
 
-Security testing will be added incrementally with each implementation phase.
+Security testing is added incrementally with each implementation phase. Phase 5 includes deposit validation, ERC20 failure rollback, invalid ERC721 receiver rollback, pause, and callback reentrancy tests.
 
 ## 35.1 Access-Control Tests
 
@@ -2219,7 +2220,7 @@ These limitations must be stated honestly in the final documentation.
 
 ## 41. Security Non-Goals
 
-SafeBank Phase 1 does not attempt to:
+SafeBank does not attempt to:
 
 - prove mathematical absence of all bugs;
 - secure a real banking institution;
@@ -2235,62 +2236,62 @@ SafeBank Phase 1 does not attempt to:
 
 ---
 
-## 42. Open Security Decisions
+## 42. Security Decision Status
 
-The following security-sensitive decisions remain unresolved:
+Resolved and implemented through Phase 5:
 
-1. `ERC721` versus `ERC721Enumerable`.
-2. Exact plan APR upper bound.
-3. Exact tenor bounds.
-4. Exact penalty upper bound.
-5. Exact SavingCore authorization handshake.
-6. Whether SavingCore authorization can be replaced.
-7. Pause ownership and coordination between two contracts.
-8. NFT safe-mint versus standard mint behavior.
-9. NFT metadata strategy.
-10. Auto-renew penalty snapshot behavior.
-11. Exact custom errors.
-12. Exact emergency administrator powers.
-13. Whether a multisig will be documented as a future production recommendation.
-14. Frontend framework and wallet library.
-15. AI provider and server-side secret handling.
+1. Basic `ERC721` is used without `ERC721Enumerable`.
+2. APR, tenor, and penalty validation bounds are fixed.
+3. VaultManager uses one-time authorization of a deployed SavingCore-compatible contract.
+4. SavingCore authorization cannot be replaced.
+5. SavingCore and VaultManager use independent pause states.
+6. Deposit certificates use safe minting.
+7. Deposit-opening financial operations use `SafeERC20` and `nonReentrant`.
+8. Current custom errors and constructor dependencies are defined.
 
-These decisions must be finalized before the relevant implementation phase.
+Still unresolved or deferred:
+
+1. Rich NFT metadata and external token-URI presentation.
+2. Auto-renew penalty snapshot behavior.
+3. Final emergency-administrator policy beyond current owner and pause controls.
+4. Multisig recommendations for production use.
+5. Frontend framework and wallet library.
+6. AI provider and server-side secret handling.
+
+Deferred security decisions must be finalized before their related implementation phases.
 
 ---
 
-## 43. Phase 1 Security Status
+## 43. Phase 5 Security Status
 
-At the time this document is created:
+Completed and validated locally:
 
-Completed:
-
-- high-level security philosophy;
-- asset identification;
-- actor and privilege analysis;
-- trust-boundary definition;
-- attack-surface identification;
-- threat and mitigation planning;
-- test-plan definition;
-- incident-response considerations;
-- residual-risk documentation.
+- security philosophy, assets, actors, trust boundaries, and threat analysis;
+- Ownable2Step access control;
+- dependency address and deployed-bytecode validation;
+- independent pause controls;
+- SafeERC20 principal transfer;
+- plan and deposit validation;
+- immutable deposit-term snapshots;
+- safe ERC721 certificate minting;
+- ERC20 failure atomic rollback;
+- invalid ERC721 receiver atomic rollback;
+- ERC721 callback reentrancy protection;
+- security mocks and automated tests;
+- 100% statements, branches, functions, and lines coverage for SavingCore.
 
 Not completed:
 
-- Solidity security controls;
-- access-control implementation;
-- reentrancy protection implementation;
-- security mocks;
-- security tests;
+- maturity and early-withdrawal security controls;
+- manual and automatic renewal security controls;
 - C1 implementation;
 - C2 implementation;
-- real coverage;
 - deployment verification;
 - frontend security implementation;
 - AI security implementation;
-- professional audit.
+- professional external audit.
 
-This is a design document, not an audit report.
+This is a security model and implementation record, not an audit report.
 
 ---
 

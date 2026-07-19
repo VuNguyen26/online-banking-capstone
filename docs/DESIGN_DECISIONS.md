@@ -6,17 +6,17 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Architecture and Product Decision Records |
-| Current project phase | Phase 1 — Architecture and design documentation |
-| Implementation status | Decisions documented; smart contracts and frontend are not implemented yet |
+| Current project phase | Phase 5 — Deposit opening and ERC721 deposit certificates |
+| Implementation status | Accepted decisions through Phase 5 are reflected in the implemented contracts and tests; withdrawal, renewal, C1, C2, frontend, AI, and deployment decisions remain pending or deferred |
 | Architecture model | Non-upgradeable |
 | Student ID | 3122560090 |
 | Test token | MockUSDC with 6 decimals |
 
-This document records the accepted, proposed, and unresolved decisions governing SafeBank.
+This document is the living record of accepted, proposed, implemented, and deferred decisions governing SafeBank.
 
-A documented decision is not proof that the related feature has already been implemented or tested.
+A decision marked accepted or implemented must remain consistent with the actual Solidity code and tests. A proposed or deferred decision is not proof that the related feature has already been implemented.
 
-The final Solidity code, tests, frontend, deployment scripts, README, and demonstration must remain consistent with accepted decisions in this document.
+The Solidity code, tests, frontend, deployment scripts, README, and demonstration must remain consistent with the applicable decisions in this document.
 
 ---
 
@@ -1788,14 +1788,18 @@ Mutable metadata introduces additional administrator and hosting concerns.
 
 ### Decision
 
-The final token URI strategy is deferred until Phase 5.
+Phase 5 does not implement a custom `tokenURI` override or rich per-token metadata.
 
-Current direction:
+The remaining rich metadata and external presentation strategy stays deferred to a later product phase.
 
-- use fixed collection name and symbol;
-- avoid mutable per-token administrator-controlled financial metadata;
-- derive all authoritative financial information from deposit storage;
-- treat external metadata as presentation only.
+The implemented direction is:
+
+- use the fixed collection name `SafeBank Deposit Certificate`;
+- use the fixed collection symbol `SBDC`;
+- rely on the inherited basic ERC721 metadata behavior;
+- avoid mutable administrator-controlled financial metadata;
+- derive all authoritative financial information from `getDeposit`;
+- treat any future external metadata as presentation only.
 
 ### Rationale
 
@@ -1807,7 +1811,9 @@ Wallet marketplace presentation may remain basic.
 
 ### Test implication
 
-Future tests must ensure metadata cannot alter deposit rights.
+Phase 5 tests validate deposit rights through stored deposit data and NFT ownership.
+
+Any future metadata tests must ensure metadata cannot alter deposit terms, status, ownership, or economic rights.
 
 ### UI implication
 

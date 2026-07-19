@@ -6,16 +6,18 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | System Architecture |
-| Current phase | Phase 1 — Architecture and design documentation |
-| Implementation status | Planned architecture; smart contracts and frontend are not implemented yet |
+| Current phase | Phase 5 — Deposit opening, financial-term snapshots, and ERC721 deposit certificates |
+| Implementation status | Smart contracts through Phase 5 are implemented and validated locally; later financial flows, frontend, AI, and deployment remain pending |
 | Smart contract model | Non-upgradeable |
 | Target environments | Hardhat local network and Ethereum Sepolia testnet |
 | Test token | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document defines the intended SafeBank architecture before smart contract implementation begins.
+This document records both the implemented architecture and the planned direction for later SafeBank phases.
 
-It must not be interpreted as evidence that the contracts, tests, frontend, AI assistants, deployments, or security controls described here have already been implemented, audited, or verified.
+As of Phase 5, MockUSDC, VaultManager, SavingCore plan management, deposit opening, principal custody, financial-term snapshots, and ERC721 certificate issuance are implemented and validated locally.
+
+Sections covering withdrawal, early withdrawal, renewal, Bonus C1, Bonus C2, frontend, AI, and deployment remain design specifications and must not be treated as implemented, audited, deployed, or production-ready.
 
 ---
 
@@ -363,7 +365,7 @@ flowchart LR
 
 The diagram is conceptual.
 
-Exact constructor parameters, interfaces, and authorization setup will be finalized before implementation.
+The implemented SavingCore constructor receives the token address, VaultManager address, and initial owner. VaultManager uses a separate one-time SavingCore authorization step.
 
 ---
 
@@ -447,7 +449,7 @@ The NFT is not burned after withdrawal or renewal.
 
 Deposit status prevents an old certificate from being reused.
 
-Whether the project will use basic `ERC721` or `ERC721Enumerable` remains an unresolved design decision until `DESIGN_DECISIONS.md` finalizes it.
+The project uses basic OpenZeppelin `ERC721` without `ERC721Enumerable`, as finalized in ADR-015.
 
 ---
 
@@ -538,7 +540,7 @@ The mandatory administrative interface is expected to include:
 - `enablePlan(planId)`;
 - `disablePlan(planId)`.
 
-Exact parameter ordering and validation bounds will be finalized before implementation.
+The implemented plan interface and validation bounds are defined by SavingCore and recorded in the accepted design decisions.
 
 ---
 
@@ -583,7 +585,7 @@ Every deposit receives a unique `depositId`.
 
 The associated NFT token ID is expected to match the deposit ID.
 
-The exact starting value, such as zero or one, will be finalized before implementation and tested consistently.
+Plan IDs, deposit IDs, and ERC721 token IDs begin at `1`; identifier `0` is invalid.
 
 ---
 
@@ -967,7 +969,7 @@ Pause does not automatically:
 
 Pause is a damage-containment mechanism, not a complete security solution.
 
-Whether pause ownership is centralized in one contract or coordinated between `SavingCore` and `VaultManager` will be finalized before implementation.
+`SavingCore` and `VaultManager` use independent pause states controlled by their respective owners, as finalized in ADR-020.
 
 ---
 
@@ -1003,7 +1005,7 @@ Every additional event must have a clear monitoring, accounting, security, or UX
 
 ## 23. Bonus C1 — Principal-First Settlement
 
-C1 is selected but not implemented during Phase 1.
+C1 is selected but remains unimplemented as of Phase 5.
 
 ### 23.1 Problem
 
@@ -1051,7 +1053,7 @@ Manual and auto-renew may still revert when the vault cannot fund the interest n
 
 ## 24. Bonus C2 — Solvency Guard
 
-C2 is selected but not implemented during Phase 1.
+C2 is selected but remains unimplemented as of Phase 5.
 
 ### 24.1 Problem
 
@@ -1285,7 +1287,7 @@ The current SafeBank capstone does not aim to provide:
 - upgradeable proxy architecture;
 - private-key custody by the application;
 - transaction signing by AI;
-- formal verification in Phase 1;
+- formal verification as a completed project assurance;
 - a claim that the system cannot be hacked.
 
 ---
@@ -1395,29 +1397,31 @@ The application must remain usable when the AI provider is unavailable.
 
 ---
 
-## 34. Open Architectural Decisions
+## 34. Architectural Decision Status
 
-The following items are intentionally unresolved at the time of Phase 1 documentation:
+Resolved and implemented through Phase 5:
 
-1. Whether certificates use `ERC721` or `ERC721Enumerable`.
-2. Exact Solidity storage structures.
-3. Exact custom error names.
-4. Exact maximum APR.
-5. Exact minimum and maximum tenor.
-6. Exact deposit ID starting value.
-7. Exact `VaultManager` authorization handshake.
-8. Whether the authorized `SavingCore` address can ever be replaced.
-9. Exact NFT metadata and token URI strategy.
-10. Final auto-renew penalty snapshot behavior.
-11. Exact pause coordination between contracts.
-12. Exact constructor and deployment parameters.
-13. Final frontend framework.
-14. Final AI provider.
-15. Deployment-address configuration format.
+1. Basic OpenZeppelin `ERC721` is used without `ERC721Enumerable`.
+2. Plan and deposit storage structures are defined in `SavingCore`.
+3. Current custom errors are defined in the implemented contracts.
+4. APR, tenor, and penalty validation bounds are fixed.
+5. Plan IDs, deposit IDs, and NFT token IDs begin at `1`.
+6. `tokenId == depositId`.
+7. VaultManager uses one-time authorization of a deployed SavingCore-compatible contract.
+8. The authorized SavingCore address cannot be replaced.
+9. SavingCore and VaultManager use independent pause states.
+10. Constructor dependencies and ownership parameters are defined.
+11. Phase 5 uses basic inherited ERC721 metadata without a custom `tokenURI`.
 
-These decisions must be documented before their related implementation begins.
+Still deferred:
 
-They must not be treated as completed code.
+1. Rich NFT metadata and external token-URI presentation.
+2. Final auto-renew penalty-snapshot behavior.
+3. Final frontend framework.
+4. Final AI provider.
+5. Deployment-address configuration format.
+
+Deferred decisions must be finalized before their related implementation begins and must not be represented as completed code.
 
 ---
 
@@ -1508,7 +1512,7 @@ Not implemented:
 - bonus C1;
 - bonus C2.
 
-This document is a Phase 1 architecture artifact only.
+This document is a living architecture record updated through Phase 5. Later-phase sections remain specifications until their implementations are validated.
 
 ---
 

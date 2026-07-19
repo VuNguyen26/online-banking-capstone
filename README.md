@@ -10,158 +10,131 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 4 — SavingCore skeleton and saving-plan management implemented and validated locally**
+**Phase 5 — Deposit opening, financial-term snapshots, and ERC721 deposit certificates implemented and validated locally**
 
-Phase 4 deliverables:
+Phase 5 deliverables:
 
 - `contracts/SavingCore.sol`
+- `contracts/mocks/MockDepositReceiver.sol`
 - `test/SavingCore.test.ts`
 - `data/abi/contracts/SavingCore.sol/SavingCore.json`
-- Phase 4 README update
+- Phase 5 documentation updates
 
-Phase 4 implementation includes:
+Phase 5 implementation includes:
 
-- non-upgradeable `SavingCore`;
-- standard OpenZeppelin ERC721 foundation;
-- immutable MockUSDC-compatible token reference;
-- immutable `VaultManager` reference;
-- dependency zero-address and deployed-bytecode validation;
-- `Ownable2Step`;
-- independent SavingCore pause state;
-- `ReentrancyGuard` foundation for later financial entry points;
-- fixed two-day personal-variant grace period;
-- personal-variant constants for 180-day tenor, 200-bps APR, and 750-bps penalty;
-- plan identifiers beginning at `1`;
-- saving-plan creation;
-- APR-only plan updates;
-- plan enable and disable operations;
-- explicit tenor, APR, penalty, and deposit-limit validation;
-- custom errors and plan-administration events.
+- deposit identifiers beginning at `1`;
+- `tokenId == depositId`;
+- active deposit records;
+- principal custody inside `SavingCore`;
+- `openDeposit(planId, amount)`;
+- plan existence and enabled-state validation;
+- minimum and maximum deposit validation;
+- `startedAt` and `maturityAt`;
+- tenor, APR, and penalty snapshots;
+- `SafeERC20.safeTransferFrom`;
+- safe ERC721 certificate minting;
+- `DepositOpened`;
+- `whenNotPaused`;
+- `nonReentrant`;
+- smart-contract receiver support;
+- complete rollback when ERC20 transfer or NFT delivery fails;
+- callback reentrancy protection.
 
-Phase 4 validation completed:
+Phase 5 validation completed:
 
-- local OpenZeppelin Contracts `5.3.0` API inspection;
 - TypeScript validation with `npx tsc --noEmit`;
-- Solidity compilation with Solidity `0.8.28`;
-- optimizer validation with `1,000` runs;
-- successful `viaIR` compilation;
-- TypeChain generation;
-- ABI exporter validation;
+- Solidity `0.8.28` compilation;
+- optimizer validation with `1,000` runs and `viaIR`;
+- TypeChain and ABI generation;
 - contract-size reporting;
-- focused SavingCore test execution;
-- full Hardhat regression test execution;
-- real Solidity coverage generation;
-- ABI-scope, generated-file, six-decimal, and out-of-scope business-logic checks.
+- focused SavingCore tests;
+- full regression tests;
+- focused and full-project Solidity coverage;
+- ERC20 allowance and balance failure tests;
+- invalid ERC721 receiver rollback tests;
+- ERC721 callback reentrancy tests;
+- paused deposit-opening tests;
+- ABI and out-of-scope function checks.
 
 Current verified results:
 
-- `SavingCore` compiled successfully;
-- SavingCore deployed bytecode size is approximately `5.755 KiB`;
-- SavingCore initcode size is approximately `6.944 KiB`;
-- `58 passing` focused SavingCore tests;
-- `118 passing` tests in the complete current suite;
-- SavingCore coverage reports 100% statements, 100% branches, 100% functions, and 100% lines;
-- overall current coverage reports 100% statements, 96.67% branches, 100% functions, and 100% lines;
-- no uncovered Solidity lines are reported.
+- SavingCore deployed bytecode: approximately `7.677 KiB`;
+- SavingCore initcode: approximately `8.873 KiB`;
+- `13 passing` MockUSDC tests;
+- `47 passing` VaultManager tests;
+- `84 passing` focused SavingCore tests;
+- `144 passing` tests in the complete suite;
+- SavingCore coverage: 100% statements, branches, functions, and lines;
+- overall coverage: 98.75% statements, 94.74% branches, 100% functions, and 97.22% lines.
 
 Important interpretation:
 
-- the current coverage applies only to the implemented MockUSDC, VaultManager, SavingCore plan-management foundation, and test mock;
-- it is not the final coverage result for the complete SafeBank system;
-- SavingCore currently contains no deposit-opening, principal-transfer, certificate-minting, withdrawal, renewal, C1, or C2 business flow;
-- inheriting ERC721 does not mean deposit certificates have already been minted;
-- inheriting ReentrancyGuard provides a foundation, but no SavingCore token-moving financial entry point exists yet;
-- plan updates affect only the stored plan APR intended for future deposits;
-- no active deposit snapshot exists yet;
-- Phase 4 Git staging, commit, push, local/remote comparison, and final checkpoint are still pending.
+- user principal is now transferred into and held by `SavingCore`;
+- `VaultManager` continues to hold only bank-funded interest liquidity;
+- opening a deposit does not call `VaultManager`;
+- each deposit snapshots its tenor, APR, and penalty at opening;
+- later plan updates do not modify existing deposit snapshots;
+- the ERC721 certificate is transferable;
+- the current NFT owner will control future deposit economic rights;
+- rich NFT metadata and a custom `tokenURI` strategy remain deferred;
+- withdrawal, early withdrawal, renewal, C1, and C2 are not implemented;
+- Phase 5 Git staging, commit, push, remote comparison, and final checkpoint are still pending.
 
 Previous completed phases:
 
 - Phase 0: project, environment, Git, and GitHub initialization;
 - Phase 1: architecture, security, UI/UX, and design-decision documentation;
 - Phase 2: six-decimal MockUSDC contract and tests;
-- Phase 3: base VaultManager contract and tests.
+- Phase 3: base VaultManager contract and tests;
+- Phase 4: SavingCore foundation and saving-plan management.
 
 ## Current Implementation Status
 
 Completed:
 
-- Hardhat project initialization
-- npm package-manager standardization
-- TypeScript and Hardhat configuration
-- Environment-variable cleanup
-- solidity-coverage setup
-- Git repository initialization
-- GitHub remote setup
-- Phase 0 root commit and push
-- Architecture documentation
-- Security-model documentation
-- UI/UX planning
-- Design-decision records
-- Six-decimal `MockUSDC` ERC20 implementation
-- Permissionless test-token minting
-- MockUSDC metadata, transfer, allowance, and failure-case validation
-- Basic `VaultManager` interest-liquidity custody
-- Immutable VaultManager ERC20 token reference
-- Owner-controlled vault funding
-- Owner withdrawal to the current owner
-- One-time deployed-contract SavingCore authorization
-- Authorized SavingCore-only interest payout
-- Fee receiver configuration
-- Independent VaultManager pause and unpause
-- Vault balance derived from the actual ERC20 balance
-- SavingCore contract foundation
-- Standard ERC721 certificate foundation
-- SavingCore immutable token and VaultManager references
-- SavingCore dependency address and bytecode validation
-- Independent SavingCore pause and unpause
-- SavingCore two-step ownership
-- Personal-variant constants
-- Plan identifiers beginning at one
-- Saving-plan creation
-- APR-only plan updates
-- Plan enable and disable
-- Saving-plan bounds and deposit-range validation
+- Hardhat, TypeScript, coverage, Git, and GitHub setup
+- Architecture, security, UI/UX, and design-decision documentation
+- Six-decimal permissionless `MockUSDC`
+- Base `VaultManager`
+- SavingCore ownership, pause, and saving-plan management
+- Deposit storage and active status
+- Principal transfer into SavingCore
+- Deposit opening
+- ERC721 deposit-certificate issuance
+- Sequential deposit and NFT identifiers beginning at one
+- Tenor, APR, and penalty snapshots
+- Deposit start and maturity timestamps
+- SafeERC20 transfer handling
+- Safe ERC721 minting
+- Failed-transfer and failed-receiver rollback
+- ERC721 receiver reentrancy protection
 - MockUSDC, VaultManager, and SavingCore ABI export
-- Thirteen passing MockUSDC tests
-- Forty-seven passing focused VaultManager tests
-- Fifty-eight passing focused SavingCore tests
-- One hundred eighteen passing tests in the complete current suite
-- Current overall Solidity coverage of 100% statements, 96.67% branches, 100% functions, and 100% lines
+- 144 passing tests
+- 100% coverage across all four metrics for SavingCore
 
 Not implemented yet:
 
-- Deposit storage and lifecycle
-- Principal transfer into SavingCore
-- Deposit opening
-- ERC721 deposit-certificate minting
-- NFT metadata strategy
-- APR snapshot per deposit
-- Penalty snapshot per deposit
-- Maturity timestamp calculation
+- Rich NFT metadata or custom `tokenURI`
 - Maturity withdrawal
 - Early withdrawal
 - Manual renewal
 - Permissionless auto-renewal
-- Timestamp-boundary deposit tests
-- SavingCore token-transfer and vault-payout integration
-- SavingCore reentrancy and malicious-token security suites
+- Interest calculation and payout integration
+- Withdrawal and renewal timestamp-boundary tests
 - Bonus C1
 - Bonus C2
 - Deployment scripts
-- Local contract deployment
+- Local deployment workflow
 - Sepolia deployment
 - Etherscan verification
 - User Banking App
 - Admin Portal
 - AI Banking Assistant
 - AI Risk Assistant
-- Final README
 - Demo video
 - Final submission audit
 
-No principal custody transaction, deposit, NFT mint, withdrawal, or renewal business flow should currently be treated as implemented.
-
+No withdrawal, renewal, C1, or C2 business flow should currently be treated as implemented.
 ## Core Contracts
 
 ### MockUSDC
@@ -244,7 +217,7 @@ Implemented characteristics:
 - initial owner configured through OpenZeppelin `Ownable`;
 - two-step ownership transfers through `Ownable2Step`;
 - independent pause and unpause through `Pausable`;
-- `ReentrancyGuard` foundation for later financial entry points;
+- `ReentrancyGuard` protection for deposit-opening financial operations;
 - fixed `GRACE_PERIOD` of two days;
 - personal-variant constants:
   - `DEFAULT_TENOR_DAYS = 180`;
@@ -264,30 +237,41 @@ Implemented characteristics:
 - rejection when both limits are nonzero and minimum exceeds maximum;
 - duplicate enable and disable operations rejected explicitly;
 - read-only plan access available while paused;
-- plan administration intentionally available while paused.
+- plan administration intentionally available while paused;
+- deposit identifiers beginning at `1`;
+- deposit ID `0` treated as invalid;
+- `tokenId == depositId`;
+- active deposit records containing principal and snapshotted terms;
+- `openDeposit(planId, amount)`;
+- enabled-plan and deposit-limit validation;
+- principal transferred from the depositor into `SavingCore`;
+- `startedAt` and `maturityAt` calculation;
+- tenor, APR, and penalty snapshots;
+- `SafeERC20.safeTransferFrom`;
+- safe ERC721 certificate minting to the depositor;
+- `DepositOpened` events;
+- complete rollback on token-transfer or NFT-receiver failure;
+- callback reentrancy protection;
+- deposit and certificate reads while paused.
 
 The exported project ABI is located at:
 
 `data/abi/contracts/SavingCore.sol/SavingCore.json`
 
-The current Phase 4 implementation intentionally does not include:
+The current Phase 5 implementation intentionally does not include:
 
-- deposit records;
-- principal token transfers;
-- `openDeposit`;
-- `_safeMint` execution;
-- deposit certificate issuance;
 - maturity withdrawal;
 - early withdrawal;
 - manual renewal;
-- auto-renewal;
-- VaultManager interest requests;
+- permissionless auto-renewal;
+- interest calculation or VaultManager payout requests;
 - pending-interest accounting;
 - reserved-interest accounting;
 - Bonus C1;
-- Bonus C2.
+- Bonus C2;
+- rich NFT metadata or a custom `tokenURI` implementation.
 
-ERC721 inheritance establishes the future certificate interface, but no NFT can currently be minted through the public SafeBank business API.
+ERC721 certificates can now be minted through `openDeposit`. Financial rights are derived from the on-chain deposit record and current NFT ownership, not from off-chain metadata.
 
 ## Architecture Principle
 
@@ -470,14 +454,18 @@ The project currently uses npm and `package-lock.json`.
 | `npm run size` | Report compiled contract sizes |
 | `npm run node` | Start a local Hardhat node |
 
-At the current locally validated Phase 4 state:
+At the current locally validated Phase 5 state:
 
 - Solidity `0.8.28`, optimizer with `1,000` runs, and `viaIR` compile successfully;
-- focused SavingCore testing reports `58 passing`;
-- the complete current suite reports `118 passing`;
+- focused SavingCore testing reports `84 passing`;
+- the complete current suite reports `144 passing`;
+- SavingCore deployed bytecode is approximately `7.677 KiB`;
+- SavingCore initcode is approximately `8.873 KiB`;
 - SavingCore coverage reports 100% statements, branches, functions, and lines;
-- overall coverage reports 100% statements, 96.67% branches, 100% functions, and 100% lines;
-- no uncovered Solidity lines are reported;
+- MockUSDC coverage reports 100% statements, branches, functions, and lines;
+- VaultManager coverage reports 100% statements, 94% branches, 100% functions, and 100% lines;
+- overall coverage reports 98.75% statements, 94.74% branches, 100% functions, and 97.22% lines;
+- remaining uncovered lines belong only to the test-only `MockDepositReceiver`;
 - `artifacts/`, `cache/`, `typechain/`, `coverage/`, and `coverage.json` remain ignored;
 - project-owned MockUSDC, VaultManager, and SavingCore ABIs are retained;
 - test-mock ABIs are removed before staging and are not project integration artifacts.
@@ -575,25 +563,26 @@ Current development branch:
 
 The current action is to finalize:
 
-**Phase 4 — SavingCore skeleton and saving-plan management**
-
-Before Phase 4 may be declared complete:
-
-1. review the complete SavingCore source, test, ABI, and README diff;
-2. confirm that no deposit, NFT-minting, withdrawal, renewal, C1, or C2 business logic exists;
-3. confirm that only the project-owned SavingCore ABI is retained;
-4. run final TypeScript, compile, focused test, full regression, and coverage checks;
-5. run whitespace, generated-file, scope, and secret checks;
-6. stage only the approved Phase 4 files;
-7. commit with `feat: add saving plan management`;
-8. push the commit to `origin/main`;
-9. confirm that local and remote commits match;
-10. confirm that the working tree is clean;
-11. produce the complete Phase 4 checkpoint;
-12. stop and wait for explicit user approval.
-
-After Phase 4 is fully committed, pushed, and approved, the next planned phase is:
-
 **Phase 5 — Deposit opening, financial-term snapshots, and ERC721 deposit certificates**
 
-Phase 5 must not begin automatically.
+Before Phase 5 may be declared complete:
+
+1. review the complete SavingCore, receiver mock, tests, ABI, and documentation diff;
+2. confirm deposit opening, snapshots, principal custody, and certificate minting are implemented;
+3. confirm withdrawal, renewal, C1, and C2 logic are not implemented;
+4. remove generated test-mock ABIs before staging;
+5. run final TypeScript, compile, focused test, full regression, coverage, and size checks;
+6. run whitespace, generated-file, scope, and secret checks;
+7. stage only the approved Phase 5 files;
+8. commit with `feat: add deposit opening and NFT certificates`;
+9. push the commit to `origin/main`;
+10. confirm that local and remote commits match;
+11. confirm that the working tree is clean;
+12. produce the complete Phase 5 checkpoint;
+13. stop and wait for explicit user approval.
+
+After Phase 5 is fully committed, pushed, and approved, the next planned phase is:
+
+**Phase 6 — Maturity withdrawal flow**
+
+Phase 6 must not begin automatically.
