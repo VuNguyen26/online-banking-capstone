@@ -10,6 +10,11 @@ interface ISavingCoreWithdrawal {
     function earlyWithdraw(uint256 depositId) external;
 
     function withdrawAtMaturity(uint256 depositId) external;
+
+    function manualRenew(
+        uint256 depositId,
+        uint256 newPlanId
+    ) external returns (uint256 newDepositId);
 }
 
 /**
@@ -23,10 +28,13 @@ contract MockReentrantToken is ERC20 {
      */
     error ForcedTransferFailure(address recipient);
     address public savingCore;
+    address public reentryTrigger;
     uint256 public reentryDepositId;
+    uint256 public reentryNewPlanId;
 
     bool public reentryEnabled;
     bool public reenterEarlyWithdrawal;
+    bool public reenterManualRenewal;
     bool public reentryAttempted;
     bool public reentrySucceeded;
 
@@ -54,9 +62,12 @@ contract MockReentrantToken is ERC20 {
         bool enabled
     ) external {
         savingCore = savingCore_;
+        reentryTrigger = savingCore_;
         reentryDepositId = depositId_;
+        reentryNewPlanId = 0;
         reentryEnabled = enabled;
         reenterEarlyWithdrawal = false;
+        reenterManualRenewal = false;
         reentryAttempted = false;
         reentrySucceeded = false;
         lastReentryErrorSelector = bytes4(0);
@@ -72,9 +83,36 @@ contract MockReentrantToken is ERC20 {
         bool enabled
     ) external {
         savingCore = savingCore_;
+        reentryTrigger = savingCore_;
         reentryDepositId = depositId_;
+        reentryNewPlanId = 0;
         reentryEnabled = enabled;
         reenterEarlyWithdrawal = true;
+        reenterManualRenewal = false;
+        reentryAttempted = false;
+        reentrySucceeded = false;
+        lastReentryErrorSelector = bytes4(0);
+    }
+
+    /**
+     * @notice Configures a callback into manualRenew during token transfer.
+     * @dev The trigger is normally VaultManager because it transfers renewal
+     *      interest into SavingCore.
+     */
+    function configureManualRenewReentry(
+        address savingCore_,
+        address reentryTrigger_,
+        uint256 depositId_,
+        uint256 newPlanId_,
+        bool enabled
+    ) external {
+        savingCore = savingCore_;
+        reentryTrigger = reentryTrigger_;
+        reentryDepositId = depositId_;
+        reentryNewPlanId = newPlanId_;
+        reentryEnabled = enabled;
+        reenterEarlyWithdrawal = false;
+        reenterManualRenewal = true;
         reentryAttempted = false;
         reentrySucceeded = false;
         lastReentryErrorSelector = bytes4(0);
@@ -112,11 +150,31 @@ contract MockReentrantToken is ERC20 {
 
         bool success = super.transfer(to, value);
 
-        if (reentryEnabled && _msgSender() == savingCore) {
+        if (
+            reentryEnabled &&
+            _msgSender() == reentryTrigger
+        ) {
             reentryEnabled = false;
             reentryAttempted = true;
 
-            if (reenterEarlyWithdrawal) {
+            if (reenterManualRenewal) {
+                try ISavingCoreWithdrawal(savingCore)
+                    .manualRenew(
+                        reentryDepositId,
+                        reentryNewPlanId
+                    )
+                returns (uint256) {
+                    reentrySucceeded = true;
+                } catch (bytes memory reason) {
+                    bytes4 selector;
+
+                    assembly {
+                        selector := mload(add(reason, 32))
+                    }
+
+                    lastReentryErrorSelector = selector;
+                }
+            } else if (reenterEarlyWithdrawal) {
                 try ISavingCoreWithdrawal(savingCore)
                     .earlyWithdraw(reentryDepositId)
                 {

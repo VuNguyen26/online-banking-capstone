@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Architecture and Product Decision Records |
-| Current project phase | Phase 7 — Early withdrawal with penalty |
-| Implementation status | Accepted decisions through Phase 7 are reflected in the implemented contracts and tests; renewal, C1, C2, frontend, AI, and deployment decisions remain pending or deferred |
+| Current project phase | Phase 8 — Manual renewal during the grace period |
+| Implementation status | Accepted decisions through Phase 8 are reflected in the implemented contracts and tests; permissionless auto-renewal, C1, C2, frontend, AI, and deployment decisions remain pending or deferred |
 | Architecture model | Non-upgradeable |
 | Student ID | 3122560090 |
 | Test token | MockUSDC with 6 decimals |
@@ -312,7 +312,6 @@ SafeBank will not burn the NFT after:
 
 - maturity withdrawal;
 - early withdrawal;
-- manual renewal;
 - auto-renewal.
 
 The associated deposit status makes the old NFT non-actionable.
@@ -423,6 +422,32 @@ This creates one exact transition point without overlapping conditions.
 ### Trade-offs
 
 A manual-renew transaction submitted near the boundary may be mined too late and revert.
+
+### Phase 8 implementation status
+
+The manual-renewal side of this decision is implemented and validated.
+
+`manualRenew` accepts:
+
+`maturityAt <= block.timestamp < maturityAt + GRACE_PERIOD`
+
+It reverts:
+
+- before maturity with `DepositNotMatured`;
+- at the exact grace-period end with `ManualRenewalWindowClosed`;
+- after the grace-period end with `ManualRenewalWindowClosed`.
+
+Validated timestamps include:
+
+- one second before maturity;
+- exact maturity;
+- one second before the grace-period end;
+- exact grace-period end;
+- after the grace-period end.
+
+The auto-renew side remains pending. Therefore, ADR-006 remains `Accepted`
+rather than fully `Implemented` until permissionless auto-renewal is
+developed and its exact-boundary behavior is validated.
 
 ### Test implication
 
@@ -708,7 +733,6 @@ When the relevant contract is paused, SafeBank blocks:
 - opening deposits;
 - maturity withdrawal;
 - early withdrawal;
-- manual renewal;
 - auto-renew;
 - pending-interest claims;
 - interest payout.
@@ -1228,6 +1252,31 @@ Every new principal amount must be fully token-backed.
 ### Trade-offs
 
 An underfunded vault can prevent renewal.
+
+### Phase 8 implementation status
+
+The manual-renewal portion of this decision is implemented.
+
+For positive old-term interest, `manualRenew` calls:
+
+`vaultManager.payInterest(address(this), interest)`
+
+The transferred tokens move from `VaultManager` into `SavingCore` before
+the interest can become part of the new active deposit's principal.
+
+The implementation validates:
+
+- new principal equals old principal plus funded old-term interest;
+- user wallet balance remains unchanged;
+- token total supply remains unchanged;
+- underfunded VaultManager causes complete rollback;
+- unauthorized SavingCore causes complete rollback;
+- paused VaultManager blocks positive-interest renewal;
+- failed safe mint after payout also rolls back the payout;
+- zero-rounded interest skips the VaultManager call.
+
+ADR-025 remains `Accepted` rather than fully `Implemented` because its
+application to permissionless auto-renewal remains pending.
 
 ### Test implication
 
@@ -2442,7 +2491,7 @@ The following remain deferred until their relevant phases:
 - frontend deployment provider;
 - event-indexing technology.
 
-The current Solidity storage layout, custom errors, function signatures, and implemented event-indexing parameters are defined by the Phase 7 contracts and exported ABI.
+The current Solidity storage layout, custom errors, function signatures, and implemented event-indexing parameters are defined by the Phase 8 contracts and exported ABI.
 
 Deferred details must not contradict accepted financial and security behavior.
 
@@ -2450,7 +2499,7 @@ Deferred details must not contradict accepted financial and security behavior.
 
 ## 40. Phase Status
 
-Implemented and validated through Phase 7:
+Implemented and validated through Phase 8:
 
 - decision documentation;
 - classification of mandatory and SafeBank-specific requirements;
@@ -2471,24 +2520,51 @@ Implemented and validated through Phase 7:
 - current fee-receiver resolution;
 - deterministic floor rounding;
 - zero and maximum penalty boundaries;
-- user-net-first atomic token settlement;
+- user-net-first atomic early-withdrawal settlement;
 - disabled-plan settlement isolation;
-- historical NFT retention;
 - simple interest from snapshotted principal, APR, and tenor;
 - underfunded-vault maturity rollback;
-- failed-penalty-transfer early rollback;
+- failed-penalty-transfer early-withdrawal rollback;
 - maturity and early-withdrawal reentrancy protection;
-- exclusion between conflicting terminal actions;
-- `120` SavingCore tests;
-- `180` full-suite tests;
+- manual renewal during the two-day grace period;
+- exact half-open manual-renewal interval;
+- pre-maturity `DepositNotMatured` behavior;
+- exact and post-grace `ManualRenewalWindowClosed` behavior;
+- direct current-owner manual-renewal authorization;
+- approved ERC721 operator rejection;
+- transferred-certificate renewal rights;
+- old-deposit snapshot isolation;
+- disabled old-plan renewal rights;
+- selected enabled-plan validation;
+- same-plan renewal while enabled;
+- selected-plan limits applied to compounded principal;
+- positive old-interest transfer from VaultManager into SavingCore;
+- zero-rounded-interest renewal without a vault call;
+- old `Active` to `ManualRenewed` lifecycle transition;
+- new active deposit creation;
+- selected-plan snapshots for the renewed term;
+- renewal transaction timestamp as the new term start;
+- old historical-certificate retention;
+- new ERC721 certificate issuance;
+- `tokenId == depositId` for the renewed deposit;
+- user wallet balance conservation during renewal;
+- MockUSDC total-supply conservation during renewal;
+- underfunded-vault renewal rollback;
+- unauthorized-vault renewal rollback;
+- paused-vault positive-interest rollback;
+- failed renewal safe-mint rollback;
+- ERC20 payout-callback reentrancy protection;
+- ERC721 receiver-callback reentrancy protection;
+- exclusion between renewal, early withdrawal, and maturity withdrawal;
+- `144` SavingCore tests;
+- `204` full-suite tests;
 - 100% statements, branches, functions, and lines coverage for SavingCore;
-- all `82 / 82` SavingCore branch paths;
-- SavingCore deployed bytecode of approximately `9.406 KiB`;
-- SavingCore initcode of approximately `10.637 KiB`.
+- all `102 / 102` SavingCore branch paths;
+- SavingCore deployed bytecode of approximately `10.334 KiB`;
+- SavingCore initcode of approximately `11.571 KiB`.
 
 Not implemented:
 
-- manual renewal;
 - permissionless auto-renewal;
 - pending-interest accounting;
 - reserved-interest accounting;
@@ -2501,7 +2577,12 @@ Not implemented:
 - Bonus C1 code;
 - Bonus C2 code.
 
-ADR-006 remains `Accepted`, not `Implemented`, because manual and automatic renewal have not been developed yet.
+ADR-006 remains `Accepted`, not fully `Implemented`, because Phase 8
+implements and validates the manual-renewal side of the exact grace
+boundary while permissionless auto-renewal remains pending.
+
+ADR-025 is implemented for manual renewal, while its application to
+permissionless auto-renewal remains pending.
 
 This file records both accepted design decisions and their verified implementation status.
 

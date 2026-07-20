@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | System Architecture |
-| Current phase | Phase 7 — Early withdrawal with penalty |
-| Implementation status | Smart contracts through Phase 7 are implemented and validated locally; renewal, bonuses, frontend, AI, and deployment remain pending |
+| Current phase | Phase 8 — Manual renewal during the grace period |
+| Implementation status | Smart contracts through Phase 8 are implemented and validated locally; permissionless auto-renewal, bonuses, frontend, AI, and deployment remain pending |
 | Smart contract model | Non-upgradeable |
 | Target environments | Hardhat local network and Ethereum Sepolia testnet |
 | Test token | MockUSDC with 6 decimals |
@@ -15,9 +15,9 @@
 
 This document records both the implemented architecture and the planned direction for later SafeBank phases.
 
-As of Phase 7, MockUSDC, VaultManager, SavingCore plan management, deposit opening, principal custody, financial-term snapshots, ERC721 certificate issuance, base maturity withdrawal, and early withdrawal with penalty are implemented and validated locally.
+As of Phase 8, MockUSDC, VaultManager, SavingCore plan management, deposit opening, principal custody, financial-term snapshots, ERC721 certificate issuance, base maturity withdrawal, early withdrawal with penalty, and manual renewal during the grace period are implemented and validated locally.
 
-Sections covering renewal, Bonus C1, Bonus C2, frontend, AI, and deployment remain design specifications and must not be treated as implemented, audited, deployed, or production-ready.
+Sections covering permissionless auto-renewal, Bonus C1, Bonus C2, frontend, AI, and deployment remain design specifications and must not be treated as implemented, audited, deployed, or production-ready.
 
 ---
 
@@ -70,7 +70,6 @@ The mandatory scope includes:
 - ERC721 deposit certificates;
 - maturity withdrawal;
 - early withdrawal;
-- manual renewal;
 - auto-renewal;
 - pause and unpause;
 - vault-funded interest payouts;
@@ -621,7 +620,6 @@ For each old deposit, only one of the following may happen:
 
 - maturity withdrawal;
 - early withdrawal;
-- manual renewal;
 - auto-renewal.
 
 After the first successful state transition, all later processing attempts must revert.
@@ -811,49 +809,242 @@ The implemented external-call order is:
 
 Because both transfers occur in one EVM transaction, failure of either required transfer reverts all earlier balance and state changes.
 
-The later C2 implementation may add reserved-interest release accounting. That future accounting is not part of the current Phase 7 contract.
+The later C2 implementation may add reserved-interest release accounting. That future accounting is not part of the current Phase 8 contract.
 ---
 
 ## 17. Manual Renewal Flow
 
-Manual renewal is allowed when:
+Manual renewal is implemented through:
 
-`block.timestamp >= maturityAt`
+`manualRenew(uint256 depositId, uint256 newPlanId)`
 
-and:
+The function returns the identifier of the newly created deposit.
 
-`block.timestamp < maturityAt + gracePeriod`
+Manual renewal is valid only during the half-open interval:
 
-The grace period is fixed at two days for this project.
+`maturityAt <= block.timestamp < maturityAt + GRACE_PERIOD`
 
-The planned flow is:
+The project grace period is fixed at two days.
 
-1. Verify the system is not paused.
-2. Verify the old deposit exists.
-3. Verify the old deposit is `Active`.
-4. Verify the caller is the current NFT owner.
-5. Verify the timestamp is within the manual-renewal window.
-6. Verify the new plan exists.
-7. Verify the new plan is enabled.
-8. Calculate the old term's snapshotted interest.
-9. Request the interest from `VaultManager`.
-10. Add the funded interest to the old principal.
-11. Mark the old deposit as `ManualRenewed`.
-12. Create a new active deposit.
-13. Snapshot the new plan's tenor, APR, and penalty.
-14. Mint a new certificate to the current owner.
-15. Consume the old reserve and create a new reserve after C2.
-16. Emit `Renewed`.
+The implemented Phase 8 flow is:
 
-The old certificate remains historical.
+1. Verify that `SavingCore` is not paused.
+2. Verify that the old deposit exists.
+3. Verify that the old deposit remains `Active`.
+4. Resolve the direct current owner of the old ERC721 certificate.
+5. Verify that the caller is that direct current owner.
+6. Revert with `DepositNotMatured` before `maturityAt`.
+7. Revert with `ManualRenewalWindowClosed` at or after
+   `maturityAt + GRACE_PERIOD`.
+8. Verify that the selected new plan exists.
+9. Verify that the selected new plan is enabled.
+10. Calculate old-term interest from the immutable old-deposit snapshots.
+11. Calculate `newPrincipal = oldPrincipal + oldInterest`.
+12. Validate the compounded principal against the selected plan's current
+    minimum and maximum limits.
+13. Allocate the next sequential deposit and NFT identifier.
+14. Mark the old deposit as `ManualRenewed`.
+15. Create a new `Active` deposit.
+16. Snapshot the selected plan's current tenor, APR, and penalty.
+17. Start the new term at the renewal transaction timestamp.
+18. Calculate the new maturity from the selected tenor.
+19. For positive interest, transfer that interest from `VaultManager` into
+    `SavingCore`.
+20. Skip the VaultManager payout when interest rounds down to zero.
+21. Safely mint a new certificate to the current old-certificate owner.
+22. Emit `Renewed`.
 
-If the vault cannot fund the interest:
+The old certificate remains as historical evidence and is not burned.
 
-- manual renewal may revert;
-- the project must not create unfunded compounded principal;
-- the old active deposit remains available for another valid action.
+The new certificate follows the existing identifier invariant:
 
----
+`newTokenId == newDepositId`
+
+### 17.1 Interest and Token Movement
+
+Positive old-term interest is physically transferred through:
+
+`vaultManager.payInterest(address(this), interest)`
+
+The recipient is `SavingCore`, not the user, because the interest becomes
+part of the principal of the new active deposit.
+
+After a successful positive-interest renewal:
+
+- the user's MockUSDC balance is unchanged;
+- total MockUSDC supply is unchanged;
+- the VaultManager balance decreases by the old-term interest;
+- the SavingCore balance increases by the same amount;
+- the new deposit principal equals old principal plus funded interest.
+
+A zero-rounded interest amount skips `VaultManager.payInterest`.
+
+Therefore, zero-interest renewal may succeed:
+
+- without VaultManager liquidity;
+- while only VaultManager is paused;
+- without emitting `InterestPaid`.
+
+The system never creates unfunded compounded principal.
+
+### 17.2 Plan and Snapshot Semantics
+
+Old-term interest always uses:
+
+- old principal;
+- old APR snapshot;
+- old tenor snapshot.
+
+Updating or disabling the old plan does not change the existing deposit's:
+
+- principal;
+- APR;
+- tenor;
+- penalty snapshot;
+- maturity;
+- old-term interest;
+- manual-renewal eligibility.
+
+The selected plan controls only the new deposit.
+
+The selected new plan must be enabled when renewal executes.
+
+This produces the following rules:
+
+- renewal into a different enabled plan is allowed;
+- renewal into the same enabled plan is allowed;
+- disabling the old plan does not block renewal into another enabled plan;
+- a disabled plan cannot be selected as the new plan;
+- selected-plan limits apply to compounded `newPrincipal`.
+
+The new active deposit snapshots:
+
+- selected plan ID;
+- selected tenor;
+- selected APR;
+- selected early-withdrawal penalty;
+- renewal transaction timestamp;
+- new maturity timestamp.
+
+### 17.3 Ownership and Lifecycle
+
+Only the direct current owner of the old certificate may renew.
+
+ERC721 approvals and operator approvals do not grant renewal authority.
+
+Transferring the certificate transfers the remaining renewal right.
+
+After successful renewal:
+
+- the old deposit status becomes `ManualRenewed`;
+- the new deposit status is `Active`;
+- the old NFT remains owned by the current owner;
+- a new NFT is minted to the same owner;
+- the old deposit cannot be renewed again;
+- the old deposit cannot be withdrawn early;
+- the old deposit cannot be withdrawn at maturity.
+
+A deposit already settled through early withdrawal or maturity withdrawal
+cannot be renewed.
+
+Manual renewal emits:
+
+`Renewed(oldDepositId, newDepositId, newPrincipal, newPlanId)`
+
+Manual renewal does not emit:
+
+- `DepositOpened`;
+- `Withdrawn`.
+
+Positive-interest renewal additionally produces:
+
+- `VaultManager.InterestPaid`;
+- ERC721 `Transfer` for the new NFT mint.
+
+### 17.4 Atomicity and Reentrancy
+
+`manualRenew` uses:
+
+- `whenNotPaused`;
+- `nonReentrant`;
+- checks-effects-interactions ordering.
+
+The implementation updates state before external calls:
+
+1. mark the old deposit `ManualRenewed`;
+2. store the new deposit;
+3. transfer positive interest from VaultManager;
+4. safely mint the new ERC721 certificate;
+5. emit `Renewed`.
+
+EVM atomicity restores all earlier changes if a required later interaction
+fails.
+
+Validated rollback scenarios include:
+
+- underfunded VaultManager;
+- unauthorized SavingCore;
+- paused VaultManager during positive-interest renewal;
+- failed ERC721 safe mint.
+
+A failed renewal restores:
+
+- old deposit status;
+- deposit count;
+- absence of the new deposit;
+- absence of the new NFT;
+- old NFT ownership;
+- SavingCore token balance;
+- VaultManager token balance;
+- total token supply.
+
+Two callback surfaces are protected:
+
+- ERC20 callback while VaultManager transfers interest;
+- ERC721 `onERC721Received` callback while the new NFT is minted.
+
+Nested renewal attempts revert with `ReentrancyGuardReentrantCall`, while the
+original valid renewal completes.
+
+### 17.5 Phase 8 Implementation Evidence
+
+Manual renewal has been validated with:
+
+- success at exact maturity;
+- success one second before the grace-period end;
+- rejection one second before maturity;
+- rejection at the exact grace-period end;
+- rejection after the grace-period end;
+- current-owner authorization;
+- transferred-owner authorization;
+- unrelated-caller rejection;
+- approved-operator rejection;
+- invalid old-deposit rejection;
+- invalid selected-plan rejection;
+- disabled selected-plan rejection;
+- same-plan renewal;
+- selected-plan minimum and maximum enforcement;
+- old-plan update and disable isolation;
+- selected-plan snapshot validation;
+- positive-interest compounding;
+- zero-rounded-interest renewal;
+- SavingCore pause enforcement;
+- positive-interest VaultManager pause enforcement;
+- zero-interest VaultManager bypass;
+- underfunded-vault rollback;
+- unauthorized-vault rollback;
+- failed safe-mint rollback;
+- ERC20 callback reentrancy protection;
+- ERC721 callback reentrancy protection;
+- old-certificate retention;
+- new-certificate ownership;
+- user balance conservation;
+- total-supply conservation;
+- lifecycle exclusion between renewal and both withdrawal paths;
+- `tokenId == depositId` for the renewed deposit.
+
+Permissionless auto-renewal remains unimplemented and belongs to a later
+phase.
 
 ## 18. Auto-Renew Flow
 
@@ -987,7 +1178,6 @@ When paused, the planned system must block:
 - `openDeposit`;
 - maturity withdrawal;
 - early withdrawal;
-- manual renewal;
 - auto-renewal;
 - pending-interest claims;
 - interest payout requests.
@@ -1044,7 +1234,7 @@ Every additional event must have a clear monitoring, accounting, security, or UX
 
 ## 23. Bonus C1 — Principal-First Settlement
 
-C1 is selected but remains unimplemented as of Phase 7.
+C1 is selected but remains unimplemented as of Phase 8.
 
 ### 23.1 Problem
 
@@ -1092,7 +1282,7 @@ Manual and auto-renew may still revert when the vault cannot fund the interest n
 
 ## 24. Bonus C2 — Solvency Guard
 
-C2 is selected but remains unimplemented as of Phase 7.
+C2 is selected but remains unimplemented as of Phase 8.
 
 ### 24.1 Problem
 
@@ -1371,7 +1561,6 @@ The user interface will support:
 - certificate ownership viewing;
 - early withdrawal;
 - maturity withdrawal;
-- manual renewal;
 - pending-interest claims;
 - Etherscan links;
 - transaction lifecycle states.
@@ -1438,7 +1627,7 @@ The application must remain usable when the AI provider is unavailable.
 
 ## 34. Architectural Decision Status
 
-Resolved and implemented through Phase 7:
+Resolved and implemented through Phase 8:
 
 1. Basic OpenZeppelin `ERC721` is used without `ERC721Enumerable`.
 2. Plan and deposit storage structures are defined in `SavingCore`.
@@ -1457,6 +1646,27 @@ Resolved and implemented through Phase 7:
 15. Maturity interest uses snapshotted deposit terms and floor rounding.
 16. Completed deposit NFTs are retained as historical certificates.
 17. Base underfunded-vault behavior is an atomic revert until Bonus C1 is implemented.
+18. Manual renewal is valid only during
+    `maturityAt <= now < maturityAt + GRACE_PERIOD`.
+19. Manual renewal before maturity reuses `DepositNotMatured`.
+20. Manual renewal at or after the grace-period end reverts with
+    `ManualRenewalWindowClosed`.
+21. Only the direct current old-certificate owner may manually renew.
+22. Approved ERC721 operators do not gain manual-renewal authority.
+23. Old-term renewal interest uses immutable old-deposit snapshots.
+24. Disabling the old plan does not remove existing renewal rights.
+25. The selected new plan must exist and be enabled.
+26. Same-plan manual renewal is allowed while that plan is enabled.
+27. Selected-plan limits apply to compounded new principal.
+28. Positive renewal interest is transferred from VaultManager into
+    SavingCore.
+29. Zero-rounded renewal interest skips the VaultManager payout.
+30. Successful renewal retains the old NFT and mints a new NFT.
+31. Successful renewal changes the old status to `ManualRenewed`.
+32. The new deposit snapshots the selected plan's current terms.
+33. Failed payout or failed safe mint reverts the complete renewal.
+34. Manual renewal is protected against ERC20 and ERC721 callback
+    reentrancy.
 
 Still deferred:
 
@@ -1536,7 +1746,7 @@ Completed:
 - environment-variable cleanup;
 - architecture, security, UI/UX, and decision documentation.
 
-Implemented and validated locally through Phase 7:
+Implemented and validated locally through Phase 8:
 
 - six-decimal `MockUSDC`;
 - base `VaultManager`;
@@ -1559,22 +1769,39 @@ Implemented and validated locally through Phase 7:
 - penalty payout to the current fee receiver;
 - disabled-plan settlement isolation;
 - zero, maximum, and floor-rounded penalty handling;
-- historical NFT retention;
-- atomic rollback for failed maturity and early settlement calls;
-- direct and cross-function reentrancy protection;
-- exclusion between competing terminal actions;
+- manual renewal during the two-day grace period;
+- exact manual-renewal boundary semantics;
+- direct current-owner manual-renewal authorization;
+- approved-operator rejection during renewal;
+- old-plan update and disable isolation;
+- selected enabled-plan validation;
+- same-plan manual renewal;
+- selected-plan limits applied to compounded principal;
+- funded interest transfer from VaultManager into SavingCore;
+- zero-interest renewal without a VaultManager call;
+- old `Active` to `ManualRenewed` transition;
+- new active deposit creation;
+- selected-plan snapshots for the new term;
+- old certificate retention;
+- new certificate safe minting;
+- user wallet balance conservation during renewal;
+- MockUSDC total-supply conservation during renewal;
+- atomic rollback for failed maturity, early-withdrawal, and renewal calls;
+- direct and cross-function callback reentrancy protection;
+- ERC20 renewal-payout callback protection;
+- ERC721 renewal-mint callback protection;
+- exclusion between competing old-deposit lifecycle actions;
 - project-owned ABI export;
-- `120` SavingCore tests;
-- `180` tests across the complete project;
+- `144` SavingCore tests;
+- `204` tests across the complete project;
 - 100% statements, branches, functions, and lines coverage for SavingCore;
-- all `82 / 82` SavingCore branch paths;
-- SavingCore deployed bytecode of approximately `9.406 KiB`;
-- SavingCore initcode of approximately `10.637 KiB`.
+- all `102 / 102` SavingCore branch paths;
+- SavingCore deployed bytecode of approximately `10.334 KiB`;
+- SavingCore initcode of approximately `11.571 KiB`.
 
 Not implemented:
 
 - rich NFT metadata or custom `tokenURI`;
-- manual renewal;
 - permissionless auto-renewal;
 - pending-interest accounting;
 - reserved-interest accounting;
@@ -1588,9 +1815,9 @@ Not implemented:
 - Bonus C1;
 - Bonus C2.
 
-This document is a living architecture record updated through Phase 7.
+This document is a living architecture record updated through Phase 8.
 
-Sections covering renewal, C1, C2, deployment, frontend, and AI remain specifications until their implementations are validated.
+Sections covering permissionless auto-renewal, C1, C2, deployment, frontend, and AI remain specifications until their implementations are validated.
 
 ---
 ## 38. Summary

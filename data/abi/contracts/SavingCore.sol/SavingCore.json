@@ -323,6 +323,27 @@
                 "type": "uint256"
             },
             {
+                "internalType": "uint256",
+                "name": "graceEndsAt",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "currentTimestamp",
+                "type": "uint256"
+            }
+        ],
+        "name": "ManualRenewalWindowClosed",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "depositId",
+                "type": "uint256"
+            },
+            {
                 "internalType": "address",
                 "name": "caller",
                 "type": "address"
@@ -619,6 +640,37 @@
             }
         ],
         "name": "PlanUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "oldDepositId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "newDepositId",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "newPrincipal",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "newPlanId",
+                "type": "uint256"
+            }
+        ],
+        "name": "Renewed",
         "type": "event"
     },
     {
@@ -1119,6 +1171,30 @@
             }
         ],
         "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "depositId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "newPlanId",
+                "type": "uint256"
+            }
+        ],
+        "name": "manualRenew",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "newDepositId",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {

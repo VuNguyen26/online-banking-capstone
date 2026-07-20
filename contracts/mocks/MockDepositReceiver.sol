@@ -12,6 +12,11 @@ interface ISavingCoreDeposit {
         uint256 planId,
         uint256 amount
     ) external returns (uint256 depositId);
+
+    function manualRenew(
+        uint256 depositId,
+        uint256 newPlanId
+    ) external returns (uint256 newDepositId);
 }
 
 /**
@@ -31,6 +36,10 @@ contract MockDepositReceiver is IERC721Receiver {
 
     uint256 public reentryPlanId;
     uint256 public reentryAmount;
+
+    bool public reenterManualRenewal;
+    uint256 public reentryDepositId;
+    uint256 public reentryNewPlanId;
 
     bytes4 public lastReentryErrorSelector;
 
@@ -67,6 +76,9 @@ contract MockDepositReceiver is IERC721Receiver {
         reentrySucceeded = false;
         reentryPlanId = planId;
         reentryAmount = amount;
+        reenterManualRenewal = false;
+        reentryDepositId = 0;
+        reentryNewPlanId = 0;
         lastReentryErrorSelector = bytes4(0);
 
         if (!token.approve(address(savingCore), amount)) {
@@ -74,6 +86,31 @@ contract MockDepositReceiver is IERC721Receiver {
         }
 
         depositId = savingCore.openDeposit(planId, amount);
+    }
+
+    /**
+     * @notice Manually renews a deposit owned by this receiver contract.
+     * @param depositId Existing active deposit identifier.
+     * @param newPlanId Enabled saving plan selected for the new term.
+     * @param attemptReentry Whether the new-NFT callback should try to reenter.
+     */
+    function manualRenew(
+        uint256 depositId,
+        uint256 newPlanId,
+        bool attemptReentry
+    ) external returns (uint256 newDepositId) {
+        reentryRequested = attemptReentry;
+        reentryAttempted = false;
+        reentrySucceeded = false;
+        reenterManualRenewal = true;
+        reentryDepositId = depositId;
+        reentryNewPlanId = newPlanId;
+        lastReentryErrorSelector = bytes4(0);
+
+        newDepositId = savingCore.manualRenew(
+            depositId,
+            newPlanId
+        );
     }
 
     /**
@@ -96,14 +133,26 @@ contract MockDepositReceiver is IERC721Receiver {
         if (shouldAttemptReentry) {
             reentryAttempted = true;
 
-            try savingCore.openDeposit(
-                reentryPlanId,
-                reentryAmount
-            ) returns (uint256) {
-                reentrySucceeded = true;
-            } catch (bytes memory reason) {
-                lastReentryErrorSelector =
-                    _errorSelector(reason);
+            if (reenterManualRenewal) {
+                try savingCore.manualRenew(
+                    reentryDepositId,
+                    reentryNewPlanId
+                ) returns (uint256) {
+                    reentrySucceeded = true;
+                } catch (bytes memory reason) {
+                    lastReentryErrorSelector =
+                        _errorSelector(reason);
+                }
+            } else {
+                try savingCore.openDeposit(
+                    reentryPlanId,
+                    reentryAmount
+                ) returns (uint256) {
+                    reentrySucceeded = true;
+                } catch (bytes memory reason) {
+                    lastReentryErrorSelector =
+                        _errorSelector(reason);
+                }
             }
         }
 
@@ -158,5 +207,18 @@ contract MockNonERC721Receiver {
         }
 
         depositId = savingCore.openDeposit(planId, amount);
+    }
+
+    /**
+     * @notice Attempts to manually renew a deposit owned by this contract.
+     */
+    function manualRenew(
+        uint256 depositId,
+        uint256 newPlanId
+    ) external returns (uint256 newDepositId) {
+        newDepositId = savingCore.manualRenew(
+            depositId,
+            newPlanId
+        );
     }
 }

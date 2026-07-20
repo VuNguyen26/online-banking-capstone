@@ -214,6 +214,15 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     );
 
     /**
+     * @dev The manual-renewal grace window has ended.
+     */
+    error ManualRenewalWindowClosed(
+        uint256 depositId,
+        uint256 graceEndsAt,
+        uint256 currentTimestamp
+    );
+
+    /**
      * @notice Emitted when a new saving plan is created.
      */
     event PlanCreated(
@@ -258,6 +267,16 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
         uint256 principal,
         uint256 interest,
         bool isEarly
+    );
+
+    /**
+     * @notice Emitted after an old deposit is manually renewed into a new one.
+     */
+    event Renewed(
+        uint256 indexed oldDepositId,
+        uint256 indexed newDepositId,
+        uint256 newPrincipal,
+        uint256 indexed newPlanId
     );
 
     /**
@@ -602,6 +621,135 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
             true
         );
     }
+    /**
+     * @notice Manually renews an active matured deposit during its grace period.
+     * @dev The old principal remains in SavingCore. Positive old-term interest
+     *      is funded by VaultManager directly into SavingCore before the new
+     *      ERC721 certificate is safely minted. The old certificate is retained
+     *      as historical evidence.
+     * @param depositId Existing active deposit identifier.
+     * @param newPlanId Enabled saving plan selected for the new term.
+     * @return newDepositId Identifier of the newly created active deposit.
+     */
+    function manualRenew(
+        uint256 depositId,
+        uint256 newPlanId
+    )
+        external
+        whenNotPaused
+        nonReentrant
+        returns (uint256 newDepositId)
+    {
+        _requireDepositExists(depositId);
+
+        Deposit storage oldDeposit = _deposits[depositId];
+
+        if (oldDeposit.status != DepositStatus.Active) {
+            revert DepositNotActive(depositId, oldDeposit.status);
+        }
+
+        address currentOwner = ownerOf(depositId);
+
+        if (_msgSender() != currentOwner) {
+            revert NotDepositOwner(
+                depositId,
+                _msgSender(),
+                currentOwner
+            );
+        }
+
+        if (block.timestamp < oldDeposit.maturityAt) {
+            revert DepositNotMatured(
+                depositId,
+                oldDeposit.maturityAt,
+                block.timestamp
+            );
+        }
+
+        uint256 graceEndsAt =
+            oldDeposit.maturityAt + GRACE_PERIOD;
+
+        if (block.timestamp >= graceEndsAt) {
+            revert ManualRenewalWindowClosed(
+                depositId,
+                graceEndsAt,
+                block.timestamp
+            );
+        }
+
+        _requirePlanExists(newPlanId);
+
+        Plan memory newPlan = _plans[newPlanId];
+
+        if (!newPlan.enabled) {
+            revert PlanNotEnabled(newPlanId);
+        }
+
+        uint256 interest = _calculateInterest(
+            oldDeposit.principal,
+            oldDeposit.aprBpsAtOpen,
+            oldDeposit.tenorDays
+        );
+        uint256 newPrincipal =
+            oldDeposit.principal + interest;
+
+        if (
+            newPlan.minDeposit != 0 &&
+            newPrincipal < newPlan.minDeposit
+        ) {
+            revert DepositBelowMinimum(
+                newPrincipal,
+                newPlan.minDeposit
+            );
+        }
+
+        if (
+            newPlan.maxDeposit != 0 &&
+            newPrincipal > newPlan.maxDeposit
+        ) {
+            revert DepositAboveMaximum(
+                newPrincipal,
+                newPlan.maxDeposit
+            );
+        }
+
+        uint256 startedAt = block.timestamp;
+        uint256 maturityAt =
+            startedAt + newPlan.tenorDays * 1 days;
+
+        newDepositId = ++depositCount;
+
+        oldDeposit.status = DepositStatus.ManualRenewed;
+
+        _deposits[newDepositId] = Deposit({
+            planId: newPlanId,
+            principal: newPrincipal,
+            startedAt: startedAt,
+            maturityAt: maturityAt,
+            tenorDays: newPlan.tenorDays,
+            aprBpsAtOpen: newPlan.aprBps,
+            penaltyBpsAtOpen:
+                newPlan.earlyWithdrawPenaltyBps,
+            status: DepositStatus.Active
+        });
+
+        if (interest != 0) {
+            vaultManager.payInterest(
+                address(this),
+                interest
+            );
+        }
+
+        _safeMint(currentOwner, newDepositId);
+
+        emit Renewed(
+            depositId,
+            newDepositId,
+            newPrincipal,
+            newPlanId
+        );
+    }
+
     /**
      * @notice Returns an existing deposit and its snapshotted terms.
      * @param depositId Existing deposit identifier.
