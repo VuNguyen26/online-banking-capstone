@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | System Architecture |
-| Current phase | Phase 5 — Deposit opening, financial-term snapshots, and ERC721 deposit certificates |
-| Implementation status | Smart contracts through Phase 5 are implemented and validated locally; later financial flows, frontend, AI, and deployment remain pending |
+| Current phase | Phase 6 — Base maturity withdrawal flow |
+| Implementation status | Smart contracts through Phase 6 are implemented and validated locally; early withdrawal, renewal, bonuses, frontend, AI, and deployment remain pending |
 | Smart contract model | Non-upgradeable |
 | Target environments | Hardhat local network and Ethereum Sepolia testnet |
 | Test token | MockUSDC with 6 decimals |
@@ -15,9 +15,9 @@
 
 This document records both the implemented architecture and the planned direction for later SafeBank phases.
 
-As of Phase 5, MockUSDC, VaultManager, SavingCore plan management, deposit opening, principal custody, financial-term snapshots, and ERC721 certificate issuance are implemented and validated locally.
+As of Phase 6, MockUSDC, VaultManager, SavingCore plan management, deposit opening, principal custody, financial-term snapshots, ERC721 certificate issuance, and base maturity withdrawal are implemented and validated locally.
 
-Sections covering withdrawal, early withdrawal, renewal, Bonus C1, Bonus C2, frontend, AI, and deployment remain design specifications and must not be treated as implemented, audited, deployed, or production-ready.
+Sections covering early withdrawal, renewal, Bonus C1, Bonus C2, frontend, AI, and deployment remain design specifications and must not be treated as implemented, audited, deployed, or production-ready.
 
 ---
 
@@ -724,27 +724,34 @@ If any required validation or transfer fails, the transaction must revert atomic
 
 ## 15. Maturity Withdrawal Flow
 
+The Phase 6 base maturity-withdrawal flow is implemented through `withdrawAtMaturity(depositId)`.
+
 A maturity withdrawal is allowed when:
 
 `block.timestamp >= maturityAt`
 
-The base flow is:
+The implemented flow is:
 
-1. Verify the system is not paused.
-2. Verify the deposit exists.
-3. Verify the deposit is `Active`.
-4. Verify the caller is the current NFT owner.
-5. Verify the maturity timestamp has been reached.
-6. Calculate the snapshotted term interest.
-7. Verify the vault can pay the interest under the base specification.
-8. Mark the deposit as `Withdrawn`.
-9. Transfer principal from `SavingCore`.
-10. Request interest payout from `VaultManager`.
-11. Emit `Withdrawn`.
+1. `whenNotPaused` verifies that SavingCore is active.
+2. `nonReentrant` prevents nested withdrawal execution.
+3. SavingCore verifies that the deposit exists.
+4. SavingCore verifies that the deposit status is `Active`.
+5. SavingCore resolves the direct current owner with `ownerOf(depositId)`.
+6. SavingCore requires the caller to equal that owner; ERC721 approval alone is insufficient.
+7. SavingCore verifies that the maturity timestamp has been reached.
+8. SavingCore calculates simple interest from the snapshotted principal, APR, and tenor using floor rounding.
+9. SavingCore changes the deposit status to `Withdrawn`.
+10. SavingCore returns principal to the current NFT owner.
+11. If interest is positive, SavingCore requests payout through the authorized `VaultManager`.
+12. SavingCore emits `Withdrawn(depositId, owner, principal, interest, false)`.
 
-Checks, state effects, and external interactions must be ordered to reduce reentrancy and double-execution risk.
+The ERC721 certificate is not burned and remains available as a historical certificate.
 
-After Bonus C1, insufficient vault interest must no longer lock the user's principal.
+The function follows checks-effects-interactions. If VaultManager is paused, unauthorized, or underfunded, the payout call reverts and EVM atomicity restores the deposit status and all affected token balances.
+
+A zero-rounded interest amount skips `VaultManager.payInterest` because VaultManager rejects zero-value payouts.
+
+The Phase 6 base behavior intentionally permits an underfunded vault to revert the entire maturity transaction. Bonus C1 will later change this behavior so insufficient interest does not lock principal.
 
 ---
 
@@ -1005,7 +1012,7 @@ Every additional event must have a clear monitoring, accounting, security, or UX
 
 ## 23. Bonus C1 — Principal-First Settlement
 
-C1 is selected but remains unimplemented as of Phase 5.
+C1 is selected but remains unimplemented as of Phase 6.
 
 ### 23.1 Problem
 
@@ -1053,7 +1060,7 @@ Manual and auto-renew may still revert when the vault cannot fund the interest n
 
 ## 24. Bonus C2 — Solvency Guard
 
-C2 is selected but remains unimplemented as of Phase 5.
+C2 is selected but remains unimplemented as of Phase 6.
 
 ### 24.1 Problem
 
@@ -1399,7 +1406,7 @@ The application must remain usable when the AI provider is unavailable.
 
 ## 34. Architectural Decision Status
 
-Resolved and implemented through Phase 5:
+Resolved and implemented through Phase 6:
 
 1. Basic OpenZeppelin `ERC721` is used without `ERC721Enumerable`.
 2. Plan and deposit storage structures are defined in `SavingCore`.
@@ -1411,7 +1418,13 @@ Resolved and implemented through Phase 5:
 8. The authorized SavingCore address cannot be replaced.
 9. SavingCore and VaultManager use independent pause states.
 10. Constructor dependencies and ownership parameters are defined.
-11. Phase 5 uses basic inherited ERC721 metadata without a custom `tokenURI`.
+11. Basic inherited ERC721 metadata is used without a custom `tokenURI`.
+12. Maturity withdrawal is valid at and after `maturityAt` while the deposit remains active.
+13. Only the direct current NFT owner may execute maturity withdrawal.
+14. Approved ERC721 operators do not inherit maturity-withdrawal authority.
+15. Maturity interest uses snapshotted deposit terms and floor rounding.
+16. Completed deposit NFTs are retained as historical certificates.
+17. Base underfunded-vault behavior is an atomic revert until Bonus C1 is implemented.
 
 Still deferred:
 
@@ -1495,13 +1508,26 @@ Completed:
 - GitHub push;
 - environment variable cleanup.
 
+Implemented and validated locally:
+
+- six-decimal `MockUSDC`;
+- base `VaultManager`;
+- SavingCore foundation and plan management;
+- deposit opening and principal custody;
+- financial-term snapshots;
+- ERC721 deposit certificates;
+- base maturity withdrawal;
+- focused and full regression tests;
+- Solidity coverage and contract-size reporting;
+- project-owned ABI export.
+
 Not implemented:
 
-- `MockUSDC`;
-- `VaultManager`;
-- `SavingCore`;
-- contract tests;
-- real contract coverage;
+- early withdrawal;
+- manual renewal;
+- permissionless auto-renewal;
+- pending-interest accounting;
+- reserved-interest accounting;
 - deploy scripts;
 - local deployment;
 - Sepolia deployment;
@@ -1509,10 +1535,10 @@ Not implemented:
 - User Banking App;
 - Admin Portal;
 - AI assistants;
-- bonus C1;
-- bonus C2.
+- Bonus C1;
+- Bonus C2.
 
-This document is a living architecture record updated through Phase 5. Later-phase sections remain specifications until their implementations are validated.
+This document is a living architecture record updated through Phase 6. Later-phase sections remain specifications until their implementations are validated.
 
 ---
 

@@ -5,6 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -14,9 +15,9 @@ import {VaultManager} from "./VaultManager.sol";
 /**
  * @title SavingCore
  * @notice Central SafeBank contract for saving-plan and deposit management.
- * @dev Implements saving-plan administration and Phase 5 deposit opening,
- *      principal custody, financial-term snapshots, and ERC721 certificates.
- *      Withdrawals, renewals, C1, and C2 remain intentionally deferred.
+ * @dev Implements saving-plan administration, deposit opening, ERC721
+ *      certificates, and the Phase 6 base maturity-withdrawal flow.
+ *      Early withdrawal, renewals, C1, and C2 remain intentionally deferred.
  */
 contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -178,6 +179,32 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     error DepositAboveMaximum(uint256 amount, uint256 maximum);
 
     /**
+     * @dev The deposit has already reached a terminal lifecycle state.
+     */
+    error DepositNotActive(
+        uint256 depositId,
+        DepositStatus currentStatus
+    );
+
+    /**
+     * @dev The caller is not the current owner of the deposit certificate.
+     */
+    error NotDepositOwner(
+        uint256 depositId,
+        address caller,
+        address currentOwner
+    );
+
+    /**
+     * @dev The deposit maturity timestamp has not yet been reached.
+     */
+    error DepositNotMatured(
+        uint256 depositId,
+        uint256 maturityAt,
+        uint256 currentTimestamp
+    );
+
+    /**
      * @notice Emitted when a new saving plan is created.
      */
     event PlanCreated(
@@ -211,6 +238,17 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
         uint256 principal,
         uint256 maturityAt,
         uint256 aprBpsAtOpen
+    );
+
+    /**
+     * @notice Emitted after a deposit is settled through withdrawal.
+     */
+    event Withdrawn(
+        uint256 indexed depositId,
+        address indexed owner,
+        uint256 principal,
+        uint256 interest,
+        bool isEarly
     );
 
     /**
@@ -432,6 +470,66 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     }
 
     /**
+     * @notice Settles an active deposit at or after its maturity timestamp.
+     * @dev Principal is paid from SavingCore and positive interest is paid
+     *      from the authorized VaultManager. The NFT is retained as a
+     *      historical certificate.
+     * @param depositId Existing active deposit identifier.
+     */
+    function withdrawAtMaturity(
+        uint256 depositId
+    ) external whenNotPaused nonReentrant {
+        _requireDepositExists(depositId);
+
+        Deposit storage deposit = _deposits[depositId];
+
+        if (deposit.status != DepositStatus.Active) {
+            revert DepositNotActive(depositId, deposit.status);
+        }
+
+        address currentOwner = ownerOf(depositId);
+
+        if (_msgSender() != currentOwner) {
+            revert NotDepositOwner(
+                depositId,
+                _msgSender(),
+                currentOwner
+            );
+        }
+
+        if (block.timestamp < deposit.maturityAt) {
+            revert DepositNotMatured(
+                depositId,
+                deposit.maturityAt,
+                block.timestamp
+            );
+        }
+
+        uint256 principal = deposit.principal;
+        uint256 interest = _calculateInterest(
+            principal,
+            deposit.aprBpsAtOpen,
+            deposit.tenorDays
+        );
+
+        deposit.status = DepositStatus.Withdrawn;
+
+        token.safeTransfer(currentOwner, principal);
+
+        if (interest != 0) {
+            vaultManager.payInterest(currentOwner, interest);
+        }
+
+        emit Withdrawn(
+            depositId,
+            currentOwner,
+            principal,
+            interest,
+            false
+        );
+    }
+
+    /**
      * @notice Returns an existing deposit and its snapshotted terms.
      * @param depositId Existing deposit identifier.
      */
@@ -454,6 +552,23 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
      */
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    /**
+     * @dev Calculates one term of simple interest with floor rounding.
+     */
+    function _calculateInterest(
+        uint256 principal,
+        uint256 aprBps,
+        uint256 tenorDays
+    ) internal pure returns (uint256) {
+        uint256 tenorSeconds = tenorDays * 1 days;
+
+        return Math.mulDiv(
+            principal,
+            aprBps * tenorSeconds,
+            365 days * BPS_DENOMINATOR
+        );
     }
 
     /**

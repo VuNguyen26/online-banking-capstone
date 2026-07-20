@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Security Model and Threat Analysis |
-| Current project phase | Phase 5 — Deposit opening, financial-term snapshots, and ERC721 deposit certificates |
-| Implementation status | Security controls through Phase 5 are implemented and validated locally; withdrawal, renewal, bonuses, frontend, AI, and deployment controls remain pending |
+| Current project phase | Phase 6 — Base maturity withdrawal flow |
+| Implementation status | Security controls through Phase 6 are implemented and validated locally; early withdrawal, renewal, bonuses, frontend, AI, and deployment controls remain pending |
 | Security approach | Defense-in-depth and risk reduction |
 | Smart contract model | Non-upgradeable |
 | Test asset | MockUSDC with 6 decimals |
@@ -15,13 +15,13 @@
 
 This document records implemented security controls together with the planned security model for later SafeBank phases.
 
-As of Phase 5, the project has locally validated access control, pause behavior, dependency validation, SafeERC20 principal transfers, deposit validation, deposit snapshot integrity, safe ERC721 minting, atomic rollback, and ERC721 callback reentrancy protection.
+As of Phase 6, the project has locally validated access control, pause behavior, dependency validation, SafeERC20 principal transfers, deposit validation, deposit snapshot integrity, safe ERC721 minting, exact maturity authorization, snapshotted interest settlement, atomic vault-failure rollback, and callback reentrancy protection.
 
 It does not claim that:
 
 - the contracts have been independently audited;
 - the project is production-ready;
-- later withdrawal, renewal, C1, C2, frontend, AI, or deployment mitigations are already active;
+- early withdrawal, renewal, C1, C2, frontend, AI, or deployment mitigations are already active;
 - every possible attack has been eliminated;
 - passing tests or high coverage alone prove security.
 
@@ -132,7 +132,7 @@ The selected bonuses are:
 - C1 — Principal-First Settlement;
 - C2 — Solvency Guard.
 
-They remain planned security and resilience extensions and are not implemented as of Phase 5.
+They remain planned security and resilience extensions and are not implemented as of Phase 6.
 
 ### 3.4 Product Security Extensions
 
@@ -569,7 +569,7 @@ This is a critical contract boundary.
 
 ERC20 transfers are external calls.
 
-The Phase 5 SavingCore implementation uses `SafeERC20` to handle tokens that:
+The Phase 6 SavingCore implementation uses `SafeERC20` for deposit principal collection and maturity principal return, while VaultManager uses it for interest settlement. These interactions handle tokens that:
 
 - return `true`;
 - return `false`;
@@ -1880,7 +1880,7 @@ The planned Solidity coding practices include:
 
 ## 35. Security Test Plan
 
-Security testing is added incrementally with each implementation phase. Phase 5 includes deposit validation, ERC20 failure rollback, invalid ERC721 receiver rollback, pause, and callback reentrancy tests.
+Security testing is added incrementally with each implementation phase. Phase 6 includes deposit validation, exact maturity boundaries, direct current-owner authorization, approved-operator rejection, snapshot integrity, underfunded and paused-vault rollback, double-withdraw prevention, and callback reentrancy tests.
 
 ## 35.1 Access-Control Tests
 
@@ -2238,7 +2238,7 @@ SafeBank does not attempt to:
 
 ## 42. Security Decision Status
 
-Resolved and implemented through Phase 5:
+Resolved and implemented through Phase 6:
 
 1. Basic `ERC721` is used without `ERC721Enumerable`.
 2. APR, tenor, and penalty validation bounds are fixed.
@@ -2246,8 +2246,14 @@ Resolved and implemented through Phase 5:
 4. SavingCore authorization cannot be replaced.
 5. SavingCore and VaultManager use independent pause states.
 6. Deposit certificates use safe minting.
-7. Deposit-opening financial operations use `SafeERC20` and `nonReentrant`.
+7. Deposit opening and maturity withdrawal use `SafeERC20` and `nonReentrant`.
 8. Current custom errors and constructor dependencies are defined.
+9. Only the direct current NFT owner may execute maturity withdrawal.
+10. Approved ERC721 operators cannot execute maturity withdrawal.
+11. Exact maturity and post-grace withdrawal behavior is enforced.
+12. Maturity settlement uses immutable deposit snapshots.
+13. Failed VaultManager payouts atomically restore status and token balances.
+14. Completed deposit NFTs remain historical certificates.
 
 Still unresolved or deferred:
 
@@ -2262,7 +2268,7 @@ Deferred security decisions must be finalized before their related implementatio
 
 ---
 
-## 43. Phase 5 Security Status
+## 43. Phase 6 Security Status
 
 Completed and validated locally:
 
@@ -2270,19 +2276,29 @@ Completed and validated locally:
 - Ownable2Step access control;
 - dependency address and deployed-bytecode validation;
 - independent pause controls;
-- SafeERC20 principal transfer;
+- SafeERC20 principal collection and return;
 - plan and deposit validation;
 - immutable deposit-term snapshots;
 - safe ERC721 certificate minting;
-- ERC20 failure atomic rollback;
-- invalid ERC721 receiver atomic rollback;
-- ERC721 callback reentrancy protection;
+- direct current-owner maturity authorization;
+- approved-operator rejection;
+- exact maturity and post-grace withdrawal handling;
+- snapshotted simple-interest calculation;
+- historical NFT retention;
+- double-withdraw prevention;
+- underfunded-vault atomic rollback;
+- paused-VaultManager atomic rollback;
+- unauthorized-VaultManager rollback;
+- ERC20 and ERC721 failure rollback;
+- deposit-opening and maturity-withdrawal callback reentrancy protection;
 - security mocks and automated tests;
+- 100 focused SavingCore tests;
+- 160 full-suite tests;
 - 100% statements, branches, functions, and lines coverage for SavingCore.
 
 Not completed:
 
-- maturity and early-withdrawal security controls;
+- early-withdrawal security controls;
 - manual and automatic renewal security controls;
 - C1 implementation;
 - C2 implementation;

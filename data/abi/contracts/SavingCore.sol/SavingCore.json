@@ -66,6 +66,43 @@
     {
         "inputs": [
             {
+                "internalType": "uint256",
+                "name": "depositId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "enum SavingCore.DepositStatus",
+                "name": "currentStatus",
+                "type": "uint8"
+            }
+        ],
+        "name": "DepositNotActive",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "depositId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "maturityAt",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "currentTimestamp",
+                "type": "uint256"
+            }
+        ],
+        "name": "DepositNotMatured",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
                 "internalType": "address",
                 "name": "sender",
                 "type": "address"
@@ -255,6 +292,27 @@
             }
         ],
         "name": "InvalidTenorDays",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "depositId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "caller",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "currentOwner",
+                "type": "address"
+            }
+        ],
+        "name": "NotDepositOwner",
         "type": "error"
     },
     {
@@ -578,6 +636,43 @@
             }
         ],
         "name": "Unpaused",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "depositId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "principal",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "interest",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "isEarly",
+                "type": "bool"
+            }
+        ],
+        "name": "Withdrawn",
         "type": "event"
     },
     {
@@ -1319,6 +1414,19 @@
             }
         ],
         "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "depositId",
+                "type": "uint256"
+            }
+        ],
+        "name": "withdrawAtMaturity",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     }
 ]

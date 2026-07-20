@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Architecture and Product Decision Records |
-| Current project phase | Phase 5 — Deposit opening and ERC721 deposit certificates |
-| Implementation status | Accepted decisions through Phase 5 are reflected in the implemented contracts and tests; withdrawal, renewal, C1, C2, frontend, AI, and deployment decisions remain pending or deferred |
+| Current project phase | Phase 6 — Base maturity withdrawal flow |
+| Implementation status | Accepted decisions through Phase 6 are reflected in the implemented contracts and tests; early withdrawal, renewal, C1, C2, frontend, AI, and deployment decisions remain pending or deferred |
 | Architecture model | Non-upgradeable |
 | Student ID | 3122560090 |
 | Test token | MockUSDC with 6 decimals |
@@ -106,9 +106,9 @@ Statuses mean:
 | ADR-002 | Separate principal and interest custody | Accepted |
 | ADR-003 | Current NFT owner holds economic rights | Accepted |
 | ADR-004 | Keep completed NFTs as historical certificates | Accepted |
-| ADR-005 | Use exact maturity boundary | Accepted |
+| ADR-005 | Use exact maturity boundary | Implemented |
 | ADR-006 | Use exact grace-period boundary | Accepted |
-| ADR-007 | Allow maturity withdrawal after grace if still active | Accepted |
+| ADR-007 | Allow maturity withdrawal after grace if still active | Implemented |
 | ADR-008 | Restrict disabled plans appropriately | Accepted |
 | ADR-009 | Make auto-renew permissionless | Accepted |
 | ADR-010 | Preserve tenor, APR, and penalty snapshots during auto-renew | Accepted |
@@ -341,7 +341,7 @@ Completed certificates appear in a historical section with disabled actions.
 
 ## ADR-005 — Exact Maturity Boundary
 
-**Status:** Accepted
+**Status:** Implemented
 
 **Category:** SafeBank project decision
 
@@ -360,6 +360,10 @@ Maturity withdrawal is valid when:
 `block.timestamp >= maturityAt`
 
 At exactly `maturityAt`, the deposit is mature.
+
+This rule is implemented in Phase 6 by `withdrawAtMaturity`; its maturity check treats the deposit as not matured when `block.timestamp < maturityAt`.
+
+The implemented flow also keeps maturity withdrawal available at the exact grace-period end and after grace while the deposit remains `Active`.
 
 ### Rationale
 
@@ -428,7 +432,7 @@ Display the grace deadline and warn users that transaction mining time determine
 
 ## ADR-007 — Withdraw After Grace Period
 
-**Status:** Accepted
+**Status:** Implemented
 
 **Category:** SafeBank project decision
 
@@ -2282,12 +2286,11 @@ The following remain deferred until their relevant phases:
 - wallet library;
 - styling system;
 - NFT metadata implementation;
-- exact custom error names;
-- exact Solidity struct layout;
-- exact event indexed parameters;
 - AI provider;
 - frontend deployment provider;
 - event-indexing technology.
+
+The current Solidity storage layout, custom errors, function signatures, and implemented event-indexing parameters are defined by the Phase 6 contracts and exported ABI.
 
 Deferred details must not contradict accepted financial and security behavior.
 
@@ -2295,32 +2298,47 @@ Deferred details must not contradict accepted financial and security behavior.
 
 ## 40. Phase Status
 
-At the time this document is created:
-
-Completed:
+Implemented and validated through Phase 6:
 
 - decision documentation;
-- classification of mandatory requirements;
-- classification of SafeBank-specific behavior;
-- bonus decisions;
-- product and AI constraints;
-- rejected-alternative analysis.
+- classification of mandatory and SafeBank-specific requirements;
+- personal-variant constants;
+- six-decimal MockUSDC;
+- separation of principal and interest custody;
+- SavingCore and VaultManager ownership and pause controls;
+- saving-plan management;
+- deposit opening and immutable financial snapshots;
+- ERC721 certificate issuance;
+- direct current-NFT-owner economic rights;
+- exact maturity eligibility;
+- maturity withdrawal after grace while the deposit remains active;
+- base maturity withdrawal;
+- historical NFT retention;
+- simple interest from snapshotted principal, APR, and tenor;
+- floor rounding with dust retained in VaultManager;
+- underfunded-vault atomic rollback;
+- maturity-withdrawal reentrancy protection;
+- 100 focused SavingCore tests;
+- 160 full-suite tests;
+- 100% statements, branches, functions, and lines coverage for SavingCore.
 
 Not implemented:
 
-- Solidity contracts;
-- tests;
-- contract coverage;
+- early withdrawal;
+- manual renewal;
+- permissionless auto-renewal;
+- pending-interest accounting;
+- reserved-interest accounting;
 - deploy scripts;
 - local deployment;
 - Sepolia deployment;
 - Etherscan verification;
 - frontend;
 - AI assistants;
-- bonus C1 code;
-- bonus C2 code.
+- Bonus C1 code;
+- Bonus C2 code.
 
-This file records the intended design only.
+This file records both accepted design decisions and their verified implementation status.
 
 ---
 
