@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Security Model and Threat Analysis |
-| Current project phase | Phase 6 — Base maturity withdrawal flow |
-| Implementation status | Security controls through Phase 6 are implemented and validated locally; early withdrawal, renewal, bonuses, frontend, AI, and deployment controls remain pending |
+| Current project phase | Phase 7 — Early withdrawal with penalty |
+| Implementation status | Security controls through Phase 7 are implemented and validated locally; renewal, bonuses, frontend, AI, and deployment controls remain pending |
 | Security approach | Defense-in-depth and risk reduction |
 | Smart contract model | Non-upgradeable |
 | Test asset | MockUSDC with 6 decimals |
@@ -15,13 +15,13 @@
 
 This document records implemented security controls together with the planned security model for later SafeBank phases.
 
-As of Phase 6, the project has locally validated access control, pause behavior, dependency validation, SafeERC20 principal transfers, deposit validation, deposit snapshot integrity, safe ERC721 minting, exact maturity authorization, snapshotted interest settlement, atomic vault-failure rollback, and callback reentrancy protection.
+As of Phase 7, the project has locally validated access control, pause behavior, dependency validation, SafeERC20 principal transfers, deposit validation, deposit snapshot integrity, safe ERC721 minting, exact maturity authorization, snapshotted interest settlement, early-withdrawal penalty settlement, atomic transfer rollback, and direct plus cross-function callback reentrancy protection.
 
 It does not claim that:
 
 - the contracts have been independently audited;
 - the project is production-ready;
-- early withdrawal, renewal, C1, C2, frontend, AI, or deployment mitigations are already active;
+- renewal, C1, C2, frontend, AI, or deployment mitigations are already active;
 - every possible attack has been eliminated;
 - passing tests or high coverage alone prove security.
 
@@ -132,7 +132,7 @@ The selected bonuses are:
 - C1 — Principal-First Settlement;
 - C2 — Solvency Guard.
 
-They remain planned security and resilience extensions and are not implemented as of Phase 6.
+They remain planned security and resilience extensions and are not implemented as of Phase 7.
 
 ### 3.4 Product Security Extensions
 
@@ -1212,6 +1212,51 @@ The UI and AI Risk Assistant must display the shortfall rather than hiding it.
 
 ---
 
+## 20.6 Phase 7 Early-Withdrawal Security Evidence
+
+Phase 7 validates the following early-withdrawal controls:
+
+- only an existing `Active` deposit may settle;
+- only the direct current result of `ownerOf(depositId)` may call;
+- ERC721 approval does not grant withdrawal authority;
+- early settlement is valid only while `block.timestamp < maturityAt`;
+- `DepositAlreadyMatured` rejects the exact maturity timestamp and later timestamps;
+- the penalty comes from the immutable `penaltyBpsAtOpen` snapshot;
+- no current plan APR, current plan enabled state, or mutable plan term controls the payout;
+- the configured fee receiver is resolved at execution time;
+- interest is always zero in the early path;
+- the principal identity `userReceive + penalty = principal` is preserved;
+- zero-value user or fee transfers are skipped;
+- the deposit is marked `Withdrawn` before token interactions;
+- a failed later penalty transfer rolls back the earlier user transfer and status update;
+- direct callback into `earlyWithdraw` is rejected by `nonReentrant`;
+- cross-function callback into `withdrawAtMaturity` is also rejected;
+- SavingCore pause blocks early withdrawal;
+- VaultManager pause alone does not block early withdrawal because no vault payout is requested;
+- maturity and early withdrawal cannot both succeed for one deposit;
+- the NFT remains as a historical certificate but the terminal status prevents reuse.
+
+Verified Phase 7 evidence:
+
+- `120` SavingCore tests pass;
+- `180` tests pass across the complete project;
+- SavingCore achieves 100% statements, branches, functions, and lines;
+- all `82 / 82` SavingCore branch paths are covered;
+- SavingCore deployed bytecode is approximately `9.406 KiB`;
+- SavingCore initcode is approximately `10.637 KiB`.
+
+Residual risks still include:
+
+- compromised administrator ownership;
+- malicious or incorrect fee-receiver configuration;
+- wrong deployed dependency addresses;
+- unsupported or malicious ERC20 behavior outside the tested assumptions;
+- frontend, RPC, wallet, deployment, and operational failures;
+- renewal, C1, and C2 controls that are not implemented yet.
+
+Passing tests and full SavingCore coverage reduce identified risk but do not constitute an independent audit or a guarantee of security.
+
+---
 ## 21. C1 Security Requirements
 
 C1 is planned for a later phase.

@@ -10,81 +10,92 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 6 — Base maturity withdrawal flow implemented and validated locally**
+**Phase 7 — Early withdrawal with penalty implemented and validated locally**
 
-Phase 6 deliverables:
+Phase 7 deliverables:
 
 - `contracts/SavingCore.sol`
 - `contracts/mocks/MockReentrantToken.sol`
 - `test/SavingCore.test.ts`
 - `data/abi/contracts/SavingCore.sol/SavingCore.json`
-- Phase 6 documentation updates
+- Phase 7 documentation updates
 
-Phase 6 implementation includes:
+Phase 7 implementation includes:
 
-- `withdrawAtMaturity(depositId)`;
-- exact maturity eligibility at `block.timestamp >= maturityAt`;
+- `earlyWithdraw(depositId)`;
+- eligibility only while `block.timestamp < maturityAt`;
+- rejection at exact maturity through `DepositAlreadyMatured`;
 - active-deposit lifecycle validation;
 - direct current-NFT-owner authorization;
 - rejection of approved ERC721 operators that are not the owner;
-- simple-interest calculation from snapshotted principal, APR, and tenor;
+- penalty calculation from `penaltyBpsAtOpen`;
 - full-precision floor rounding with `Math.mulDiv`;
-- principal settlement from `SavingCore`;
-- positive interest settlement through authorized `VaultManager.payInterest`;
-- zero-rounded-interest settlement without a zero-value vault call;
+- zero-interest early settlement;
+- user receipt of `principal - penalty`;
+- penalty transfer to the current `VaultManager.feeReceiver()`;
+- zero-penalty settlement without a zero-value fee transfer;
+- maximum-penalty settlement without a zero-value user transfer;
 - `Active` to `Withdrawn` status transition;
 - retained ERC721 certificates after settlement;
-- `Withdrawn` event emission;
-- withdrawal at exact maturity, exact grace-period end, and after grace while still active;
-- independent SavingCore and VaultManager pause enforcement;
-- atomic rollback when vault authorization, liquidity, pause, or payout requirements fail;
-- maturity-withdrawal callback reentrancy protection.
+- reuse of `Withdrawn(depositId, owner, principal, 0, true)`;
+- checks-effects-interactions ordering;
+- independent SavingCore and VaultManager pause behavior;
+- atomic rollback if a later settlement transfer fails;
+- direct and cross-function callback reentrancy protection;
+- terminal-action exclusion between early and maturity withdrawal.
 
-Phase 6 validation completed:
+Phase 7 validation completed:
 
 - TypeScript validation with `npx tsc --noEmit`;
 - Solidity `0.8.28` compilation;
 - optimizer validation with `1,000` runs and `viaIR`;
 - TypeChain and ABI generation;
 - contract-size reporting;
-- focused SavingCore tests;
-- full regression tests;
+- focused early-withdrawal tests;
+- complete SavingCore regression tests;
+- complete project regression tests;
 - full-project Solidity coverage;
-- exact-maturity and exact-grace-period-end withdrawal tests;
-- current-owner and approved-operator authorization tests;
-- APR snapshot and disabled-plan isolation tests;
-- zero-interest and rounding-dust tests;
-- underfunded-vault atomic rollback tests;
+- exact pre-maturity and exact-maturity boundary tests;
+- current-owner, transferred-owner, unrelated-caller, and approved-operator tests;
+- disabled-plan and penalty-snapshot isolation tests;
+- current fee-receiver tests;
+- zero, maximum, and floor-rounded penalty tests;
 - SavingCore and VaultManager pause tests;
-- unauthorized-vault rollback tests;
-- maturity-withdrawal callback reentrancy tests;
-- ABI, generated-file, scope, and `parseEther` checks.
+- atomic token-transfer rollback tests;
+- direct `earlyWithdraw` reentrancy tests;
+- maturity and early terminal-action integration tests;
+- ABI, generated-file, scope, and six-decimal-unit checks.
 
 Current verified results:
 
-- SavingCore deployed bytecode: approximately `8.554 KiB`;
-- SavingCore initcode: approximately `9.757 KiB`;
+- SavingCore deployed bytecode: approximately `9.406 KiB`;
+- SavingCore initcode: approximately `10.637 KiB`;
 - `13 passing` MockUSDC tests;
 - `47 passing` VaultManager tests;
-- `100 passing` focused SavingCore tests;
-- `160 passing` tests in the complete suite;
+- `120 passing` SavingCore tests;
+- `180 passing` tests in the complete suite;
 - SavingCore coverage: 100% statements, branches, functions, and lines;
-- overall coverage including test mocks: 98.02% statements, 95.31% branches, 97.67% functions, and 96.67% lines.
+- SavingCore branch paths: `82 / 82`;
+- overall coverage including test mocks: 98.33% statements, 95.89% branches, 97.83% functions, and 96.79% lines.
 
 Important interpretation:
 
-- user principal remains held by `SavingCore` until settlement;
-- `VaultManager` holds bank-funded interest liquidity;
-- maturity settlement uses the deposit snapshots rather than current plan terms;
-- later APR updates or plan disabling do not alter an existing deposit payout;
-- only the direct current NFT owner receives principal and interest;
+- user principal remains held by `SavingCore` until a valid terminal action;
+- maturity withdrawal pays snapshotted interest from `VaultManager`;
+- early withdrawal pays no interest;
+- early penalty uses the immutable deposit snapshot rather than current plan data;
+- penalty goes to the fee receiver configured at execution time;
+- changing or disabling a plan does not invalidate settlement rights of an existing deposit;
+- only the direct current NFT owner may execute owner-restricted settlement;
 - an ERC721-approved operator does not gain withdrawal authority;
+- transferring the NFT transfers the deposit's remaining economic rights;
+- at exactly `maturityAt`, early withdrawal is invalid and maturity withdrawal is valid;
 - the NFT remains transferable and is retained as a historical certificate after settlement;
-- under the base Phase 6 flow, insufficient vault interest reverts the complete transaction;
-- the revert restores deposit status, principal custody, vault balance, and recipient balance;
-- Bonus C1 will later change the underfunded maturity behavior but is not implemented yet;
-- early withdrawal, renewal, C1, and C2 remain unimplemented;
-- Phase 6 Git staging, commit, push, remote comparison, and final checkpoint are still pending.
+- SavingCore pause blocks early withdrawal;
+- VaultManager pause alone does not block early withdrawal because early settlement does not request interest;
+- failed settlement transfers atomically restore deposit status and every token balance;
+- manual renewal, auto-renewal, C1, and C2 remain unimplemented;
+- Phase 7 Git staging, commit, push, remote comparison, and final checkpoint are still pending.
 
 Previous completed phases:
 
@@ -93,7 +104,8 @@ Previous completed phases:
 - Phase 2: six-decimal MockUSDC contract and tests;
 - Phase 3: base VaultManager contract and tests;
 - Phase 4: SavingCore foundation and saving-plan management;
-- Phase 5: deposit opening, financial-term snapshots, principal custody, and ERC721 deposit certificates.
+- Phase 5: deposit opening, financial-term snapshots, principal custody, and ERC721 deposit certificates;
+- Phase 6: base maturity withdrawal flow.
 
 ## Current Implementation Status
 
@@ -119,19 +131,26 @@ Completed:
 - Snapshotted simple-interest calculation
 - Principal payout from SavingCore
 - Interest payout through VaultManager
-- Maturity withdrawal at exact maturity and exact grace-period end
-- Current NFT owner maturity-withdrawal rights
+- Maturity withdrawal at exact maturity and after grace while active
+- Early withdrawal before maturity
+- Snapshotted early-withdrawal penalty calculation
+- Net-principal payout to the direct current NFT owner
+- Penalty payout to the current fee receiver
+- Exact maturity rejection for early withdrawal
+- Current NFT owner settlement rights
 - Approved ERC721 operator rejection
-- Underfunded-vault atomic rollback
-- Maturity-withdrawal reentrancy protection
+- Disabled-plan settlement isolation
+- Underfunded-vault maturity rollback
+- Atomic early-withdrawal transfer rollback
+- Maturity and early-withdrawal reentrancy protection
+- Historical NFT retention
 - MockUSDC, VaultManager, and SavingCore ABI export
-- 160 passing tests
+- 180 passing tests
 - 100% coverage across all four metrics for SavingCore
 
 Not implemented yet:
 
 - Rich NFT metadata or custom `tokenURI`
-- Early withdrawal
 - Manual renewal
 - Permissionless auto-renewal
 - Pending-interest accounting
@@ -149,7 +168,7 @@ Not implemented yet:
 - Demo video
 - Final submission audit
 
-No withdrawal, renewal, C1, or C2 business flow should currently be treated as implemented.
+No renewal, C1, or C2 business flow should currently be treated as implemented.
 ## Core Contracts
 
 ### MockUSDC
@@ -273,9 +292,8 @@ The exported project ABI is located at:
 
 `data/abi/contracts/SavingCore.sol/SavingCore.json`
 
-The current Phase 6 implementation intentionally does not include:
+The current Phase 7 implementation intentionally does not include:
 
-- early withdrawal;
 - manual renewal;
 - permissionless auto-renewal;
 - pending-interest accounting;
@@ -467,22 +485,23 @@ The project currently uses npm and `package-lock.json`.
 | `npm run size` | Report compiled contract sizes |
 | `npm run node` | Start a local Hardhat node |
 
-At the current locally validated Phase 6 state:
+At the current locally validated Phase 7 state:
 
 - Solidity `0.8.28`, optimizer with `1,000` runs, and `viaIR` compile successfully;
-- focused SavingCore testing reports `100 passing`;
-- the complete current suite reports `160 passing`;
-- SavingCore deployed bytecode is approximately `8.554 KiB`;
-- SavingCore initcode is approximately `9.757 KiB`;
+- focused SavingCore testing reports `120 passing`;
+- the complete current suite reports `180 passing`;
+- SavingCore deployed bytecode is approximately `9.406 KiB`;
+- SavingCore initcode is approximately `10.637 KiB`;
 - SavingCore coverage reports 100% statements, branches, functions, and lines;
+- SavingCore branch coverage includes all `82 / 82` instrumented branch paths;
 - MockUSDC coverage reports 100% statements, branches, functions, and lines;
 - VaultManager coverage reports 100% statements, 94% branches, 100% functions, and 100% lines;
-- overall coverage including test mocks reports 98.02% statements, 95.31% branches, 97.67% functions, and 96.67% lines;
+- production contracts collectively report 100% statements, 97.73% branches, 100% functions, and 100% lines;
+- overall coverage including test mocks reports 98.33% statements, 95.89% branches, 97.83% functions, and 96.79% lines;
 - remaining uncovered lines, branches, or functions are confined to test-only mock contracts;
 - `artifacts/`, `cache/`, `typechain/`, `coverage/`, and `coverage.json` remain ignored;
 - project-owned MockUSDC, VaultManager, and SavingCore ABIs are retained;
 - test-mock ABIs are removed before staging and are not project integration artifacts.
-
 ## Project Structure
 
 Current relevant structure:
@@ -490,6 +509,8 @@ Current relevant structure:
     online-banking-capstone/
     ├── contracts/
     │   ├── mocks/
+    │   │   ├── MockDepositReceiver.sol
+    │   │   ├── MockReentrantToken.sol
     │   │   └── MockSavingCoreCaller.sol
     │   ├── MockUSDC.sol
     │   ├── SavingCore.sol
@@ -576,22 +597,26 @@ Current development branch:
 
 The current action is to finalize:
 
-**Phase 6 — Base maturity withdrawal flow**
+**Phase 7 — Early withdrawal with penalty**
 
-Before Phase 6 may be declared complete:
+Before Phase 7 may be declared complete:
 
-1. review the complete SavingCore, reentrant-token mock, tests, ABI, and documentation diff;
-2. confirm exact-maturity settlement, snapshot interest, current-owner authorization, historical NFT retention, and atomic rollback;
-3. confirm early withdrawal, renewal, C1, and C2 remain unimplemented;
-4. remove generated test-mock ABIs before staging;
-5. rerun final TypeScript, clean compile, focused tests, full regression, coverage, and size checks;
+1. review the complete SavingCore, test mock, tests, ABI, and documentation diff;
+2. confirm pre-maturity settlement, penalty snapshots, direct current-owner authorization, historical NFT retention, and atomic rollback;
+3. confirm manual renewal, auto-renewal, C1, and C2 remain unimplemented;
+4. confirm generated test-mock ABIs are absent before staging;
+5. run final TypeScript, clean compile, focused tests, full regression, coverage, and contract-size checks;
 6. run whitespace, generated-file, scope, secret, ABI, and six-decimal-unit checks;
-7. stage only the approved Phase 6 files;
-8. commit with `feat: add maturity withdrawal flow`;
+7. stage only the approved Phase 7 files;
+8. commit with `feat: add early withdrawal with penalty`;
 9. push the commit to `origin/main`;
 10. fetch the remote and confirm that local and remote commits match;
 11. confirm that the working tree is clean;
-12. produce the complete Phase 6 checkpoint;
+12. produce the complete Phase 7 checkpoint;
 13. stop and wait for explicit user approval.
 
-The next implementation phase must not begin automatically.
+After Phase 7 is fully committed, pushed, and approved, the next planned phase is:
+
+**Phase 8 — Manual renewal during the grace period**
+
+Phase 8 must not begin automatically.

@@ -16,8 +16,8 @@ import {VaultManager} from "./VaultManager.sol";
  * @title SavingCore
  * @notice Central SafeBank contract for saving-plan and deposit management.
  * @dev Implements saving-plan administration, deposit opening, ERC721
- *      certificates, and the Phase 6 base maturity-withdrawal flow.
- *      Early withdrawal, renewals, C1, and C2 remain intentionally deferred.
+ *      certificates, maturity withdrawal, and the Phase 7 early-withdrawal
+ *      flow. Renewals, C1, and C2 remain intentionally deferred.
  */
 contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -199,6 +199,15 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
      * @dev The deposit maturity timestamp has not yet been reached.
      */
     error DepositNotMatured(
+        uint256 depositId,
+        uint256 maturityAt,
+        uint256 currentTimestamp
+    );
+
+    /**
+     * @dev The deposit has reached maturity and is no longer early-withdrawable.
+     */
+    error DepositAlreadyMatured(
         uint256 depositId,
         uint256 maturityAt,
         uint256 currentTimestamp
@@ -529,6 +538,70 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
         );
     }
 
+    /**
+     * @notice Settles an active deposit before its maturity timestamp.
+     * @dev No interest is paid. The snapshotted penalty is transferred from
+     *      principal to the current VaultManager fee receiver, and the
+     *      remaining principal is returned to the direct current NFT owner.
+     *      The NFT is retained as a historical certificate.
+     * @param depositId Existing active deposit identifier.
+     */
+    function earlyWithdraw(
+        uint256 depositId
+    ) external whenNotPaused nonReentrant {
+        _requireDepositExists(depositId);
+
+        Deposit storage deposit = _deposits[depositId];
+
+        if (deposit.status != DepositStatus.Active) {
+            revert DepositNotActive(depositId, deposit.status);
+        }
+
+        address currentOwner = ownerOf(depositId);
+
+        if (_msgSender() != currentOwner) {
+            revert NotDepositOwner(
+                depositId,
+                _msgSender(),
+                currentOwner
+            );
+        }
+
+        if (block.timestamp >= deposit.maturityAt) {
+            revert DepositAlreadyMatured(
+                depositId,
+                deposit.maturityAt,
+                block.timestamp
+            );
+        }
+
+        uint256 principal = deposit.principal;
+        uint256 penalty = Math.mulDiv(
+            principal,
+            deposit.penaltyBpsAtOpen,
+            BPS_DENOMINATOR
+        );
+        uint256 userReceive = principal - penalty;
+        address feeReceiver = vaultManager.feeReceiver();
+
+        deposit.status = DepositStatus.Withdrawn;
+
+        if (userReceive != 0) {
+            token.safeTransfer(currentOwner, userReceive);
+        }
+
+        if (penalty != 0) {
+            token.safeTransfer(feeReceiver, penalty);
+        }
+
+        emit Withdrawn(
+            depositId,
+            currentOwner,
+            principal,
+            0,
+            true
+        );
+    }
     /**
      * @notice Returns an existing deposit and its snapshotted terms.
      * @param depositId Existing deposit identifier.

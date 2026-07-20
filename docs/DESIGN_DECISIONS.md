@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Architecture and Product Decision Records |
-| Current project phase | Phase 6 — Base maturity withdrawal flow |
-| Implementation status | Accepted decisions through Phase 6 are reflected in the implemented contracts and tests; early withdrawal, renewal, C1, C2, frontend, AI, and deployment decisions remain pending or deferred |
+| Current project phase | Phase 7 — Early withdrawal with penalty |
+| Implementation status | Accepted decisions through Phase 7 are reflected in the implemented contracts and tests; renewal, C1, C2, frontend, AI, and deployment decisions remain pending or deferred |
 | Architecture model | Non-upgradeable |
 | Student ID | 3122560090 |
 | Test token | MockUSDC with 6 decimals |
@@ -113,7 +113,7 @@ Statuses mean:
 | ADR-009 | Make auto-renew permissionless | Accepted |
 | ADR-010 | Preserve tenor, APR, and penalty snapshots during auto-renew | Accepted |
 | ADR-011 | Do not accrue multiple terms while bot is offline | Accepted |
-| ADR-012 | Leave rounding dust in VaultManager | Accepted |
+| ADR-012 | Apply deterministic floor rounding | Implemented |
 | ADR-013 | Pause all financial entry points | Accepted |
 | ADR-014 | Use non-upgradeable contracts | Accepted |
 | ADR-015 | Use basic ERC721 instead of ERC721Enumerable | Accepted |
@@ -142,6 +142,8 @@ Statuses mean:
 | ADR-038 | Treat MockUSDC as a test-only asset | Accepted |
 | ADR-039 | Frontend framework selection remains deferred | Deferred |
 | ADR-040 | Final NFT metadata strategy remains deferred | Deferred |
+| ADR-041 | Resolve the current fee receiver at early settlement | Implemented |
+| ADR-042 | Use atomic user-net-first early settlement with independent pauses | Implemented |
 
 ---
 
@@ -361,9 +363,11 @@ Maturity withdrawal is valid when:
 
 At exactly `maturityAt`, the deposit is mature.
 
-This rule is implemented in Phase 6 by `withdrawAtMaturity`; its maturity check treats the deposit as not matured when `block.timestamp < maturityAt`.
+The maturity side was implemented in Phase 6 by `withdrawAtMaturity`, which accepts `block.timestamp >= maturityAt`.
 
-The implemented flow also keeps maturity withdrawal available at the exact grace-period end and after grace while the deposit remains `Active`.
+The early side was implemented in Phase 7 by `earlyWithdraw`, which accepts only `block.timestamp < maturityAt` and reverts with `DepositAlreadyMatured` at the exact maturity timestamp or later.
+
+The implemented flows are mutually exclusive at the boundary and keep maturity withdrawal available at the exact grace-period end and after grace while the deposit remains `Active`.
 
 ### Rationale
 
@@ -640,7 +644,7 @@ Do not display accumulated unexecuted renewal terms.
 
 ## ADR-012 — Rounding Dust
 
-**Status:** Accepted
+**Status:** Implemented
 
 **Category:** SafeBank project decision
 
@@ -672,6 +676,19 @@ Use non-divisible examples and verify exact token conservation.
 
 Show contract-equivalent values and optionally explain that blockchain token calculations round down.
 
+
+### Implementation evidence
+
+Phase 6 validates floor-rounded simple interest and retained vault dust.
+
+Phase 7 validates:
+
+- floor-rounded early-withdrawal penalties;
+- positive fractional penalties rounded down to an integer token unit;
+- fractional penalties rounded down to zero;
+- exact conservation of principal between user receipt and fee receipt;
+- zero and maximum penalty boundaries;
+- no compensating token mint.
 ---
 
 ## ADR-013 — Pause Scope
@@ -2202,6 +2219,141 @@ Exact names are intentionally deferred until the associated contract phase.
 
 ---
 
+## ADR-041 — Current Fee Receiver at Early Settlement
+
+**Status:** Implemented
+
+**Category:** SafeBank financial and administration decision
+
+### Context
+
+The fee receiver may be changed by the VaultManager owner after a deposit is opened.
+
+The system must decide whether an early-withdrawal deposit snapshots that address or resolves the current configuration during settlement.
+
+### Decision
+
+Early withdrawal resolves:
+
+`vaultManager.feeReceiver()`
+
+at execution time.
+
+The fee-receiver address is not stored in the deposit snapshot.
+
+The caller cannot supply or override the penalty recipient.
+
+A valid fee-receiver update affects later unsettled early withdrawals but does not modify the snapshotted penalty rate.
+
+### Rationale
+
+The penalty percentage is part of the depositor's immutable financial terms.
+
+The receiver address is operational bank configuration and may require controlled rotation.
+
+Keeping these concerns separate avoids adding mutable recipient data to every deposit.
+
+### Trade-offs
+
+A compromised VaultManager owner may redirect future penalty receipts.
+
+Users and monitoring tools should inspect fee-receiver changes.
+
+### Test implication
+
+Tests must verify:
+
+- the original receiver stops receiving penalties after an update;
+- the current receiver receives the exact penalty;
+- the user still receives `principal - penalty`;
+- callers cannot select the receiver.
+
+### UI implication
+
+The early-withdrawal review should show the current fee receiver in advanced details.
+
+The UI must refresh this address immediately before transaction preparation.
+
+---
+
+## ADR-042 — Atomic Early Settlement and Independent Pause Semantics
+
+**Status:** Implemented
+
+**Category:** SafeBank security and settlement decision
+
+### Context
+
+Early withdrawal makes two possible token transfers:
+
+1. net principal to the current NFT owner;
+2. penalty to the fee receiver.
+
+The project must define call order, zero-value behavior, failure atomicity, reentrancy protection, and the relationship between SavingCore and VaultManager pause states.
+
+### Decision
+
+The implemented early-withdrawal sequence is:
+
+1. validate deposit existence and `Active` status;
+2. resolve and validate the direct current NFT owner;
+3. validate `block.timestamp < maturityAt`;
+4. calculate penalty and user receipt from deposit snapshots;
+5. resolve the current fee receiver;
+6. set status to `Withdrawn`;
+7. transfer nonzero user net principal;
+8. transfer nonzero penalty;
+9. emit `Withdrawn` with zero interest and `isEarly = true`.
+
+SavingCore pause blocks early withdrawal.
+
+VaultManager pause alone does not block early withdrawal because the flow reads only the public fee-receiver configuration and does not call `payInterest`.
+
+If a required later transfer fails, the entire transaction reverts, including:
+
+- the earlier user transfer;
+- the status transition;
+- all token balances;
+- event emission.
+
+Both direct reentry into `earlyWithdraw` and cross-function reentry into `withdrawAtMaturity` are blocked by `nonReentrant`.
+
+### Rationale
+
+User-net-first ordering makes the economic result easy to read while preserving full EVM atomicity.
+
+Skipping zero-value transfers avoids unnecessary external calls.
+
+Independent pause semantics match the separation between principal settlement and interest-vault operations.
+
+### Trade-offs
+
+The early path still depends on correct ERC20 behavior and correct fee-receiver configuration.
+
+VaultManager being paused does not suspend penalty collection.
+
+### Test implication
+
+Tests must cover:
+
+- zero and maximum penalty;
+- floor rounding;
+- SavingCore pause;
+- VaultManager-only pause;
+- failure of the later penalty transfer;
+- direct and cross-function reentrancy;
+- terminal-action exclusion;
+- exact token conservation.
+
+### UI implication
+
+Disable early withdrawal when SavingCore is paused.
+
+Do not disable it solely because VaultManager is paused.
+
+Show no interest in the confirmation and clearly separate user receipt from penalty.
+
+---
 # Decision Change Process
 
 ## 36. Changing an Accepted Decision
@@ -2290,7 +2442,7 @@ The following remain deferred until their relevant phases:
 - frontend deployment provider;
 - event-indexing technology.
 
-The current Solidity storage layout, custom errors, function signatures, and implemented event-indexing parameters are defined by the Phase 6 contracts and exported ABI.
+The current Solidity storage layout, custom errors, function signatures, and implemented event-indexing parameters are defined by the Phase 7 contracts and exported ABI.
 
 Deferred details must not contradict accepted financial and security behavior.
 
@@ -2298,7 +2450,7 @@ Deferred details must not contradict accepted financial and security behavior.
 
 ## 40. Phase Status
 
-Implemented and validated through Phase 6:
+Implemented and validated through Phase 7:
 
 - decision documentation;
 - classification of mandatory and SafeBank-specific requirements;
@@ -2313,18 +2465,29 @@ Implemented and validated through Phase 6:
 - exact maturity eligibility;
 - maturity withdrawal after grace while the deposit remains active;
 - base maturity withdrawal;
+- early withdrawal before maturity;
+- zero-interest early settlement;
+- snapshotted early-withdrawal penalties;
+- current fee-receiver resolution;
+- deterministic floor rounding;
+- zero and maximum penalty boundaries;
+- user-net-first atomic token settlement;
+- disabled-plan settlement isolation;
 - historical NFT retention;
 - simple interest from snapshotted principal, APR, and tenor;
-- floor rounding with dust retained in VaultManager;
-- underfunded-vault atomic rollback;
-- maturity-withdrawal reentrancy protection;
-- 100 focused SavingCore tests;
-- 160 full-suite tests;
-- 100% statements, branches, functions, and lines coverage for SavingCore.
+- underfunded-vault maturity rollback;
+- failed-penalty-transfer early rollback;
+- maturity and early-withdrawal reentrancy protection;
+- exclusion between conflicting terminal actions;
+- `120` SavingCore tests;
+- `180` full-suite tests;
+- 100% statements, branches, functions, and lines coverage for SavingCore;
+- all `82 / 82` SavingCore branch paths;
+- SavingCore deployed bytecode of approximately `9.406 KiB`;
+- SavingCore initcode of approximately `10.637 KiB`.
 
 Not implemented:
 
-- early withdrawal;
 - manual renewal;
 - permissionless auto-renewal;
 - pending-interest accounting;
@@ -2338,10 +2501,11 @@ Not implemented:
 - Bonus C1 code;
 - Bonus C2 code.
 
+ADR-006 remains `Accepted`, not `Implemented`, because manual and automatic renewal have not been developed yet.
+
 This file records both accepted design decisions and their verified implementation status.
 
 ---
-
 ## 41. Final Decision Position
 
 SafeBank will be implemented as a non-upgradeable, three-contract savings system in which:

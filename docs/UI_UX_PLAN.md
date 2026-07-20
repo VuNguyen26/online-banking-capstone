@@ -6,15 +6,15 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | UI/UX Product Plan |
-| Current project phase | Phase 1 — Architecture and design documentation |
-| Implementation status | Planned only; no frontend application has been created |
+| Current project phase | Phase 7 — Early withdrawal with penalty |
+| Implementation status | Frontend remains planned only; contract interfaces through Phase 7 are implemented and validated locally |
 | Target product areas | User Banking App and Admin Portal |
 | Product style | Modern, trustworthy, clear, accessible, and responsive |
 | Branding model | Original SafeBank identity |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document defines the planned SafeBank user experience before frontend implementation begins.
+This document defines the planned SafeBank user experience and is aligned with the implemented contract interfaces through Phase 7. No frontend application has been created yet.
 
 It does not claim that:
 
@@ -27,7 +27,7 @@ It does not claim that:
 - any Sepolia deployment currently exists;
 - the product is production-ready.
 
-The UI must be implemented only after the related smart contract interfaces become sufficiently stable.
+The plan, deposit-opening, certificate, maturity-withdrawal, and early-withdrawal interfaces are now validated locally. Renewal, C1, C2, deployment addresses, and frontend implementation remain pending.
 
 ## 1.1 SafeBank Personal Variant
 
@@ -44,6 +44,33 @@ Required values:
 UI calculations and input handling must use six-decimal token units.
 
 The interface must not use `parseEther` for MockUSDC.
+
+## 1.2 Phase 7 Contract Integration Baseline
+
+The future frontend may now rely on the following implemented and locally validated interfaces:
+
+- saving-plan creation, APR updates, enable, disable, and reads;
+- deposit opening with ERC20 principal transfer;
+- ERC721 certificate issuance and current-owner reads;
+- `withdrawAtMaturity(depositId)`;
+- `earlyWithdraw(depositId)`;
+- the reused `Withdrawn` event;
+- the `DepositAlreadyMatured` custom error;
+- public `VaultManager.feeReceiver()` reads;
+- independent SavingCore and VaultManager pause reads.
+
+The frontend must not present the following as available yet:
+
+- manual renewal;
+- automatic renewal;
+- pending-interest claims;
+- reserved-interest or available-liquidity accounting;
+- C1 principal-first settlement;
+- C2 solvency protection;
+- Sepolia contract addresses;
+- AI transaction execution.
+
+Contract state remains authoritative even when a deterministic UI estimate is displayed.
 
 ---
 
@@ -290,7 +317,7 @@ The design should avoid appearing like:
 
 ## 7. Design Tokens at Planning Level
 
-No design tokens are implemented during Phase 1.
+No frontend design tokens have been implemented yet.
 
 The following categories must later be defined centrally.
 
@@ -792,21 +819,46 @@ The frontend must not rely on JavaScript floating-point arithmetic for exact tok
 
 ## 18. Early Withdrawal Estimation
 
-The estimator must mirror:
+The estimator must mirror the implemented Phase 7 formulas:
 
-`penalty = principal × penaltyBpsAtOpen ÷ 10,000`
+`penalty = floor(principal × penaltyBpsAtOpen ÷ 10,000)`
 
 `userReceive = principal - penalty`
 
-The confirmation should show:
+Authoritative inputs must come from the deposit snapshot:
+
+- `principal`;
+- `penaltyBpsAtOpen`;
+- `maturityAt`;
+- current deposit status.
+
+The fee receiver is not snapshotted in the deposit.
+
+The interface must refresh `VaultManager.feeReceiver()` immediately before preparing the transaction because the current configured receiver receives the penalty.
+
+The confirmation must show:
 
 - original principal;
-- penalty percentage;
-- penalty amount;
-- recipient amount;
-- fee receiver in advanced details;
-- no interest paid;
-- irreversible result after confirmation.
+- snapshotted penalty percentage;
+- exact floor-rounded penalty amount;
+- exact amount returned to the current NFT owner;
+- current fee receiver in advanced details;
+- zero interest paid;
+- current owner address;
+- current timestamp and maturity timestamp;
+- irreversible terminal result;
+- statement that the NFT remains as a historical certificate.
+
+The interface must preserve the exact identity:
+
+`userReceive + penalty = principal`
+
+The UI must handle these valid boundaries:
+
+- `0 bps`: user receives the full principal and no fee transfer is required;
+- `10,000 bps`: fee receiver receives the full principal and no user transfer is required;
+- a positive fractional penalty may round down to zero;
+- all arithmetic must use integer-safe six-decimal token units.
 
 The primary button should use clear wording such as:
 
@@ -819,7 +871,6 @@ It should not use vague wording such as:
 - Proceed.
 
 ---
-
 ## 19. Deposit Portfolio Page
 
 The deposit portfolio should separate deposits by state.
@@ -917,22 +968,39 @@ The page may separately display:
 
 The action area depends on:
 
-- status;
-- current owner;
-- timestamp;
-- pause state;
-- vault state;
-- pending-interest state.
+- deposit existence;
+- `Active` or terminal status;
+- direct current NFT ownership;
+- current block timestamp;
+- SavingCore pause state;
+- VaultManager pause state;
+- pending-interest state after C1;
+- implemented contract capability.
+
+Phase 7 action rules:
+
+- offer early withdrawal only when the deposit is `Active`;
+- offer early withdrawal only when the connected wallet is the direct current NFT owner;
+- an ERC721-approved operator must not be shown as authorized;
+- offer early withdrawal only while `block.timestamp < maturityAt`;
+- stop offering early withdrawal at exactly `maturityAt`;
+- offer maturity withdrawal when `block.timestamp >= maturityAt`;
+- disable early withdrawal while SavingCore is paused;
+- do not disable early withdrawal solely because VaultManager is paused;
+- keep historical certificate viewing available after settlement;
+- refresh status and ownership after every confirmed transaction;
+- never infer a terminal state from local UI state before receipt and contract refresh.
 
 Possible actions:
 
 - early withdraw;
 - withdraw at maturity;
-- manual renew;
-- trigger auto-renew;
-- claim pending interest;
+- manual renew after Phase 8;
+- trigger auto-renew after its implementation;
+- claim pending interest after C1;
 - view historical certificate.
 
+Unavailable future actions must be labeled unavailable rather than silently displayed as working controls.
 ## 20.7 Transaction History
 
 The page may display events associated with the deposit:
@@ -1001,25 +1069,53 @@ After C1, an underfunded flow must explain:
 
 ## 23. Early Withdrawal UX
 
-The early-withdrawal action is available when:
+The implemented contract action is available only when:
+
+`deposit.status == Active`
+
+`connectedWallet == ownerOf(depositId)`
 
 `block.timestamp < maturityAt`
 
-The interface must display a warning before wallet submission.
+`SavingCore.paused() == false`
 
-The warning should include:
+The UI must not treat ERC721 approval as withdrawal authorization.
+
+The interface must display a high-risk warning before wallet submission.
+
+The warning must include:
 
 - no interest will be paid;
-- penalty percentage;
-- penalty amount;
-- amount returned;
+- snapshotted penalty percentage;
+- exact floor-rounded penalty amount;
+- exact amount returned;
+- current fee receiver in advanced details;
+- current NFT owner;
 - action is irreversible;
-- certificate becomes historical.
+- deposit status becomes `Withdrawn`;
+- certificate remains as historical evidence;
+- no second withdrawal or renewal is possible after settlement.
 
-At exact maturity, the early-withdrawal UI must no longer be offered.
+At exactly `maturityAt`, the early-withdrawal action must disappear or become disabled and the maturity-withdrawal action may become available.
+
+If a prepared transaction reaches the contract after maturity, map `DepositAlreadyMatured` to a clear message such as:
+
+> “This deposit has reached maturity. Use maturity withdrawal instead.”
+
+SavingCore pause blocks the action.
+
+VaultManager pause alone does not block early withdrawal because the contract does not request interest from the vault.
+
+After confirmation, the UI must verify:
+
+- transaction receipt success;
+- terminal deposit status;
+- current NFT owner;
+- user token balance;
+- fee-receiver token balance where displayed;
+- retained NFT certificate.
 
 ---
-
 ## 24. Manual Renewal UX
 
 Manual renewal is available when:
@@ -1356,8 +1452,21 @@ The confirmation must show:
 - current receiver;
 - new receiver;
 - address validation;
-- effect on future early-withdrawal penalties;
+- administrator wallet;
+- VaultManager contract address;
+- network;
+- effect on future unsettled early-withdrawal penalties;
+- no change to deposit penalty-rate snapshots;
 - no retroactive change to completed withdrawals.
+
+After a successful update:
+
+- refresh `VaultManager.feeReceiver()`;
+- invalidate any stale early-withdrawal confirmation prepared with the old receiver;
+- require the user to review the early-withdrawal summary again;
+- display the transaction hash and decoded `FeeReceiverUpdated` event.
+
+The caller of `earlyWithdraw` cannot choose the penalty recipient.
 
 ---
 
@@ -1408,9 +1517,17 @@ The UI should explain that pause does not:
 
 ## 33.4 Multi-Contract State
 
-If SavingCore and VaultManager have separate pause states, the UI must display them separately.
+SavingCore and VaultManager have separate pause states and the UI must display them separately.
 
 It must not display a single healthy state when one contract remains paused.
+
+Phase 7 operation-specific behavior:
+
+- SavingCore paused: opening deposits, maturity withdrawal, and early withdrawal are blocked;
+- VaultManager paused: interest payout operations are blocked;
+- VaultManager paused by itself does not block early withdrawal;
+- plan and deposit reads remain available while either contract is paused;
+- the interface must explain which contract is responsible for the blocked action.
 
 ---
 
@@ -1796,6 +1913,10 @@ Technical details should remain available for debugging.
 ### Too Early
 
 “This deposit has not reached maturity.”
+
+### Early Withdrawal No Longer Available
+
+“This deposit has reached maturity. Use maturity withdrawal instead.”
 
 ### Manual Renewal Expired
 
@@ -2469,7 +2590,7 @@ Help should not replace visible transaction summaries.
 
 ## 73. Frontend Technology Decision
 
-No frontend framework is selected in Phase 1.
+No frontend framework has been selected as of Phase 7.
 
 Potential options include:
 
@@ -2489,7 +2610,7 @@ The final decision should consider:
 - bundle security;
 - demonstration reliability.
 
-No framework package should be installed during Phase 1.
+No frontend framework package has been installed yet.
 
 ---
 

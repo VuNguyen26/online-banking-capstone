@@ -2343,6 +2343,690 @@ describe("SavingCore", function () {
       expect(plan.enabled).to.equal(true);
     });
   });
+  describe("Early withdrawal state-machine integration and conservation", function () {
+    it("rejects an unrelated caller while the deposit remains active", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        savingCore,
+        other,
+        anotherAccount,
+      } = fixture;
+      const { depositId, principal } =
+        await openDefaultMaturityDeposit(fixture);
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .earlyWithdraw(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "NotDepositOwner",
+        )
+        .withArgs(
+          depositId,
+          anotherAccount.address,
+          other.address,
+        );
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        0n,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(0n);
+      expect(await token.balanceOf(anotherAccount.address)).to.equal(
+        0n,
+      );
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(
+        principal,
+      );
+    });
+
+    it("rejects early withdrawal after maturity withdrawal has settled the deposit", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { savingCore, other } = fixture;
+      const { depositId, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await fundVault(fixture, interest);
+      await time.setNextBlockTimestamp(maturityAt);
+      await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      await expect(
+        savingCore.connect(other).earlyWithdraw(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "DepositNotActive",
+        )
+        .withArgs(depositId, 1n);
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        1n,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+    });
+
+    it("rejects maturity withdrawal after early withdrawal has settled the deposit", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { savingCore, other } = fixture;
+      const { depositId, maturityAt } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await savingCore.connect(other).earlyWithdraw(depositId);
+      await time.setNextBlockTimestamp(maturityAt);
+
+      await expect(
+        savingCore.connect(other).withdrawAtMaturity(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "DepositNotActive",
+        )
+        .withArgs(depositId, 1n);
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        1n,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+    });
+
+    it("floors a nonzero fractional penalty while preserving exact token conservation", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        savingCore,
+        owner,
+        feeReceiver,
+        other,
+      } = fixture;
+      const principal = 17n;
+      const expectedPenalty =
+        (principal * BigInt(DEFAULT_PENALTY_BPS)) /
+        BPS_DENOMINATOR;
+      const expectedUserReceive = principal - expectedPenalty;
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await savingCore.connect(owner).createPlan(
+        DEFAULT_TENOR_DAYS,
+        DEFAULT_APR_BPS,
+        0n,
+        0n,
+        DEFAULT_PENALTY_BPS,
+        true,
+      );
+
+      await token.mint(other.address, principal);
+      await token
+        .connect(other)
+        .approve(savingCoreAddress, principal);
+      await savingCore.connect(other).openDeposit(1n, principal);
+
+      expect(expectedPenalty).to.equal(1n);
+      expect(expectedUserReceive).to.equal(16n);
+
+      await savingCore.connect(other).earlyWithdraw(1n);
+
+      const userBalance = await token.balanceOf(other.address);
+      const feeBalance = await token.balanceOf(
+        feeReceiver.address,
+      );
+      const coreBalance = await token.balanceOf(savingCoreAddress);
+
+      expect(userBalance).to.equal(expectedUserReceive);
+      expect(feeBalance).to.equal(expectedPenalty);
+      expect(coreBalance).to.equal(0n);
+      expect(
+        userBalance + feeBalance + coreBalance,
+      ).to.equal(principal);
+      expect(await token.totalSupply()).to.equal(principal);
+      expect((await savingCore.getDeposit(1n)).status).to.equal(1n);
+    });
+  });
+
+  describe("Early withdrawal boundaries and pause behavior", function () {
+    it("returns the full principal when the snapshotted penalty is zero", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        savingCore,
+        owner,
+        feeReceiver,
+        other,
+      } = fixture;
+      const principal = amount("1000");
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await savingCore.connect(owner).createPlan(
+        DEFAULT_TENOR_DAYS,
+        DEFAULT_APR_BPS,
+        0n,
+        0n,
+        0n,
+        true,
+      );
+
+      await token.mint(other.address, principal);
+      await token
+        .connect(other)
+        .approve(savingCoreAddress, principal);
+      await savingCore.connect(other).openDeposit(1n, principal);
+
+      await expect(savingCore.connect(other).earlyWithdraw(1n))
+        .to.emit(savingCore, "Withdrawn")
+        .withArgs(
+          1n,
+          other.address,
+          principal,
+          0n,
+          true,
+        );
+
+      expect(await token.balanceOf(other.address)).to.equal(principal);
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(0n);
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(0n);
+      expect((await savingCore.getDeposit(1n)).status).to.equal(1n);
+    });
+
+    it("transfers the full principal to the fee receiver at the maximum penalty", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        savingCore,
+        owner,
+        feeReceiver,
+        other,
+      } = fixture;
+      const principal = amount("1000");
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await savingCore.connect(owner).createPlan(
+        DEFAULT_TENOR_DAYS,
+        DEFAULT_APR_BPS,
+        0n,
+        0n,
+        10_000n,
+        true,
+      );
+
+      await token.mint(other.address, principal);
+      await token
+        .connect(other)
+        .approve(savingCoreAddress, principal);
+      await savingCore.connect(other).openDeposit(1n, principal);
+
+      await savingCore.connect(other).earlyWithdraw(1n);
+
+      expect(await token.balanceOf(other.address)).to.equal(0n);
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(
+        principal,
+      );
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(0n);
+      expect((await savingCore.getDeposit(1n)).status).to.equal(1n);
+      expect(await savingCore.ownerOf(1n)).to.equal(other.address);
+    });
+
+    it("rounds a positive fractional penalty down to zero", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        savingCore,
+        owner,
+        feeReceiver,
+        other,
+      } = fixture;
+      const principal = 1n;
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await savingCore.connect(owner).createPlan(
+        DEFAULT_TENOR_DAYS,
+        DEFAULT_APR_BPS,
+        0n,
+        0n,
+        DEFAULT_PENALTY_BPS,
+        true,
+      );
+
+      await token.mint(other.address, principal);
+      await token
+        .connect(other)
+        .approve(savingCoreAddress, principal);
+      await savingCore.connect(other).openDeposit(1n, principal);
+
+      const deposit = await savingCore.getDeposit(1n);
+
+      expect(deposit.penaltyBpsAtOpen).to.equal(
+        BigInt(DEFAULT_PENALTY_BPS),
+      );
+
+      await savingCore.connect(other).earlyWithdraw(1n);
+
+      expect(await token.balanceOf(other.address)).to.equal(principal);
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(0n);
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(0n);
+    });
+
+    it("blocks early withdrawal while SavingCore is paused without changing state", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        savingCore,
+        owner,
+        feeReceiver,
+        other,
+      } = fixture;
+      const { depositId, principal } =
+        await openDefaultMaturityDeposit(fixture);
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await savingCore.connect(owner).pause();
+
+      await expect(
+        savingCore.connect(other).earlyWithdraw(depositId),
+      ).to.be.revertedWithCustomError(
+        savingCore,
+        "EnforcedPause",
+      );
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        0n,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(0n);
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(0n);
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(
+        principal,
+      );
+    });
+
+    it("allows early withdrawal while only VaultManager is paused", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        vault,
+        savingCore,
+        owner,
+        feeReceiver,
+        other,
+      } = fixture;
+      const { depositId, principal } =
+        await openDefaultMaturityDeposit(fixture);
+      const penalty =
+        (principal * BigInt(DEFAULT_PENALTY_BPS)) /
+        BPS_DENOMINATOR;
+
+      await vault.connect(owner).pause();
+
+      expect(await vault.paused()).to.equal(true);
+      expect(await savingCore.paused()).to.equal(false);
+
+      await savingCore.connect(other).earlyWithdraw(depositId);
+
+      expect(await token.balanceOf(other.address)).to.equal(
+        principal - penalty,
+      );
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(
+        penalty,
+      );
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        1n,
+      );
+    });
+  });
+
+  describe("Early withdrawal snapshots and configuration", function () {
+    it("uses the penalty snapshot after the plan APR changes and the plan is disabled", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        savingCore,
+        owner,
+        feeReceiver,
+        other,
+      } = fixture;
+      const { depositId, principal } =
+        await openDefaultMaturityDeposit(fixture);
+
+      const depositBefore = await savingCore.getDeposit(depositId);
+      const expectedPenalty =
+        (principal * depositBefore.penaltyBpsAtOpen) /
+        BPS_DENOMINATOR;
+
+      await savingCore.connect(owner).updatePlan(1n, 999n);
+      await savingCore.connect(owner).disablePlan(1n);
+
+      const currentPlan = await savingCore.getPlan(1n);
+
+      expect(currentPlan.aprBps).to.equal(999n);
+      expect(currentPlan.enabled).to.equal(false);
+
+      await savingCore.connect(other).earlyWithdraw(depositId);
+
+      const depositAfter = await savingCore.getDeposit(depositId);
+
+      expect(depositAfter.aprBpsAtOpen).to.equal(
+        BigInt(DEFAULT_APR_BPS),
+      );
+      expect(depositAfter.penaltyBpsAtOpen).to.equal(
+        BigInt(DEFAULT_PENALTY_BPS),
+      );
+      expect(depositAfter.status).to.equal(1n);
+
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(
+        expectedPenalty,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(
+        principal - expectedPenalty,
+      );
+    });
+
+    it("sends the penalty to the current VaultManager fee receiver", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        vault,
+        savingCore,
+        owner,
+        feeReceiver,
+        other,
+        anotherAccount,
+      } = fixture;
+      const { depositId, principal } =
+        await openDefaultMaturityDeposit(fixture);
+
+      const penalty =
+        (principal * BigInt(DEFAULT_PENALTY_BPS)) /
+        BPS_DENOMINATOR;
+
+      await expect(
+        vault
+          .connect(owner)
+          .setFeeReceiver(anotherAccount.address),
+      )
+        .to.emit(vault, "FeeReceiverUpdated")
+        .withArgs(
+          feeReceiver.address,
+          anotherAccount.address,
+        );
+
+      expect(await vault.feeReceiver()).to.equal(
+        anotherAccount.address,
+      );
+
+      await savingCore.connect(other).earlyWithdraw(depositId);
+
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(0n);
+      expect(
+        await token.balanceOf(anotherAccount.address),
+      ).to.equal(penalty);
+      expect(await token.balanceOf(other.address)).to.equal(
+        principal - penalty,
+      );
+    });
+  });
+
+  describe("Early withdrawal authorization and lifecycle", function () {
+    it("rejects invalid deposit identifiers", async function () {
+      const { savingCore, other } = await loadFixture(
+        deploySavingCoreFixture,
+      );
+
+      await expect(savingCore.connect(other).earlyWithdraw(0n))
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(0n);
+
+      await expect(savingCore.connect(other).earlyWithdraw(1n))
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(1n);
+    });
+
+    it("transfers early-withdrawal rights with the NFT", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        savingCore,
+        feeReceiver,
+        other,
+        anotherAccount,
+      } = fixture;
+      const { depositId, principal } =
+        await openDefaultMaturityDeposit(fixture);
+
+      const penalty =
+        (principal * BigInt(DEFAULT_PENALTY_BPS)) /
+        BPS_DENOMINATOR;
+      const userReceive = principal - penalty;
+
+      await savingCore
+        .connect(other)
+        .transferFrom(
+          other.address,
+          anotherAccount.address,
+          depositId,
+        );
+
+      await expect(
+        savingCore.connect(other).earlyWithdraw(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "NotDepositOwner",
+        )
+        .withArgs(
+          depositId,
+          other.address,
+          anotherAccount.address,
+        );
+
+      await savingCore
+        .connect(anotherAccount)
+        .earlyWithdraw(depositId);
+
+      expect(await token.balanceOf(other.address)).to.equal(0n);
+      expect(
+        await token.balanceOf(anotherAccount.address),
+      ).to.equal(userReceive);
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(
+        penalty,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        anotherAccount.address,
+      );
+    });
+
+    it("does not allow an approved ERC721 operator to withdraw early", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const { savingCore, owner, other } = fixture;
+      const { depositId } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await savingCore
+        .connect(other)
+        .approve(owner.address, depositId);
+
+      expect(await savingCore.getApproved(depositId)).to.equal(
+        owner.address,
+      );
+
+      await expect(
+        savingCore.connect(owner).earlyWithdraw(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "NotDepositOwner",
+        )
+        .withArgs(depositId, owner.address, other.address);
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        0n,
+      );
+
+      await savingCore.connect(other).earlyWithdraw(depositId);
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        1n,
+      );
+    });
+
+    it("rejects a second early withdrawal and retains the NFT", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const { savingCore, other } = fixture;
+      const { depositId } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await savingCore.connect(other).earlyWithdraw(depositId);
+
+      await expect(
+        savingCore.connect(other).earlyWithdraw(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "DepositNotActive",
+        )
+        .withArgs(depositId, 1n);
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(1n);
+    });
+  });
+
+  describe("Early withdrawal core flow", function () {
+    it("returns net principal, transfers the snapshotted penalty, and pays no interest", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        vault,
+        savingCore,
+        feeReceiver,
+        other,
+      } = fixture;
+      const { depositId, principal } =
+        await openDefaultMaturityDeposit(fixture);
+
+      const penalty =
+        (principal * BigInt(DEFAULT_PENALTY_BPS)) /
+        BPS_DENOMINATOR;
+      const userReceive = principal - penalty;
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      const transaction = await savingCore
+        .connect(other)
+        .earlyWithdraw(depositId);
+
+      await expect(transaction)
+        .to.emit(savingCore, "Withdrawn")
+        .withArgs(
+          depositId,
+          other.address,
+          principal,
+          0n,
+          true,
+        );
+
+      await expect(transaction).to.not.emit(vault, "InterestPaid");
+
+      expect(await token.balanceOf(other.address)).to.equal(
+        userReceive,
+      );
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(
+        penalty,
+      );
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(0n);
+      expect(await token.balanceOf(vaultAddress)).to.equal(0n);
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        1n,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(1n);
+    });
+
+    it("allows early withdrawal one second before maturity", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const { savingCore, other } = fixture;
+      const { depositId, maturityAt } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await time.setNextBlockTimestamp(maturityAt - 1n);
+
+      await expect(
+        savingCore.connect(other).earlyWithdraw(depositId),
+      )
+        .to.emit(savingCore, "Withdrawn")
+        .withArgs(
+          depositId,
+          other.address,
+          amount("1000"),
+          0n,
+          true,
+        );
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        1n,
+      );
+    });
+
+    it("rejects early withdrawal at exact maturity without changing state", async function () {
+      const fixture = await loadFixture(deploySavingCoreFixture);
+      const {
+        token,
+        savingCore,
+        feeReceiver,
+        other,
+      } = fixture;
+      const { depositId, principal, maturityAt } =
+        await openDefaultMaturityDeposit(fixture);
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await time.setNextBlockTimestamp(maturityAt);
+
+      await expect(
+        savingCore.connect(other).earlyWithdraw(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "DepositAlreadyMatured",
+        )
+        .withArgs(
+          depositId,
+          maturityAt,
+          maturityAt,
+        );
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        0n,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(0n);
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(0n);
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(
+        principal,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+    });
+  });
   describe("Maturity withdrawal core flow", function () {
     it("settles principal and snapshotted interest at exact maturity", async function () {
       const fixture = await loadFixture(
@@ -2858,6 +3542,218 @@ describe("SavingCore", function () {
         .withArgs(1n);
     });
   });
+  describe("Early withdrawal atomic rollback", function () {
+    it("rolls back the user transfer and deposit status when the later penalty transfer fails", async function () {
+      const [owner, feeReceiver, other] = await ethers.getSigners();
+
+      const MockReentrantToken = await ethers.getContractFactory(
+        "MockReentrantToken",
+      );
+      const token = await MockReentrantToken.deploy();
+      await token.waitForDeployment();
+
+      const VaultManager = await ethers.getContractFactory(
+        "VaultManager",
+      );
+      const vault = await VaultManager.deploy(
+        await token.getAddress(),
+        owner.address,
+        feeReceiver.address,
+      );
+      await vault.waitForDeployment();
+
+      const SavingCore = await ethers.getContractFactory(
+        "SavingCore",
+      );
+      const savingCore = await SavingCore.deploy(
+        await token.getAddress(),
+        await vault.getAddress(),
+        owner.address,
+      );
+      await savingCore.waitForDeployment();
+
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await savingCore.connect(owner).createPlan(
+        DEFAULT_TENOR_DAYS,
+        DEFAULT_APR_BPS,
+        DEFAULT_MIN_DEPOSIT,
+        DEFAULT_MAX_DEPOSIT,
+        DEFAULT_PENALTY_BPS,
+        true,
+      );
+
+      const depositId = 1n;
+      const principal = amount("1000");
+      const penalty =
+        (principal * BigInt(DEFAULT_PENALTY_BPS)) /
+        BPS_DENOMINATOR;
+      const userReceive = principal - penalty;
+
+      await token.mint(other.address, principal);
+      await token
+        .connect(other)
+        .approve(savingCoreAddress, principal);
+      await savingCore
+        .connect(other)
+        .openDeposit(1n, principal);
+
+      const totalSupplyBefore = await token.totalSupply();
+
+      await token.configureTransferFailure(
+        savingCoreAddress,
+        feeReceiver.address,
+        true,
+      );
+
+      await expect(
+        savingCore.connect(other).earlyWithdraw(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          token,
+          "ForcedTransferFailure",
+        )
+        .withArgs(feeReceiver.address);
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        0n,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(0n);
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(0n);
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(
+        principal,
+      );
+      expect(await token.totalSupply()).to.equal(totalSupplyBefore);
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(1n);
+
+      await token.configureTransferFailure(
+        savingCoreAddress,
+        feeReceiver.address,
+        false,
+      );
+
+      await savingCore.connect(other).earlyWithdraw(depositId);
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        1n,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(
+        userReceive,
+      );
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(
+        penalty,
+      );
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(0n);
+      expect(await token.totalSupply()).to.equal(totalSupplyBefore);
+    });
+  });
+
+  describe("Early withdrawal reentrancy protection", function () {
+    it("blocks token callback reentrancy while completing the original early withdrawal", async function () {
+      const [owner, feeReceiver, other] = await ethers.getSigners();
+
+      const MockReentrantToken = await ethers.getContractFactory(
+        "MockReentrantToken",
+      );
+      const token = await MockReentrantToken.deploy();
+      await token.waitForDeployment();
+
+      const VaultManager = await ethers.getContractFactory(
+        "VaultManager",
+      );
+      const vault = await VaultManager.deploy(
+        await token.getAddress(),
+        owner.address,
+        feeReceiver.address,
+      );
+      await vault.waitForDeployment();
+
+      const SavingCore = await ethers.getContractFactory(
+        "SavingCore",
+      );
+      const savingCore = await SavingCore.deploy(
+        await token.getAddress(),
+        await vault.getAddress(),
+        owner.address,
+      );
+      await savingCore.waitForDeployment();
+
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await savingCore.connect(owner).createPlan(
+        DEFAULT_TENOR_DAYS,
+        DEFAULT_APR_BPS,
+        DEFAULT_MIN_DEPOSIT,
+        DEFAULT_MAX_DEPOSIT,
+        DEFAULT_PENALTY_BPS,
+        true,
+      );
+
+      const depositId = 1n;
+      const principal = amount("1000");
+      const penalty =
+        (principal * BigInt(DEFAULT_PENALTY_BPS)) /
+        BPS_DENOMINATOR;
+      const userReceive = principal - penalty;
+
+      await token.mint(other.address, principal);
+      await token
+        .connect(other)
+        .approve(savingCoreAddress, principal);
+      await savingCore
+        .connect(other)
+        .openDeposit(1n, principal);
+
+      const totalSupplyBefore = await token.totalSupply();
+
+      await token.configureEarlyWithdrawReentry(
+        savingCoreAddress,
+        depositId,
+        true,
+      );
+
+      await expect(
+        savingCore.connect(other).earlyWithdraw(depositId),
+      )
+        .to.emit(savingCore, "Withdrawn")
+        .withArgs(
+          depositId,
+          other.address,
+          principal,
+          0n,
+          true,
+        );
+
+      expect(await token.reentryAttempted()).to.equal(true);
+      expect(await token.reentrySucceeded()).to.equal(false);
+      expect(await token.lastReentryErrorSelector()).to.equal(
+        ethers
+          .id("ReentrancyGuardReentrantCall()")
+          .slice(0, 10),
+      );
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        1n,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(
+        userReceive,
+      );
+      expect(await token.balanceOf(feeReceiver.address)).to.equal(
+        penalty,
+      );
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(0n);
+      expect(await token.balanceOf(vaultAddress)).to.equal(0n);
+      expect(await token.totalSupply()).to.equal(totalSupplyBefore);
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+    });
+  });
+
   describe("Maturity withdrawal reentrancy protection", function () {
     it("blocks token callback reentrancy while completing the original withdrawal", async function () {
       const [owner, feeReceiver, other] = await ethers.getSigners();

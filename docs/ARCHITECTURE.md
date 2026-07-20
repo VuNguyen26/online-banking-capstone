@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | System Architecture |
-| Current phase | Phase 6 — Base maturity withdrawal flow |
-| Implementation status | Smart contracts through Phase 6 are implemented and validated locally; early withdrawal, renewal, bonuses, frontend, AI, and deployment remain pending |
+| Current phase | Phase 7 — Early withdrawal with penalty |
+| Implementation status | Smart contracts through Phase 7 are implemented and validated locally; renewal, bonuses, frontend, AI, and deployment remain pending |
 | Smart contract model | Non-upgradeable |
 | Target environments | Hardhat local network and Ethereum Sepolia testnet |
 | Test token | MockUSDC with 6 decimals |
@@ -15,9 +15,9 @@
 
 This document records both the implemented architecture and the planned direction for later SafeBank phases.
 
-As of Phase 6, MockUSDC, VaultManager, SavingCore plan management, deposit opening, principal custody, financial-term snapshots, ERC721 certificate issuance, and base maturity withdrawal are implemented and validated locally.
+As of Phase 7, MockUSDC, VaultManager, SavingCore plan management, deposit opening, principal custody, financial-term snapshots, ERC721 certificate issuance, base maturity withdrawal, and early withdrawal with penalty are implemented and validated locally.
 
-Sections covering early withdrawal, renewal, Bonus C1, Bonus C2, frontend, AI, and deployment remain design specifications and must not be treated as implemented, audited, deployed, or production-ready.
+Sections covering renewal, Bonus C1, Bonus C2, frontend, AI, and deployment remain design specifications and must not be treated as implemented, audited, deployed, or production-ready.
 
 ---
 
@@ -761,7 +761,7 @@ An early withdrawal is allowed when:
 
 `block.timestamp < maturityAt`
 
-The planned flow is:
+The implemented Phase 7 flow is:
 
 1. Verify the system is not paused.
 2. Verify the deposit exists.
@@ -780,6 +780,38 @@ No interest is paid for an early withdrawal.
 
 At exactly `maturityAt`, this flow must revert because the deposit is no longer early.
 
+### 16.1 Phase 7 Implementation Evidence
+
+The implemented `earlyWithdraw(depositId)` flow has been validated with:
+
+- direct current-NFT-owner authorization;
+- rejection of the original owner after certificate transfer;
+- rejection of unrelated callers;
+- rejection of approved ERC721 operators that are not the direct owner;
+- eligibility one second before maturity;
+- rejection at exactly `maturityAt`;
+- penalty calculation from `penaltyBpsAtOpen`;
+- current fee receiver resolution through `vaultManager.feeReceiver()`;
+- no interest request to `VaultManager`;
+- zero-penalty and 10,000-bps-penalty boundaries;
+- integer floor rounding with exact principal conservation;
+- existing-deposit isolation from plan APR updates and plan disabling;
+- SavingCore pause enforcement;
+- independence from the VaultManager pause state;
+- atomic rollback when the later penalty transfer fails;
+- direct and cross-function callback reentrancy protection;
+- exclusion between maturity and early terminal actions;
+- retained ERC721 historical certificates.
+
+The implemented external-call order is:
+
+1. transfer nonzero user net principal;
+2. transfer nonzero penalty;
+3. emit the reused `Withdrawn` event.
+
+Because both transfers occur in one EVM transaction, failure of either required transfer reverts all earlier balance and state changes.
+
+The later C2 implementation may add reserved-interest release accounting. That future accounting is not part of the current Phase 7 contract.
 ---
 
 ## 17. Manual Renewal Flow
@@ -1012,7 +1044,7 @@ Every additional event must have a clear monitoring, accounting, security, or UX
 
 ## 23. Bonus C1 — Principal-First Settlement
 
-C1 is selected but remains unimplemented as of Phase 6.
+C1 is selected but remains unimplemented as of Phase 7.
 
 ### 23.1 Problem
 
@@ -1060,7 +1092,7 @@ Manual and auto-renew may still revert when the vault cannot fund the interest n
 
 ## 24. Bonus C2 — Solvency Guard
 
-C2 is selected but remains unimplemented as of Phase 6.
+C2 is selected but remains unimplemented as of Phase 7.
 
 ### 24.1 Problem
 
@@ -1406,7 +1438,7 @@ The application must remain usable when the AI provider is unavailable.
 
 ## 34. Architectural Decision Status
 
-Resolved and implemented through Phase 6:
+Resolved and implemented through Phase 7:
 
 1. Basic OpenZeppelin `ERC721` is used without `ERC721Enumerable`.
 2. Plan and deposit storage structures are defined in `SavingCore`.
@@ -1496,40 +1528,58 @@ Future phases must follow these rules:
 
 ## 37. Phase Status
 
-At the time this document is created:
-
 Completed:
 
 - Phase 0 project initialization;
-- npm standardization;
-- Hardhat configuration;
-- Git initialization;
-- initial commit;
-- GitHub push;
-- environment variable cleanup.
+- npm and Hardhat configuration;
+- Git initialization and GitHub synchronization;
+- environment-variable cleanup;
+- architecture, security, UI/UX, and decision documentation.
 
-Implemented and validated locally:
+Implemented and validated locally through Phase 7:
 
 - six-decimal `MockUSDC`;
 - base `VaultManager`;
-- SavingCore foundation and plan management;
+- SavingCore foundation and saving-plan management;
+- two-step ownership and independent pause controls;
 - deposit opening and principal custody;
-- financial-term snapshots;
+- immutable APR, tenor, and penalty snapshots;
 - ERC721 deposit certificates;
+- current NFT owner economic rights;
 - base maturity withdrawal;
-- focused and full regression tests;
-- Solidity coverage and contract-size reporting;
-- project-owned ABI export.
+- snapshotted simple-interest calculation;
+- principal payout from SavingCore;
+- interest payout from VaultManager;
+- maturity withdrawal at exact maturity and after grace while active;
+- early withdrawal only before maturity;
+- exact-maturity rejection for the early path;
+- zero-interest early settlement;
+- snapshotted early-withdrawal penalty calculation;
+- net-principal payout to the direct current NFT owner;
+- penalty payout to the current fee receiver;
+- disabled-plan settlement isolation;
+- zero, maximum, and floor-rounded penalty handling;
+- historical NFT retention;
+- atomic rollback for failed maturity and early settlement calls;
+- direct and cross-function reentrancy protection;
+- exclusion between competing terminal actions;
+- project-owned ABI export;
+- `120` SavingCore tests;
+- `180` tests across the complete project;
+- 100% statements, branches, functions, and lines coverage for SavingCore;
+- all `82 / 82` SavingCore branch paths;
+- SavingCore deployed bytecode of approximately `9.406 KiB`;
+- SavingCore initcode of approximately `10.637 KiB`.
 
 Not implemented:
 
-- early withdrawal;
+- rich NFT metadata or custom `tokenURI`;
 - manual renewal;
 - permissionless auto-renewal;
 - pending-interest accounting;
 - reserved-interest accounting;
 - deploy scripts;
-- local deployment;
+- local deployment workflow;
 - Sepolia deployment;
 - Etherscan verification;
 - User Banking App;
@@ -1538,10 +1588,11 @@ Not implemented:
 - Bonus C1;
 - Bonus C2.
 
-This document is a living architecture record updated through Phase 6. Later-phase sections remain specifications until their implementations are validated.
+This document is a living architecture record updated through Phase 7.
+
+Sections covering renewal, C1, C2, deployment, frontend, and AI remain specifications until their implementations are validated.
 
 ---
-
 ## 38. Summary
 
 SafeBank uses a three-contract model:
