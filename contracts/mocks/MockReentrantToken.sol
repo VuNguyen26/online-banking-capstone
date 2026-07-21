@@ -11,6 +11,8 @@ interface ISavingCoreWithdrawal {
 
     function withdrawAtMaturity(uint256 depositId) external;
 
+    function claimPendingInterest(uint256 depositId) external;
+
     function manualRenew(
         uint256 depositId,
         uint256 newPlanId
@@ -40,6 +42,7 @@ contract MockReentrantToken is ERC20 {
     bool public reenterEarlyWithdrawal;
     bool public reenterManualRenewal;
     bool public reenterAutoRenewal;
+    bool public reenterPendingInterestClaim;
     bool public reentryAttempted;
     bool public reentrySucceeded;
 
@@ -74,6 +77,7 @@ contract MockReentrantToken is ERC20 {
         reenterEarlyWithdrawal = false;
         reenterManualRenewal = false;
         reenterAutoRenewal = false;
+        reenterPendingInterestClaim = false;
         reentryAttempted = false;
         reentrySucceeded = false;
         lastReentryErrorSelector = bytes4(0);
@@ -96,6 +100,7 @@ contract MockReentrantToken is ERC20 {
         reenterEarlyWithdrawal = true;
         reenterManualRenewal = false;
         reenterAutoRenewal = false;
+        reenterPendingInterestClaim = false;
         reentryAttempted = false;
         reentrySucceeded = false;
         lastReentryErrorSelector = bytes4(0);
@@ -121,6 +126,7 @@ contract MockReentrantToken is ERC20 {
         reenterEarlyWithdrawal = false;
         reenterManualRenewal = true;
         reenterAutoRenewal = false;
+        reenterPendingInterestClaim = false;
         reentryAttempted = false;
         reentrySucceeded = false;
         lastReentryErrorSelector = bytes4(0);
@@ -145,6 +151,32 @@ contract MockReentrantToken is ERC20 {
         reenterEarlyWithdrawal = false;
         reenterManualRenewal = false;
         reenterAutoRenewal = true;
+        reenterPendingInterestClaim = false;
+        reentryAttempted = false;
+        reentrySucceeded = false;
+        lastReentryErrorSelector = bytes4(0);
+    }
+
+    /**
+     * @notice Configures a callback into claimPendingInterest during token transfer.
+     * @dev The trigger is normally VaultManager because it transfers deferred
+     *      interest directly to the snapshotted claimant.
+     */
+    function configurePendingInterestClaimReentry(
+        address savingCore_,
+        address reentryTrigger_,
+        uint256 depositId_,
+        bool enabled
+    ) external {
+        savingCore = savingCore_;
+        reentryTrigger = reentryTrigger_;
+        reentryDepositId = depositId_;
+        reentryNewPlanId = 0;
+        reentryEnabled = enabled;
+        reenterEarlyWithdrawal = false;
+        reenterManualRenewal = false;
+        reenterAutoRenewal = false;
+        reenterPendingInterestClaim = true;
         reentryAttempted = false;
         reentrySucceeded = false;
         lastReentryErrorSelector = bytes4(0);
@@ -210,6 +242,20 @@ contract MockReentrantToken is ERC20 {
                         reentryNewPlanId
                     )
                 returns (uint256) {
+                    reentrySucceeded = true;
+                } catch (bytes memory reason) {
+                    bytes4 selector;
+
+                    assembly {
+                        selector := mload(add(reason, 32))
+                    }
+
+                    lastReentryErrorSelector = selector;
+                }
+            } else if (reenterPendingInterestClaim) {
+                try ISavingCoreWithdrawal(savingCore)
+                    .claimPendingInterest(reentryDepositId)
+                {
                     reentrySucceeded = true;
                 } catch (bytes memory reason) {
                     bytes4 selector;

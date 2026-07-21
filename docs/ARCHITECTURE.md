@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | System Architecture |
-| Current phase | Phase 9 — Permissionless auto-renewal after the grace period |
-| Implementation status | Mandatory smart-contract flows through Phase 9 are implemented and validated locally; bonuses, frontend, AI, and deployment remain pending |
+| Current phase | Phase 10 — Bonus C1 Principal-First Settlement |
+| Implementation status | Mandatory smart-contract flows through Phase 9 and Bonus C1 in Phase 10 are implemented and validated locally; Bonus C2, frontend, AI, and deployment remain pending |
 | Smart contract model | Non-upgradeable |
 | Target environments | Hardhat local network and Ethereum Sepolia testnet |
 | Test token | MockUSDC with 6 decimals |
@@ -15,9 +15,9 @@
 
 This document records both the implemented architecture and the planned direction for later SafeBank phases.
 
-As of Phase 9, MockUSDC, VaultManager, SavingCore plan management, deposit opening, principal custody, financial-term snapshots, ERC721 certificate issuance, base maturity withdrawal, early withdrawal with penalty, manual renewal during the grace period, and permissionless auto-renewal after grace are implemented and validated locally.
+As of Phase 10, MockUSDC, VaultManager, SavingCore plan management, deposit opening, principal custody, financial-term snapshots, ERC721 certificate issuance, maturity withdrawal, early withdrawal with penalty, manual renewal during the grace period, permissionless auto-renewal after grace, and Bonus C1 principal-first settlement with deferred-interest claims are implemented and validated locally.
 
-Sections covering Bonus C1, Bonus C2, frontend, AI, and deployment remain design specifications and must not be treated as implemented, audited, deployed, or production-ready.
+Sections covering Bonus C2, frontend, AI, and deployment remain design specifications and must not be treated as implemented, audited, deployed, or production-ready.
 
 ---
 
@@ -33,7 +33,7 @@ Depending on the deposit state and blockchain timestamp, the current NFT owner m
 - withdraw early and pay a penalty;
 - manually renew during the grace period;
 - allow a permissionless caller to trigger auto-renew after the grace period;
-- claim deferred interest after Bonus C1 is implemented.
+- claim deferred interest after principal-first maturity settlement.
 
 The bank administrator manages:
 
@@ -98,12 +98,12 @@ SafeBank has additionally decided that:
 
 ### 3.3 Bonus Scope
 
-SafeBank has selected two bonuses:
+SafeBank selected two bonuses:
 
-- C1 — Principal-First Settlement;
-- C2 — Solvency Guard.
+- C1 — Principal-First Settlement, implemented and validated locally in Phase 10;
+- C2 — Solvency Guard, selected but not yet implemented.
 
-These bonuses will only be implemented after the mandatory base flows are complete and tested.
+Bonus C2 remains outside the current implementation scope.
 
 ### 3.4 Product and AI Extensions
 
@@ -177,7 +177,7 @@ A depositor may:
 - withdraw early;
 - withdraw at maturity;
 - manually renew during the grace period;
-- claim pending interest after C1 is implemented.
+- claim pending interest when recorded as the snapshotted claimant.
 
 ### 5.2 Current NFT Owner
 
@@ -746,11 +746,25 @@ The implemented flow is:
 
 The ERC721 certificate is not burned and remains available as a historical certificate.
 
-The function follows checks-effects-interactions. If VaultManager is paused, unauthorized, or underfunded, the payout call reverts and EVM atomicity restores the deposit status and all affected token balances.
+The function follows checks-effects-interactions.
 
 A zero-rounded interest amount skips `VaultManager.payInterest` because VaultManager rejects zero-value payouts.
 
-The Phase 6 base behavior intentionally permits an underfunded vault to revert the entire maturity transaction. Bonus C1 will later change this behavior so insufficient interest does not lock principal.
+For positive interest, Phase 10 distinguishes liquidity shortfall from every
+other VaultManager failure:
+
+- if `payInterest` succeeds, principal and interest are paid immediately;
+- if VaultManager reverts with
+  `InsufficientVaultBalance(available, required)`, principal remains paid,
+  the deposit becomes terminal, the full calculated interest is stored in
+  `pendingInterest[depositId]`, and the current NFT owner is stored in
+  `interestClaimant[depositId]`;
+- paused, unauthorized, malformed, empty-revert, and other unexpected failures
+  are rethrown, causing EVM atomicity to restore the deposit status, principal,
+  pending-interest state, claimant state, and token balances.
+
+The deferred-interest path is full-or-defer. It does not make a partial
+interest payment.
 
 ---
 
@@ -1419,55 +1433,111 @@ Every additional event must have a clear monitoring, accounting, security, or UX
 
 ## 23. Bonus C1 — Principal-First Settlement
 
-C1 is selected but remains unimplemented as of Phase 9.
+C1 is implemented and validated locally as of Phase 10.
 
 ### 23.1 Problem
 
-The base specification may revert maturity withdrawal when the vault lacks interest.
+Reverting the complete maturity transaction when VaultManager lacks sufficient
+interest liquidity can indirectly lock depositor principal even though that
+principal remains fully held by `SavingCore`.
 
-That behavior can indirectly lock user principal even though the principal remains inside `SavingCore`.
-
-### 23.2 Planned Solution
+### 23.2 Implemented Settlement Behavior
 
 At maturity:
 
-- if the vault can pay interest, principal and interest are both paid;
-- if the vault cannot pay interest, principal is returned immediately;
-- unpaid interest becomes a pending claim;
-- the claimant is snapshotted at settlement time;
-- the claimant may claim after the vault is funded.
+- the deposit must exist and remain `Active`;
+- only the direct current ERC721 owner may settle it;
+- principal is transferred from `SavingCore` to that current owner;
+- calculated interest continues to use the immutable deposit snapshots;
+- fully funded interest is paid immediately through VaultManager;
+- zero-rounded interest skips VaultManager;
+- an exact VaultManager `InsufficientVaultBalance` error defers the full
+  calculated interest;
+- the deposit becomes terminal with status `Withdrawn`;
+- `Withdrawn.interest` equals interest paid immediately in that transaction,
+  so it is zero for a deferred settlement;
+- `InterestDeferred` records the deposit, claimant, and deferred amount.
 
-Planned storage includes:
+Implemented storage:
 
 - `pendingInterest[depositId]`;
 - `interestClaimant[depositId]`.
 
-The planned claim function is:
+Implemented later-claim function:
 
 - `claimPendingInterest(depositId)`.
 
-### 23.3 C1 Invariants
+### 23.3 Claimant Snapshot
 
-C1 must ensure that:
+The claimant is the direct current NFT owner at the moment maturity settlement
+succeeds.
+
+After that snapshot:
+
+- transferring the historical NFT does not transfer the pending claim;
+- an approved ERC721 operator does not gain claim authority;
+- an unrelated account cannot claim;
+- the historical `interestClaimant` value remains stored after payment.
+
+### 23.4 Claim Execution
+
+`claimPendingInterest`:
+
+1. verifies that the deposit exists;
+2. requires a nonzero pending amount;
+3. requires the caller to equal the snapshotted claimant;
+4. clears `pendingInterest[depositId]` before external interaction;
+5. requests the full amount from VaultManager;
+6. emits `PendingInterestClaimed` after successful payout.
+
+If VaultManager payout fails, EVM rollback restores the pending amount.
+
+Partial claims and user-selected recipients are not supported.
+
+### 23.5 C1 Invariants
+
+The implementation ensures that:
 
 - principal cannot be paid twice;
 - pending interest cannot be claimed twice;
-- the claimant is the NFT owner at settlement time;
-- transferring the NFT after settlement does not change the claimant;
+- only the snapshotted claimant may claim;
+- post-settlement NFT transfer does not alter the claimant;
+- the deposit remains terminal after principal-first settlement;
 - a settled deposit cannot renew;
-- recording pending interest does not create additional principal.
+- pending-interest recording does not create principal;
+- claim failure does not erase debt;
+- callback reentrancy cannot produce a duplicate claim;
+- manual renewal and auto-renew remain fully funded operations without a
+  pending-interest fallback.
 
-### 23.4 C1 Scope Limitation
+### 23.6 Phase 10 Validation Evidence
 
-C1 applies to maturity withdrawal.
+Validated behavior includes:
 
-Manual and auto-renew may still revert when the vault cannot fund the interest needed for compounding.
+- fully funded maturity settlement;
+- underfunded principal-first settlement;
+- partially funded vault with full-value deferral and no partial payout;
+- zero-rounded interest;
+- transfer before settlement;
+- transfer after settlement;
+- approved-operator rejection;
+- unrelated-caller rejection;
+- successful later funding and claim;
+- double-claim rejection;
+- SavingCore pause;
+- VaultManager pause and retry;
+- underfunded claim rollback;
+- unauthorized VaultManager failure rollback;
+- empty-revert-data rollback;
+- pending-interest payout callback reentrancy protection;
+- `173` SavingCore tests;
+- `233` complete project tests;
+- 100% SavingCore statements, branches, functions, and lines.
 
 ---
 
 ## 24. Bonus C2 — Solvency Guard
-
-C2 is selected but remains unimplemented as of Phase 9.
+C2 is selected but remains unimplemented as of Phase 10.
 
 ### 24.1 Problem
 
@@ -1812,7 +1882,7 @@ The application must remain usable when the AI provider is unavailable.
 
 ## 34. Architectural Decision Status
 
-Resolved and implemented through Phase 9:
+Resolved and implemented through Phase 10:
 
 1. Basic OpenZeppelin `ERC721` is used without `ERC721Enumerable`.
 2. Plan and deposit storage structures are defined in `SavingCore`.
@@ -1830,7 +1900,7 @@ Resolved and implemented through Phase 9:
 14. Approved ERC721 operators do not inherit maturity-withdrawal authority.
 15. Maturity interest uses snapshotted deposit terms and floor rounding.
 16. Completed deposit NFTs are retained as historical certificates.
-17. Base underfunded-vault behavior is an atomic revert until Bonus C1 is implemented.
+17. Maturity settlement uses principal-first full-or-defer behavior only for the exact VaultManager `InsufficientVaultBalance` error.
 18. Manual renewal is valid only during
     `maturityAt <= now < maturityAt + GRACE_PERIOD`.
 19. Manual renewal before maturity reuses `DepositNotMatured`.
@@ -1952,7 +2022,7 @@ Completed:
 - environment-variable cleanup;
 - architecture, security, UI/UX, and decision documentation.
 
-Implemented and validated locally through Phase 9:
+Implemented and validated locally through Phase 10:
 
 - six-decimal `MockUSDC`;
 - base `VaultManager`;
@@ -1997,19 +2067,20 @@ Implemented and validated locally through Phase 9:
   failures;
 - ERC20 and ERC721 callback reentrancy protection;
 - project-owned ABI export;
-- `17` focused permissionless auto-renew tests;
-- `161` SavingCore tests;
-- `221` tests across the complete project;
+- principal-first settlement and deferred-interest claim validation;
+- `173` SavingCore tests;
+- `233` tests across the complete project;
 - 100% statements, branches, functions, and lines for SavingCore;
-- SavingCore deployed bytecode of approximately `11.021 KiB`;
-- SavingCore initcode of approximately `12.266 KiB`.
+- no uncovered SavingCore statement, branch, function, or line;
+- complete project coverage of 98.92% statements, 96.97% branches,
+  96.43% functions, and 96.62% lines;
+- SavingCore deployed bytecode of approximately `11.905 KiB`;
+- SavingCore initcode of approximately `13.149 KiB`.
 
 Not implemented:
 
 - rich NFT metadata or custom `tokenURI`;
-- pending-interest accounting;
 - reserved-interest accounting;
-- Bonus C1;
 - Bonus C2;
 - deployment scripts;
 - local deployment workflow;
@@ -2021,7 +2092,7 @@ Not implemented:
 - demonstration video;
 - final submission audit.
 
-Sections covering C1, C2, deployment, frontend, and AI remain specifications
+Sections covering C2, deployment, frontend, and AI remain specifications
 until their implementations are validated.
 
-This document is a living architecture record updated through Phase 9.
+This document is a living architecture record updated through Phase 10.

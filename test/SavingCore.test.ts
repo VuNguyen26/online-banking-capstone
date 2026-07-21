@@ -3109,7 +3109,7 @@ describe("SavingCore", function () {
       );
     });
 
-    it("fully rolls back when the vault is underfunded", async function () {
+    it("returns principal and defers full interest when the vault is underfunded", async function () {
       const fixture = await loadFixture(
         deployAuthorizedSavingCoreFixture,
       );
@@ -3123,22 +3123,37 @@ describe("SavingCore", function () {
       await fundVault(fixture, availableInterest);
       await time.setNextBlockTimestamp(maturityAt);
 
-      await expect(
-        savingCore.connect(other).withdrawAtMaturity(depositId),
-      )
-        .to.be.revertedWithCustomError(
-          vault,
-          "InsufficientVaultBalance",
-        )
-        .withArgs(availableInterest, interest);
+      const transaction = await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      await expect(transaction)
+        .to.emit(savingCore, "InterestDeferred")
+        .withArgs(depositId, other.address, interest);
+
+      await expect(transaction)
+        .to.emit(savingCore, "Withdrawn")
+        .withArgs(
+          depositId,
+          other.address,
+          principal,
+          0n,
+          false,
+        );
+
+      await expect(transaction).not.to.emit(vault, "InterestPaid");
 
       expect((await savingCore.getDeposit(depositId)).status).to.equal(
-        0n,
+        1n,
       );
-      expect(await token.balanceOf(other.address)).to.equal(0n);
-      expect(await token.balanceOf(savingCoreAddress)).to.equal(
-        principal,
+      expect(await savingCore.pendingInterest(depositId)).to.equal(
+        interest,
       );
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        other.address,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(principal);
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(0n);
       expect(await token.balanceOf(vaultAddress)).to.equal(
         availableInterest,
       );
@@ -3248,6 +3263,464 @@ describe("SavingCore", function () {
       );
     });
   });
+
+  describe("Pending-interest claim core flow", function () {
+    it("allows the snapshotted claimant to claim all deferred interest after funding", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { token, vault, savingCore, other } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await time.setNextBlockTimestamp(maturityAt);
+      await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(
+        interest,
+      );
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        other.address,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(principal);
+
+      await fundVault(fixture, interest);
+
+      const transaction = await savingCore
+        .connect(other)
+        .claimPendingInterest(depositId);
+
+      await expect(transaction)
+        .to.emit(savingCore, "PendingInterestClaimed")
+        .withArgs(depositId, other.address, interest);
+
+      await expect(transaction)
+        .to.emit(vault, "InterestPaid")
+        .withArgs(
+          savingCoreAddress,
+          other.address,
+          interest,
+        );
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(0n);
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        other.address,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(
+        principal + interest,
+      );
+      expect(await token.balanceOf(vaultAddress)).to.equal(0n);
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        1n,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+    });
+
+    it("keeps the deferred-interest claimant fixed after historical NFT transfer", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        savingCore,
+        other,
+        anotherAccount,
+      } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await time.setNextBlockTimestamp(maturityAt);
+      await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      await savingCore
+        .connect(other)
+        .transferFrom(
+          other.address,
+          anotherAccount.address,
+          depositId,
+        );
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        anotherAccount.address,
+      );
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        other.address,
+      );
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .claimPendingInterest(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "NotInterestClaimant",
+        )
+        .withArgs(
+          depositId,
+          anotherAccount.address,
+          other.address,
+        );
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(
+        interest,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(principal);
+      expect(await token.balanceOf(anotherAccount.address)).to.equal(
+        0n,
+      );
+
+      await fundVault(fixture, interest);
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(depositId),
+      )
+        .to.emit(savingCore, "PendingInterestClaimed")
+        .withArgs(depositId, other.address, interest);
+
+      expect(await token.balanceOf(other.address)).to.equal(
+        principal + interest,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        anotherAccount.address,
+      );
+    });
+
+    it("does not create a pending claim after fully funded maturity settlement", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { savingCore, other } = fixture;
+      const { depositId, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await fundVault(fixture, interest);
+      await time.setNextBlockTimestamp(maturityAt);
+
+      await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(0n);
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        ethers.ZeroAddress,
+      );
+
+      await expect(
+        savingCore
+          .connect(other)
+          .claimPendingInterest(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "NoPendingInterest",
+        )
+        .withArgs(depositId);
+    });
+
+    it("rejects a second claim after deferred interest is paid", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { savingCore, other } = fixture;
+      const { depositId, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await time.setNextBlockTimestamp(maturityAt);
+      await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      await fundVault(fixture, interest);
+
+      await savingCore
+        .connect(other)
+        .claimPendingInterest(depositId);
+
+      await expect(
+        savingCore
+          .connect(other)
+          .claimPendingInterest(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "NoPendingInterest",
+        )
+        .withArgs(depositId);
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(0n);
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        other.address,
+      );
+    });
+  });
+
+  describe("Pending-interest authorization and pause", function () {
+    it("snapshots the current NFT owner after a transfer before maturity settlement", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        savingCore,
+        other,
+        anotherAccount,
+      } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await savingCore
+        .connect(other)
+        .transferFrom(
+          other.address,
+          anotherAccount.address,
+          depositId,
+        );
+
+      await time.setNextBlockTimestamp(maturityAt);
+
+      await savingCore
+        .connect(anotherAccount)
+        .withdrawAtMaturity(depositId);
+
+      expect(await token.balanceOf(other.address)).to.equal(0n);
+      expect(await token.balanceOf(anotherAccount.address)).to.equal(
+        principal,
+      );
+      expect(await savingCore.pendingInterest(depositId)).to.equal(
+        interest,
+      );
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        anotherAccount.address,
+      );
+
+      await fundVault(fixture, interest);
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "NotInterestClaimant",
+        )
+        .withArgs(
+          depositId,
+          other.address,
+          anotherAccount.address,
+        );
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .claimPendingInterest(depositId),
+      )
+        .to.emit(savingCore, "PendingInterestClaimed")
+        .withArgs(
+          depositId,
+          anotherAccount.address,
+          interest,
+        );
+    });
+
+    it("does not allow an approved ERC721 operator to claim deferred interest", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { savingCore, owner, other } = fixture;
+      const { depositId, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await time.setNextBlockTimestamp(maturityAt);
+      await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      await savingCore
+        .connect(other)
+        .approve(owner.address, depositId);
+
+      expect(await savingCore.getApproved(depositId)).to.equal(
+        owner.address,
+      );
+
+      await expect(
+        savingCore.connect(owner).claimPendingInterest(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "NotInterestClaimant",
+        )
+        .withArgs(depositId, owner.address, other.address);
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(
+        interest,
+      );
+    });
+
+    it("rejects invalid deposits and deposits without pending interest", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { savingCore, other } = fixture;
+      const { depositId } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(0n),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(0n);
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "NoPendingInterest",
+        )
+        .withArgs(depositId);
+    });
+
+    it("blocks pending-interest claims while SavingCore is paused without changing debt", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { token, savingCore, owner, other } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await time.setNextBlockTimestamp(maturityAt);
+      await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      await fundVault(fixture, interest);
+      await savingCore.connect(owner).pause();
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(depositId),
+      ).to.be.revertedWithCustomError(
+        savingCore,
+        "EnforcedPause",
+      );
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(
+        interest,
+      );
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        other.address,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(principal);
+
+      await savingCore.connect(owner).unpause();
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(depositId),
+      )
+        .to.emit(savingCore, "PendingInterestClaimed")
+        .withArgs(depositId, other.address, interest);
+    });
+  });
+
+  describe("Pending-interest payout rollback", function () {
+    it("restores pending debt when the vault remains underfunded during claim", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { token, vault, savingCore, other } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+      const availableInterest = interest - 1n;
+      const vaultAddress = await vault.getAddress();
+
+      await time.setNextBlockTimestamp(maturityAt);
+      await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      await fundVault(fixture, availableInterest);
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          vault,
+          "InsufficientVaultBalance",
+        )
+        .withArgs(availableInterest, interest);
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(
+        interest,
+      );
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        other.address,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(principal);
+      expect(await token.balanceOf(vaultAddress)).to.equal(
+        availableInterest,
+      );
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        1n,
+      );
+    });
+
+    it("restores pending debt when VaultManager is paused and allows retry after unpause", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { token, vault, savingCore, owner, other } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+      const vaultAddress = await vault.getAddress();
+
+      await time.setNextBlockTimestamp(maturityAt);
+      await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      await fundVault(fixture, interest);
+      await vault.connect(owner).pause();
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(depositId),
+      ).to.be.revertedWithCustomError(vault, "EnforcedPause");
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(
+        interest,
+      );
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        other.address,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(principal);
+      expect(await token.balanceOf(vaultAddress)).to.equal(interest);
+
+      await vault.connect(owner).unpause();
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(depositId),
+      )
+        .to.emit(savingCore, "PendingInterestClaimed")
+        .withArgs(depositId, other.address, interest);
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(0n);
+      expect(await token.balanceOf(other.address)).to.equal(
+        principal + interest,
+      );
+      expect(await token.balanceOf(vaultAddress)).to.equal(0n);
+    });
+  });
+
   describe("Maturity withdrawal authorization and rollback", function () {
     it("transfers withdrawal rights to the current NFT owner", async function () {
       const fixture = await loadFixture(
@@ -3350,6 +3823,43 @@ describe("SavingCore", function () {
 
       expect((await savingCore.getDeposit(depositId)).status).to.equal(
         1n,
+      );
+    });
+
+    it("fully rolls back when VaultManager returns empty revert data", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { token, vault, savingCore, other } = fixture;
+      const { depositId, principal, maturityAt } =
+        await openDefaultMaturityDeposit(fixture);
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await ethers.provider.send("hardhat_setCode", [
+        vaultAddress,
+        "0x60006000fd",
+      ]);
+
+      await time.setNextBlockTimestamp(maturityAt);
+
+      await expect(
+        savingCore.connect(other).withdrawAtMaturity(depositId),
+      ).to.be.revertedWithoutReason();
+
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        0n,
+      );
+      expect(await token.balanceOf(other.address)).to.equal(0n);
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(
+        principal,
+      );
+      expect(await savingCore.pendingInterest(depositId)).to.equal(0n);
+      expect(await savingCore.interestClaimant(depositId)).to.equal(
+        ethers.ZeroAddress,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
       );
     });
 
@@ -3862,6 +4372,184 @@ describe("SavingCore", function () {
       expect(await token.balanceOf(vaultAddress)).to.equal(0n);
     });
   });
+
+  describe("Pending-interest claim reentrancy protection", function () {
+    it("blocks token callback reentrancy while completing the original claim", async function () {
+      const [owner, feeReceiver, other] =
+        await ethers.getSigners();
+
+      const MockReentrantToken =
+        await ethers.getContractFactory(
+          "MockReentrantToken",
+        );
+
+      const token = await MockReentrantToken.deploy();
+      await token.waitForDeployment();
+
+      const VaultManager =
+        await ethers.getContractFactory("VaultManager");
+
+      const vault = await VaultManager.deploy(
+        await token.getAddress(),
+        owner.address,
+        feeReceiver.address,
+      );
+
+      await vault.waitForDeployment();
+
+      const SavingCore =
+        await ethers.getContractFactory("SavingCore");
+
+      const savingCore = await SavingCore.deploy(
+        await token.getAddress(),
+        await vault.getAddress(),
+        owner.address,
+      );
+
+      await savingCore.waitForDeployment();
+
+      const savingCoreAddress =
+        await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await vault
+        .connect(owner)
+        .authorizeSavingCore(savingCoreAddress);
+
+      await savingCore.connect(owner).createPlan(
+        DEFAULT_TENOR_DAYS,
+        DEFAULT_APR_BPS,
+        DEFAULT_MIN_DEPOSIT,
+        DEFAULT_MAX_DEPOSIT,
+        DEFAULT_PENALTY_BPS,
+        true,
+      );
+
+      const depositId = 1n;
+      const principal = amount("1000");
+
+      await token.mint(other.address, principal);
+
+      await token
+        .connect(other)
+        .approve(savingCoreAddress, principal);
+
+      await savingCore
+        .connect(other)
+        .openDeposit(1n, principal);
+
+      const deposit =
+        await savingCore.getDeposit(depositId);
+
+      const interest = calculateInterest(
+        deposit.principal,
+        deposit.aprBpsAtOpen,
+        deposit.tenorDays,
+      );
+
+      await time.setNextBlockTimestamp(
+        deposit.maturityAt,
+      );
+
+      const settlementTransaction = await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      await expect(settlementTransaction)
+        .to.emit(savingCore, "InterestDeferred")
+        .withArgs(
+          depositId,
+          other.address,
+          interest,
+        );
+
+      expect(
+        await savingCore.pendingInterest(depositId),
+      ).to.equal(interest);
+
+      await token.mint(owner.address, interest);
+
+      await token
+        .connect(owner)
+        .approve(vaultAddress, interest);
+
+      await vault.connect(owner).fundVault(interest);
+
+      const totalSupplyBefore =
+        await token.totalSupply();
+
+      await token.configurePendingInterestClaimReentry(
+        savingCoreAddress,
+        vaultAddress,
+        depositId,
+        true,
+      );
+
+      const claimTransaction = await savingCore
+        .connect(other)
+        .claimPendingInterest(depositId);
+
+      await expect(claimTransaction)
+        .to.emit(savingCore, "PendingInterestClaimed")
+        .withArgs(
+          depositId,
+          other.address,
+          interest,
+        );
+
+      await expect(claimTransaction)
+        .to.emit(vault, "InterestPaid")
+        .withArgs(
+          savingCoreAddress,
+          other.address,
+          interest,
+        );
+
+      expect(await token.reentryAttempted()).to.equal(true);
+      expect(await token.reentrySucceeded()).to.equal(false);
+
+      expect(
+        await token.lastReentryErrorSelector(),
+      ).to.equal(
+        ethers
+          .id("ReentrancyGuardReentrantCall()")
+          .slice(0, 10),
+      );
+
+      expect(
+        await savingCore.pendingInterest(depositId),
+      ).to.equal(0n);
+
+      expect(
+        await savingCore.interestClaimant(depositId),
+      ).to.equal(other.address);
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(1n);
+
+      expect(
+        await token.balanceOf(other.address),
+      ).to.equal(principal + interest);
+
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(0n);
+
+      expect(
+        await token.balanceOf(vaultAddress),
+      ).to.equal(0n);
+
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+
+      expect(
+        await savingCore.ownerOf(depositId),
+      ).to.equal(other.address);
+    });
+  });
+
   describe("Manual renewal core flow", function () {
     it("compounds funded interest into a new selected-plan deposit at exact maturity", async function () {
       const fixture = await loadFixture(

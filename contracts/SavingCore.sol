@@ -232,6 +232,20 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     );
 
     /**
+     * @dev The supplied deposit has no outstanding deferred interest.
+     */
+    error NoPendingInterest(uint256 depositId);
+
+    /**
+     * @dev The caller is not the claimant snapshotted at maturity settlement.
+     */
+    error NotInterestClaimant(
+        uint256 depositId,
+        address caller,
+        address claimant
+    );
+
+    /**
      * @notice Emitted when a new saving plan is created.
      */
     event PlanCreated(
@@ -279,6 +293,24 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     );
 
     /**
+     * @notice Emitted when maturity interest is deferred for later payment.
+     */
+    event InterestDeferred(
+        uint256 indexed depositId,
+        address indexed claimant,
+        uint256 amount
+    );
+
+    /**
+     * @notice Emitted after a claimant receives all deferred interest.
+     */
+    event PendingInterestClaimed(
+        uint256 indexed depositId,
+        address indexed claimant,
+        uint256 amount
+    );
+
+    /**
      * @notice Emitted after an old deposit is renewed into a new one.
      */
     event Renewed(
@@ -312,6 +344,16 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
 
     mapping(uint256 planId => Plan plan) private _plans;
     mapping(uint256 depositId => Deposit deposit) private _deposits;
+
+    /**
+     * @notice Outstanding deferred maturity interest for each settled deposit.
+     */
+    mapping(uint256 depositId => uint256 amount) public pendingInterest;
+
+    /**
+     * @notice Claimant snapshotted when a deposit creates deferred interest.
+     */
+    mapping(uint256 depositId => address claimant) public interestClaimant;
 
     /**
      * @param token_ MockUSDC-compatible ERC20 contract address.
@@ -508,9 +550,12 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
 
     /**
      * @notice Settles an active deposit at or after its maturity timestamp.
-     * @dev Principal is paid from SavingCore and positive interest is paid
-     *      from the authorized VaultManager. The NFT is retained as a
-     *      historical certificate.
+     * @dev Principal is paid from SavingCore before positive interest is
+     *      requested from the authorized VaultManager. If the vault lacks
+     *      sufficient liquidity, the full interest amount is deferred for
+     *      the current NFT owner to claim later. Other vault failures revert
+     *      the complete settlement. The NFT is retained as a historical
+     *      certificate.
      * @param depositId Existing active deposit identifier.
      */
     function withdrawAtMaturity(
@@ -543,26 +588,97 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
         }
 
         uint256 principal = deposit.principal;
-        uint256 interest = _calculateInterest(
+        uint256 calculatedInterest = _calculateInterest(
             principal,
             deposit.aprBpsAtOpen,
             deposit.tenorDays
         );
+        uint256 paidInterest;
 
         deposit.status = DepositStatus.Withdrawn;
 
         token.safeTransfer(currentOwner, principal);
 
-        if (interest != 0) {
-            vaultManager.payInterest(currentOwner, interest);
+        if (calculatedInterest != 0) {
+            try vaultManager.payInterest(
+                currentOwner,
+                calculatedInterest
+            ) {
+                paidInterest = calculatedInterest;
+            } catch (bytes memory reason) {
+                bytes4 selector;
+
+                if (reason.length >= 4) {
+                    assembly {
+                        selector := mload(add(reason, 32))
+                    }
+                }
+
+                if (
+                    selector !=
+                    VaultManager.InsufficientVaultBalance.selector
+                ) {
+                    assembly {
+                        revert(add(reason, 32), mload(reason))
+                    }
+                }
+
+                pendingInterest[depositId] = calculatedInterest;
+                interestClaimant[depositId] = currentOwner;
+
+                emit InterestDeferred(
+                    depositId,
+                    currentOwner,
+                    calculatedInterest
+                );
+            }
         }
 
         emit Withdrawn(
             depositId,
             currentOwner,
             principal,
-            interest,
+            paidInterest,
             false
+        );
+    }
+
+    /**
+     * @notice Claims all deferred maturity interest for a settled deposit.
+     * @dev Only the claimant snapshotted at maturity settlement may call.
+     *      Pending state is cleared before the external vault interaction.
+     *      A failed payout reverts and restores the outstanding amount.
+     * @param depositId Settled deposit with outstanding deferred interest.
+     */
+    function claimPendingInterest(
+        uint256 depositId
+    ) external whenNotPaused nonReentrant {
+        _requireDepositExists(depositId);
+
+        uint256 amount = pendingInterest[depositId];
+
+        if (amount == 0) {
+            revert NoPendingInterest(depositId);
+        }
+
+        address claimant = interestClaimant[depositId];
+
+        if (_msgSender() != claimant) {
+            revert NotInterestClaimant(
+                depositId,
+                _msgSender(),
+                claimant
+            );
+        }
+
+        pendingInterest[depositId] = 0;
+
+        vaultManager.payInterest(claimant, amount);
+
+        emit PendingInterestClaimed(
+            depositId,
+            claimant,
+            amount
         );
     }
 

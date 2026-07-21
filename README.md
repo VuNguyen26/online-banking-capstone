@@ -10,106 +10,82 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 9 — Permissionless auto-renewal after the grace period implemented and validated locally**
+**Phase 10 — Bonus C1 Principal-First Settlement implemented and validated locally**
 
-Phase 9 deliverables:
+Phase 10 deliverables:
 
 - `contracts/SavingCore.sol`
-- `contracts/mocks/MockDepositReceiver.sol`
 - `contracts/mocks/MockReentrantToken.sol`
 - `test/SavingCore.test.ts`
 - `data/abi/contracts/SavingCore.sol/SavingCore.json`
-- Phase 9 documentation updates
+- Phase 10 documentation updates
 
-Phase 9 implementation includes:
+Phase 10 implementation includes:
 
-- `autoRenew(depositId)`;
-- permissionless execution by any address;
-- old deposit must exist and remain `Active`;
-- eligibility begins at:
-  `block.timestamp >= maturityAt + GRACE_PERIOD`;
-- `AutoRenewalTooEarly` before the exact grace-period end;
-- the renewed NFT is minted to the current owner of the old certificate;
-- the transaction caller receives no ownership merely for triggering;
-- old principal, plan ID, tenor, APR, and penalty snapshots are preserved;
-- current plan APR, enabled state, and deposit limits are not reapplied;
-- disabling or updating the original plan does not block auto-renew;
-- old-term interest is calculated for exactly one stored term;
-- delayed execution creates one new term only, without retroactive catch-up;
-- the new term begins at the successful transaction timestamp;
-- positive interest is transferred from `VaultManager` into `SavingCore`;
-- new principal equals old principal plus funded old-term interest;
-- zero-rounded interest skips `VaultManager.payInterest`;
-- zero-interest auto-renew may succeed while only VaultManager is paused;
-- old deposit transitions from `Active` to `AutoRenewed`;
-- one new `Active` deposit and one new ERC721 certificate are created;
-- the old NFT remains as historical evidence;
-- `Renewed` is emitted using the preserved old plan ID;
-- auto-renew does not emit `DepositOpened` or `Withdrawn`;
-- SavingCore pause blocks auto-renew;
-- positive-interest execution requires an authorized, funded, and unpaused VaultManager;
-- underfunding, missing authorization, paused payout, and unsafe NFT receipt roll back atomically;
-- ERC20 payout callbacks and ERC721 receiver callbacks cannot reenter auto-renew;
-- maturity withdrawal and auto-renew may compete after grace;
-- the first successfully mined terminal transaction wins;
-- all later conflicting actions are rejected by the terminal deposit status.
+- principal-first maturity settlement when VaultManager returns
+  `InsufficientVaultBalance`;
+- immediate return of principal from `SavingCore` even when bank-funded
+  interest liquidity is insufficient;
+- terminal `Withdrawn` deposit status after principal-first settlement;
+- `pendingInterest(depositId)` accounting for the full unpaid interest amount;
+- `interestClaimant(depositId)` snapshot of the direct current NFT owner at
+  settlement time;
+- `InterestDeferred` emission when interest becomes pending;
+- `claimPendingInterest(depositId)` for full-value later claims;
+- claimant-only authorization without ERC721 operator delegation;
+- `PendingInterestClaimed` emission after a successful later payout;
+- checks-effects-interactions ordering that clears pending debt before the
+  VaultManager call while relying on EVM rollback if payout fails;
+- historical claimant retention after a successful claim;
+- NFT transfers after settlement do not transfer the existing pending claim;
+- fully funded maturity settlement continues to pay principal and interest
+  immediately without creating pending state;
+- zero-rounded interest continues to skip VaultManager;
+- only the exact VaultManager `InsufficientVaultBalance` error activates the
+  deferred-interest path;
+- paused, unauthorized, empty-revert, and other unexpected VaultManager
+  failures continue to revert and restore the entire maturity transaction;
+- manual renewal and permissionless auto-renew remain fully funded operations
+  and do not use the pending-interest fallback;
+- no C2 reserve, liability-total, or available-liquidity accounting.
 
-Phase 9 validation completed:
+Phase 10 validation completed:
 
 - TypeScript validation with `npx tsc --noEmit`;
 - Solidity `0.8.28` compilation;
 - optimizer with `1,000` runs and `viaIR`;
 - TypeChain and ABI generation;
-- `17 passing` focused permissionless auto-renew tests;
-- `161 passing` complete SavingCore regression tests;
-- `221 passing` complete project regression tests;
-- exact grace-period boundary tests;
-- permissionless caller and current-owner recipient tests;
-- transferred-certificate ownership tests;
-- snapshot preservation and disabled-plan tests;
-- delayed execution and no-catch-up tests;
-- current-plan deposit-limit bypass tests;
-- zero-interest and positive-interest execution tests;
-- SavingCore and VaultManager pause tests;
-- underfunded and unauthorized VaultManager rollback tests;
-- failed safe-mint rollback tests;
-- lifecycle and competing-transaction ordering tests;
-- ERC20 and ERC721 callback reentrancy tests;
-- SavingCore-focused Solidity coverage;
-- ABI, generated-file, scope, and whitespace checks.
+- ABI presence checks for both pending-interest mappings, the claim function,
+  two C1 events, and two C1 custom errors;
+- principal-first behavior with a partially funded VaultManager;
+- full-or-defer behavior with no partial interest payment;
+- current-owner claimant snapshot at maturity settlement;
+- claimant preservation after historical NFT transfer;
+- rejection of unrelated callers and approved ERC721 operators;
+- rejection of invalid, absent, and already-claimed pending debt;
+- SavingCore and VaultManager pause behavior;
+- underfunded claim rollback and successful retry after later funding;
+- callback reentrancy protection during deferred-interest payout;
+- unexpected custom-error and empty-revert propagation with complete rollback;
+- fully funded and zero-rounded maturity regression coverage;
+- manual-renew and auto-renew fully funded behavior retained;
+- `173 passing` complete SavingCore regression tests;
+- `233 passing` complete project regression tests;
+- SavingCore coverage at 100% statements, branches, functions, and lines;
+- zero uncovered SavingCore branches;
+- SavingCore deployed bytecode approximately `11.905 KiB`;
+- SavingCore initcode approximately `13.149 KiB`.
 
-Current verified results:
+Current limitations and pending work:
 
-- SavingCore deployed bytecode: approximately `11.021 KiB`;
-- SavingCore initcode: approximately `12.266 KiB`;
-- `13 passing` MockUSDC tests;
-- `47 passing` VaultManager tests;
-- `161 passing` SavingCore tests;
-- `221 passing` tests in the complete suite;
-- SavingCore coverage: 100% statements, branches, functions, and lines;
-- no uncovered SavingCore statement, branch, function, or line.
-
-Important interpretation:
-
-- permissionless execution improves liveness but does not transfer ownership;
-- the current old-certificate owner receives the renewed certificate;
-- auto-renew preserves the old plan ID, tenor, APR, and penalty snapshots;
-- current plan changes do not alter an existing deposit's auto-renew terms;
-- the old principal remains held by `SavingCore`;
-- old-term interest is bank-funded by `VaultManager`;
-- no unfunded interest is added to the new principal;
-- one successful call creates exactly one new term;
-- user wallet balance and total token supply remain unchanged;
-- the old NFT remains and the new active deposit receives a new NFT;
-- positive-interest execution depends on VaultManager authorization, liquidity, and pause state;
-- zero-interest execution does not call VaultManager;
-- failed payout or certificate delivery restores all state and balances;
-- pending-interest accounting, reserved-interest accounting, C1, and C2 remain unimplemented;
+- C2 reserved-interest and solvency accounting remain unimplemented;
+- `totalReservedInterest` and available-liquidity calculations do not exist;
+- rich NFT metadata remains unimplemented;
 - deployment, frontend, AI, demo, and final submission remain pending;
-- Phase 9 staging, commit, push, remote verification, and checkpoint remain pending.
+- Phase 10 staging, commit, push, remote verification, and checkpoint remain
+  pending.
 
 Previous completed phases:
-
 - Phase 0: project, environment, Git, and GitHub initialization;
 - Phase 1: architecture, security, UI/UX, and design-decision documentation;
 - Phase 2: six-decimal MockUSDC contract and tests;
@@ -118,7 +94,8 @@ Previous completed phases:
 - Phase 5: deposit opening, financial-term snapshots, principal custody, and ERC721 deposit certificates;
 - Phase 6: base maturity withdrawal flow;
 - Phase 7: early withdrawal with snapshotted penalty and atomic settlement;
-- Phase 8: manual renewal during the two-day grace period.
+- Phase 8: manual renewal during the two-day grace period;
+- Phase 9: permissionless auto-renewal after the grace period.
 
 ## Current Implementation Status
 
@@ -174,18 +151,22 @@ Completed:
 - Auto-renew safe-mint rollback protection
 - Auto-renew ERC20 and ERC721 callback reentrancy protection
 - First-mined terminal-action lifecycle enforcement
+- C1 principal-first maturity settlement
+- Full unpaid-interest deferral without partial payout
+- Fixed pending-interest claimant snapshot
+- Claimant-only later interest claim
+- Pending-interest rollback and retry protection
+- Pending-interest payout reentrancy protection
 - New ERC721 certificate issuance while retaining old certificates
 - Historical NFT retention
 - MockUSDC, VaultManager, and SavingCore ABI export
-- 221 passing tests
+- 233 passing tests
 - 100% statements, branches, functions, and lines for SavingCore
 
 Not implemented yet:
 
 - Rich NFT metadata or custom `tokenURI`
-- Pending-interest accounting
 - Reserved-interest accounting
-- Bonus C1
 - Bonus C2
 - Deployment scripts
 - Local deployment workflow
@@ -198,9 +179,9 @@ Not implemented yet:
 - Demo video
 - Final submission audit
 
-Manual renewal and permissionless auto-renewal are implemented and validated locally.
+Manual renewal, permissionless auto-renewal, and C1 pending-interest accounting are implemented and validated locally.
 
-Pending-interest accounting, reserved-interest accounting, C1, and C2 must not yet be treated as implemented.
+Reserved-interest accounting and Bonus C2 must not yet be treated as implemented.
 
 ## Core Contracts
 
@@ -259,13 +240,14 @@ The exported project ABI is located at:
 
 VaultManager does not hold user principal.
 
-The current base implementation intentionally does not include:
+VaultManager intentionally remains a focused interest-custody and payout
+contract. It does not itself include:
 
-- Bonus C1 pending-interest logic;
+- per-deposit C1 pending-interest storage, which is held by `SavingCore`;
 - Bonus C2 reserved-interest accounting;
 - `totalReservedInterest`;
 - available-liquidity or solvency calculations;
-- SavingCore deposit business logic.
+- SavingCore deposit-lifecycle business logic.
 
 ### SavingCore
 
@@ -340,12 +322,11 @@ The exported project ABI is located at:
 
 `data/abi/contracts/SavingCore.sol/SavingCore.json`
 
-The current Phase 9 implementation intentionally does not include:
+The current Phase 10 implementation intentionally does not include:
 
-- pending-interest accounting;
 - reserved-interest accounting;
-- Bonus C1;
-- Bonus C2;
+- Bonus C2 solvency protection;
+- `totalReservedInterest` or available-liquidity calculations;
 - rich NFT metadata or a custom `tokenURI` implementation.
 
 ERC721 certificates can now be minted through `openDeposit`. Financial rights are derived from the on-chain deposit record and current NFT ownership, not from off-chain metadata.
@@ -395,19 +376,24 @@ SafeBank has selected two bonus challenges.
 
 ### C1 — Principal-First Settlement
 
-Planned behavior:
+Implemented behavior:
 
-- return principal at maturity even when the vault cannot pay interest;
-- record unpaid interest as pending;
-- snapshot the eligible claimant;
-- permit a later claim after the vault is funded.
+- return principal at maturity even when VaultManager cannot pay the full
+  calculated interest;
+- defer the full unpaid interest amount rather than attempting partial payout;
+- snapshot the direct current NFT owner as the fixed interest claimant;
+- permit the snapshotted claimant to claim after the vault is funded;
+- prevent NFT transfers after settlement from transferring the pending claim;
+- prevent duplicate principal settlement and duplicate interest claims;
+- preserve complete rollback for paused, unauthorized, malformed, and other
+  non-liquidity VaultManager failures;
+- keep manual and auto-renewal fully funded without a pending fallback.
 
 Status:
 
-**Selected, documented, but not implemented.**
+**Implemented and validated locally in Phase 10.**
 
 ### C2 — Solvency Guard
-
 Planned behavior:
 
 - track total reserved interest;
@@ -531,23 +517,25 @@ The project currently uses npm and `package-lock.json`.
 | `npm run size` | Report compiled contract sizes |
 | `npm run node` | Start a local Hardhat node |
 
-At the current locally validated Phase 9 state:
+At the current locally validated Phase 10 state:
 
-- Solidity `0.8.28`, optimizer with `1,000` runs, and `viaIR` compile successfully;
-- focused permissionless auto-renew testing reports `17 passing`;
-- focused SavingCore testing reports `161 passing`;
-- the complete current suite reports `221 passing`;
-- SavingCore deployed bytecode is approximately `11.021 KiB`;
-- SavingCore initcode is approximately `12.266 KiB`;
+- Solidity `0.8.28`, optimizer with `1,000` runs, and `viaIR` compile
+  successfully;
+- TypeScript validation passes with `npx tsc --noEmit`;
+- complete SavingCore testing reports `173 passing`;
+- the complete current project suite reports `233 passing`;
+- SavingCore deployed bytecode is approximately `11.905 KiB`;
+- SavingCore initcode is approximately `13.149 KiB`;
 - SavingCore coverage reports 100% statements, branches, functions, and lines;
 - no SavingCore statement, branch, function, or line remains uncovered;
-- the Phase 9 coverage run focused on `test/SavingCore.test.ts`;
-- `artifacts/`, `cache/`, `typechain/`, `coverage/`, and `coverage.json` remain ignored;
+- complete project coverage reports 98.92% statements, 96.97% branches,
+  96.43% functions, and 96.62% lines;
+- `artifacts/`, `cache/`, `typechain/`, `coverage/`, and `coverage.json` remain
+  ignored;
 - project-owned MockUSDC, VaultManager, and SavingCore ABIs are retained;
 - generated test-mock ABIs are removed before staging.
 
 ## Project Structure
-
 Current relevant structure:
 
     online-banking-capstone/
@@ -641,37 +629,41 @@ Current development branch:
 
 The current action is to finalize:
 
-**Phase 9 — Permissionless auto-renewal after the grace period**
-
-Before Phase 9 may be declared complete:
-
-1. update README, architecture, security, UI/UX, and design-decision documentation with the validated Phase 9 behavior;
-2. confirm `autoRenew(depositId)` remains permissionless;
-3. confirm eligibility begins exactly at
-   `maturityAt + GRACE_PERIOD`;
-4. confirm the current old-certificate owner receives the new NFT;
-5. confirm the caller cannot choose or steal the recipient;
-6. confirm old plan ID, tenor, APR, and penalty snapshots are preserved;
-7. confirm current plan updates, disabling, and deposit limits are not reapplied;
-8. confirm one delayed call creates exactly one new term;
-9. confirm positive interest is fully funded and zero interest skips VaultManager;
-10. confirm complete rollback for payout, authorization, pause, and safe-mint failures;
-11. confirm ERC20 and ERC721 callback reentrancy protection;
-12. confirm maturity withdrawal and auto-renew follow first-successful-terminal-action ordering;
-13. confirm pending interest, reserved interest, C1, and C2 remain unimplemented;
-14. run final clean compile, TypeScript, focused tests, full regression, coverage, and size checks;
-15. run whitespace, generated-file, scope, secret, ABI, and unit audits;
-16. confirm generated test-mock ABIs and coverage artifacts are absent;
-17. stage only the approved Phase 9 files;
-18. commit with the approved Phase 9 commit message;
-19. push the commit to `origin/main`;
-20. fetch the remote and confirm local and remote commits match;
-21. confirm the working tree is clean;
-22. produce the complete Phase 9 checkpoint;
-23. stop and wait for explicit user approval.
-
-After Phase 9 is fully committed, pushed, and approved, the next planned phase is:
-
 **Phase 10 — Bonus C1 Principal-First Settlement**
 
-Phase 10 must not begin automatically.
+Before Phase 10 may be declared complete:
+
+1. update README, architecture, security, UI/UX, and design-decision
+   documentation with the validated C1 behavior;
+2. confirm principal-first maturity settlement activates only for the exact
+   VaultManager `InsufficientVaultBalance` error;
+3. confirm principal is returned and the deposit becomes terminal when
+   interest is deferred;
+4. confirm the full unpaid interest amount is recorded without partial payout;
+5. confirm the direct current NFT owner is snapshotted as claimant;
+6. confirm NFT transfer after settlement does not transfer the pending claim;
+7. confirm only the snapshotted claimant may claim;
+8. confirm pending debt is cleared before interaction and restored on payout
+   failure through EVM rollback;
+9. confirm double settlement and double claim are rejected;
+10. confirm pause, underfunding, malformed revert data, and reentrancy behavior;
+11. confirm manual renewal and auto-renew remain fully funded only;
+12. confirm C2 reserve accounting remains outside Phase 10;
+13. run final clean compile, TypeScript, focused tests, full regression,
+    coverage, and size checks;
+14. run whitespace, generated-file, scope, secret, ABI, and unit audits;
+15. remove generated test-mock ABIs and coverage artifacts;
+16. stage only the approved Phase 10 files;
+17. commit with the approved Phase 10 commit message;
+18. push the commit to `origin/main`;
+19. fetch the remote and confirm local and remote commits match;
+20. confirm the working tree is clean;
+21. produce the complete Phase 10 checkpoint;
+22. stop and wait for explicit user approval.
+
+After Phase 10 is fully committed, pushed, and approved, the next planned
+phase is:
+
+**Phase 11 — Bonus C2 Solvency Guard**
+
+Phase 11 must not begin automatically.

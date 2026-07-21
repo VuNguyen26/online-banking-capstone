@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Architecture and Product Decision Records |
-| Current project phase | Phase 9 — Permissionless auto-renewal after the grace period |
-| Implementation status | Decisions governing mandatory smart-contract flows through Phase 9 are reflected in the implemented contracts and tests; C1, C2, frontend, AI, and deployment decisions remain pending or deferred |
+| Current project phase | Phase 10 — Bonus C1 Principal-First Settlement |
+| Implementation status | Decisions governing mandatory smart-contract flows through Phase 9 and Bonus C1 in Phase 10 are reflected in the implemented contracts and tests; C2, frontend, AI, and deployment decisions remain pending or deferred |
 | Architecture model | Non-upgradeable |
 | Student ID | 3122560090 |
 | Test token | MockUSDC with 6 decimals |
@@ -127,8 +127,8 @@ Statuses mean:
 | ADR-023 | Use SafeERC20 and nonReentrant financial entry points | Accepted |
 | ADR-024 | Use safe NFT minting with state finalized first | Accepted |
 | ADR-025 | Renewal requires fully funded interest | Implemented |
-| ADR-026 | Implement C1 Principal-First Settlement | Accepted |
-| ADR-027 | Snapshot pending-interest claimant at settlement | Accepted |
+| ADR-026 | Implement C1 Principal-First Settlement | Implemented |
+| ADR-027 | Snapshot pending-interest claimant at settlement | Implemented |
 | ADR-028 | Implement C2 Solvency Guard | Accepted |
 | ADR-029 | Permit undercollateralized deposit opening | Accepted |
 | ADR-030 | Preserve pending-interest liabilities in reserve accounting | Accepted |
@@ -1554,83 +1554,262 @@ The interface must explain that:
 
 ## ADR-026 — Bonus C1 Principal-First Settlement
 
-**Status:** Accepted
+**Status:** Implemented
 
 **Category:** Bonus C1
 
 ### Context
 
-The base maturity flow may lock principal when VaultManager cannot pay interest.
+The original maturity flow could revert the complete transaction when
+VaultManager lacked sufficient bank-funded interest.
+
+That behavior could indirectly keep depositor principal locked even though the
+principal remained fully held by `SavingCore`.
 
 ### Decision
 
-After C1 is implemented:
+SafeBank implements principal-first maturity settlement.
 
-- principal is returned at maturity even when interest cannot be paid;
-- unpaid interest becomes pending debt;
-- the deposit becomes terminal;
-- the claimant can later claim after vault funding.
+When maturity interest is positive:
 
-C1 applies to maturity withdrawal, not renewal.
+- principal is transferred from `SavingCore` to the direct current NFT owner;
+- a successful VaultManager payout pays the full calculated interest
+  immediately;
+- an exact VaultManager `InsufficientVaultBalance` error defers the full
+  calculated interest;
+- no partial interest payment is attempted;
+- the deposit becomes terminal with status `Withdrawn`;
+- deferred interest is stored in `pendingInterest[depositId]`;
+- the claimant is stored in `interestClaimant[depositId]`;
+- `InterestDeferred` is emitted for the deferred amount;
+- `Withdrawn.interest` records only interest paid immediately and is therefore
+  zero for a deferred settlement.
+
+Zero-rounded interest continues to skip VaultManager.
+
+Paused, unauthorized, malformed, empty-revert, and other unexpected
+VaultManager failures are not converted into pending debt. They revert the
+complete transaction and EVM atomicity restores all state and balances.
+
+C1 applies only to maturity withdrawal.
+
+Manual renewal and permissionless auto-renew continue to require fully funded
+positive interest before creating compounded principal.
 
 ### Rationale
 
-User principal should not remain locked solely because the bank interest pool is underfunded.
+Principal and interest have separate custody sources:
 
-### Trade-offs
+- depositor principal is held by `SavingCore`;
+- bank-funded interest is held by VaultManager.
 
-The project must manage deferred debt and later claims.
+A temporary interest-liquidity shortfall should not be the sole reason
+principal remains unavailable.
 
-Interest payment may be delayed.
+Restricting deferral to the exact liquidity error prevents configuration,
+authorization, pause, malformed-revert, and unexpected contract failures from
+being misclassified as normal underfunding.
+
+### Consequences
+
+Benefits:
+
+- depositor principal can be recovered despite insufficient interest
+  liquidity;
+- unpaid interest remains an explicit on-chain liability;
+- no depositor principal is used to satisfy bank-funded interest;
+- settlement remains deterministic and auditable.
+
+Trade-offs:
+
+- pending interest may remain unpaid until VaultManager is funded;
+- C1 does not prevent the administrator from withdrawing liquidity expected
+  for other obligations;
+- aggregate reserve protection remains the responsibility of future Bonus C2.
+
+### Phase 10 implementation evidence
+
+The implementation validates:
+
+- fully funded maturity settlement;
+- principal-first settlement with an underfunded VaultManager;
+- full-value deferral without partial payout;
+- zero-rounded interest;
+- terminal deposit state;
+- historical NFT retention;
+- no second maturity settlement;
+- exact error-selector handling;
+- rollback for paused, unauthorized, empty, and unexpected VaultManager
+  failures;
+- no pending-interest fallback for manual or auto-renewal.
+
+ADR-026 is fully implemented and validated as of Phase 10.
 
 ### Test implication
 
-Test funded and underfunded maturity settlement, claimant authorization, later claim, and double-claim protection.
+Test:
+
+- full interest funding;
+- zero-rounded interest;
+- vault balance below the full interest amount;
+- principal and claimant balances;
+- pending amount;
+- terminal status;
+- `InterestDeferred`;
+- `Withdrawn` immediate-interest semantics;
+- double settlement;
+- VaultManager pause;
+- unauthorized SavingCore;
+- empty revert data;
+- callback reentrancy;
+- renewal regression.
 
 ### UI implication
 
-Show principal settlement and pending interest as separate outcomes.
+Show principal settlement and deferred interest as separate outcomes.
+
+The interface must clearly explain that principal has already been returned,
+while interest remains an unpaid VaultManager liability.
 
 ---
 
 ## ADR-027 — Pending-Interest Claimant Snapshot
 
-**Status:** Accepted
+**Status:** Implemented
 
 **Category:** Bonus C1
 
 ### Context
 
-The NFT remains transferable after maturity settlement.
+The ERC721 certificate remains transferable after maturity settlement and is
+retained as a historical certificate.
 
-The project must decide whether transferring the historical NFT also transfers already deferred interest.
+The project must prevent a post-settlement NFT transfer from unexpectedly
+transferring an already-created pending-interest claim.
 
 ### Decision
 
-At C1 settlement, SafeBank snapshots:
+At deferred maturity settlement, SafeBank snapshots:
 
-- pending amount;
-- current NFT owner as claimant.
+- the full unpaid interest amount in `pendingInterest[depositId]`;
+- the direct current NFT owner in `interestClaimant[depositId]`.
 
-A later NFT transfer does not change the claimant.
+The claimant snapshot is fixed after settlement.
+
+Consequently:
+
+- transferring the historical NFT does not transfer the pending claim;
+- the previous owner cannot claim when ownership was transferred before
+  settlement;
+- the new direct owner at settlement becomes claimant;
+- an ERC721-approved operator does not inherit claim authority;
+- an unrelated caller cannot claim;
+- the claimant cannot select another payout recipient;
+- the claim is always for the complete recorded pending amount.
+
+The implemented function is:
+
+`claimPendingInterest(uint256 depositId)`
+
+It is:
+
+- `external`;
+- protected by `whenNotPaused`;
+- protected by `nonReentrant`;
+- claimant-only;
+- full-value only.
+
+The function clears `pendingInterest[depositId]` before the external
+VaultManager payout.
+
+If payout fails, EVM rollback restores the pending amount.
+
+After a successful claim:
+
+- `pendingInterest[depositId]` is zero;
+- `interestClaimant[depositId]` remains stored as historical information;
+- `PendingInterestClaimed` is emitted;
+- a second claim is rejected with `NoPendingInterest`.
 
 ### Rationale
 
-The deferred debt belongs to the owner whose maturity settlement created it.
+Claim rights become a fixed receivable when maturity settlement occurs.
 
-This prevents ownership disputes after settlement.
+Keeping that receivable separate from later NFT ownership avoids ambiguous
+economic-right transfers and makes event history, UI presentation, and claim
+authorization deterministic.
 
-### Trade-offs
+Clearing debt before interaction follows checks-effects-interactions, while EVM
+rollback prevents debt loss when VaultManager payout fails.
 
-The NFT and pending-interest claim become separate rights after settlement.
+### Consequences
+
+Benefits:
+
+- post-settlement NFT transfer cannot steal a pending claim;
+- approved operators cannot claim;
+- duplicate claims are prevented;
+- failed payout does not erase the liability;
+- historical claimant information remains queryable.
+
+Trade-offs:
+
+- a user transferring the historical NFT must understand that the pending claim
+  remains with the snapshotted claimant;
+- claims cannot be partially withdrawn;
+- claims cannot be redirected to another recipient.
+
+### Phase 10 implementation evidence
+
+The implementation validates:
+
+- NFT transfer before settlement changes the future claimant;
+- NFT transfer after settlement does not change the recorded claimant;
+- approved-operator rejection;
+- unrelated-caller rejection;
+- previous-owner rejection when no longer the settlement owner;
+- successful claim after later vault funding;
+- underfunded claim rollback;
+- paused VaultManager rollback and later retry;
+- SavingCore pause;
+- double-claim rejection;
+- pending-interest payout callback reentrancy protection;
+- historical claimant retention after payment.
+
+ADR-027 is fully implemented and validated as of Phase 10.
 
 ### Test implication
 
-Transfer the NFT after settlement and verify only the snapshotted claimant may claim.
+Test:
+
+- claimant snapshot at settlement;
+- transfer before settlement;
+- transfer after settlement;
+- approved operator;
+- unrelated caller;
+- invalid deposit;
+- zero pending amount;
+- successful later claim;
+- underfunded claim;
+- paused claim;
+- retry after funding or unpause;
+- duplicate claim;
+- callback reentrancy;
+- event arguments;
+- retained historical claimant.
 
 ### UI implication
 
-Display claimant separately from current NFT owner on historical certificates.
+Display separately:
+
+- historical NFT owner;
+- snapshotted pending-interest claimant;
+- pending amount;
+- claim status;
+- VaultManager funding and pause status.
+
+The UI must warn that transferring a historical certificate does not transfer
+an already-snapshotted pending-interest claim.
 
 ---
 
@@ -2755,7 +2934,7 @@ The following remain deferred until their relevant phases:
 - frontend deployment provider;
 - event-indexing technology.
 
-The current Solidity storage layout, custom errors, function signatures, and implemented event-indexing parameters are defined by the Phase 9 contracts and exported ABI.
+The current Solidity storage layout, custom errors, function signatures, and implemented event-indexing parameters are defined by the Phase 10 contracts and exported ABI.
 
 Deferred details must not contradict accepted financial and security behavior.
 
@@ -2763,7 +2942,7 @@ Deferred details must not contradict accepted financial and security behavior.
 
 ## 40. Phase Status
 
-Implemented and validated through Phase 9:
+Implemented and validated through Phase 10:
 
 - decision documentation;
 - classification of mandatory and SafeBank-specific requirements;
@@ -2777,7 +2956,6 @@ Implemented and validated through Phase 9:
 - direct current-NFT-owner economic rights;
 - exact maturity eligibility;
 - maturity withdrawal after grace while the deposit remains active;
-- base maturity withdrawal;
 - early withdrawal before maturity;
 - zero-interest early settlement;
 - snapshotted early-withdrawal penalties;
@@ -2787,7 +2965,6 @@ Implemented and validated through Phase 9:
 - user-net-first atomic early-withdrawal settlement;
 - disabled-plan settlement isolation;
 - simple interest from snapshotted principal, APR, and tenor;
-- underfunded-vault maturity rollback;
 - failed-penalty-transfer early-withdrawal rollback;
 - maturity and early-withdrawal reentrancy protection;
 - manual renewal during the two-day grace period;
@@ -2835,42 +3012,66 @@ Implemented and validated through Phase 9:
 - first-successfully-mined terminal-action ordering;
 - exclusion between manual renewal, auto-renew, early withdrawal, and
   maturity withdrawal;
+- C1 principal-first maturity settlement;
+- principal return when VaultManager reports the exact
+  `InsufficientVaultBalance` error;
+- full-value interest deferral without partial payout;
+- terminal `Withdrawn` status after principal-first settlement;
+- immediate-interest semantics for the `Withdrawn` event;
+- `pendingInterest[depositId]` accounting;
+- `interestClaimant[depositId]` claimant snapshots;
+- claimant-only `claimPendingInterest(depositId)`;
+- fixed claim rights after historical NFT transfer;
+- approved-operator and unrelated-caller claim rejection;
+- full-value later claim after VaultManager funding;
+- pending-debt clearing before external interaction;
+- EVM rollback restoring pending debt after failed payout;
+- double-settlement and double-claim rejection;
+- SavingCore and VaultManager pause enforcement for claims;
+- empty-revert and unexpected VaultManager failure rollback;
+- pending-interest payout callback reentrancy protection;
+- historical claimant retention after successful claim;
+- manual and auto-renewal remaining fully funded without a C1 fallback;
 - ADR-006 implemented;
 - ADR-009 implemented;
 - ADR-010 implemented;
 - ADR-011 implemented;
 - ADR-025 implemented;
-- `17` focused permissionless auto-renew tests;
-- `161` SavingCore tests;
-- `221` full-suite tests;
+- ADR-026 implemented;
+- ADR-027 implemented;
+- `173` SavingCore tests;
+- `233` full-suite tests;
 - 100% statements, branches, functions, and lines coverage for SavingCore;
 - no uncovered SavingCore statement, branch, function, or line;
-- SavingCore deployed bytecode of approximately `11.021 KiB`;
-- SavingCore initcode of approximately `12.266 KiB`.
+- complete project coverage of 98.92% statements, 96.97% branches,
+  96.43% functions, and 96.62% lines;
+- SavingCore deployed bytecode of approximately `11.905 KiB`;
+- SavingCore initcode of approximately `13.149 KiB`.
 
 Not implemented:
 
-- pending-interest accounting;
 - reserved-interest accounting;
+- `totalReservedInterest`;
+- available-liquidity and solvency calculations;
 - deploy scripts;
 - local deployment;
 - Sepolia deployment;
 - Etherscan verification;
 - frontend;
 - AI assistants;
-- Bonus C1 code;
 - Bonus C2 code.
 
-ADR-006, ADR-009, ADR-010, ADR-011, and ADR-025 are fully implemented
-and validated through Phase 9.
+ADR-006, ADR-009, ADR-010, ADR-011, ADR-025, ADR-026, and ADR-027 are
+fully implemented and validated through Phase 10.
 
-C1, C2, frontend, AI, and deployment decisions remain accepted or deferred
-until their corresponding implementations are completed and validated.
+C2, frontend, AI, and deployment decisions remain accepted or deferred until
+their corresponding implementations are completed and validated.
 
 This file records both accepted design decisions and their verified
 implementation status.
 
 ---
+
 ## 41. Final Decision Position
 
 SafeBank will be implemented as a non-upgradeable, three-contract savings system in which:

@@ -6,15 +6,15 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | UI/UX Product Plan |
-| Current project phase | Phase 9 — Permissionless auto-renewal after the grace period |
-| Implementation status | Frontend remains planned only; mandatory contract interfaces through Phase 9 are implemented and validated locally |
+| Current project phase | Phase 10 — Bonus C1 Principal-First Settlement |
+| Implementation status | Frontend remains planned only; mandatory contract interfaces through Phase 9 and Bonus C1 interfaces in Phase 10 are implemented and validated locally |
 | Target product areas | User Banking App and Admin Portal |
 | Product style | Modern, trustworthy, clear, accessible, and responsive |
 | Branding model | Original SafeBank identity |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document defines the planned SafeBank user experience and is aligned with the implemented contract interfaces through Phase 9. No frontend application has been created yet.
+This document defines the planned SafeBank user experience and is aligned with the implemented contract interfaces through Phase 10. No frontend application has been created yet.
 
 It does not claim that:
 
@@ -45,7 +45,7 @@ UI calculations and input handling must use six-decimal token units.
 
 The interface must not use `parseEther` for MockUSDC.
 
-## 1.2 Phase 9 Contract Integration Baseline
+## 1.2 Phase 10 Contract Integration Baseline
 
 The future frontend may rely on the following implemented and locally
 validated interfaces:
@@ -57,8 +57,15 @@ validated interfaces:
 - `earlyWithdraw(depositId)`;
 - `manualRenew(depositId, newPlanId)`;
 - `autoRenew(depositId)`;
+- `claimPendingInterest(depositId)`;
+- `pendingInterest(depositId)`;
+- `interestClaimant(depositId)`;
 - the reused `Withdrawn` event;
 - the `Renewed` event;
+- the `InterestDeferred` event;
+- the `PendingInterestClaimed` event;
+- the `NoPendingInterest` custom error;
+- the `NotInterestClaimant` custom error;
 - the `DepositAlreadyMatured` custom error;
 - the `DepositNotMatured` custom error;
 - the `ManualRenewalWindowClosed` custom error;
@@ -75,12 +82,13 @@ integration exists yet.
 
 The frontend must not present the following as available yet:
 
-- pending-interest claims;
 - reserved-interest or available-liquidity accounting;
-- C1 principal-first settlement;
 - C2 solvency protection;
 - Sepolia contract addresses;
 - AI transaction execution.
+
+C1 contract capability is implemented, but no frontend control, transaction
+flow, or rendered pending-interest component exists yet.
 
 Contract state remains authoritative even when a deterministic UI estimate
 is displayed.
@@ -256,10 +264,20 @@ SafeBank additionally plans:
 
 ## 4.3 Bonus UI Scope
 
-After C1 and C2 exist, the interface will expose:
+For implemented Bonus C1, the future interface must expose:
 
-- pending-interest claims;
-- interest claimant information;
+- principal-first settlement outcomes;
+- pending-interest amount;
+- snapshotted interest claimant;
+- full-value pending-interest claims;
+- claim eligibility and claim status;
+- VaultManager funding and pause state;
+- `InterestDeferred` and `PendingInterestClaimed` history;
+- a warning that historical NFT transfer does not transfer an already
+  snapshotted pending claim.
+
+After Bonus C2 exists, the interface may additionally expose:
+
 - total reserved interest;
 - available liquidity;
 - solvency ratio;
@@ -515,7 +533,7 @@ The final framework decision remains open.
 | `/app/plans` | Browse and compare saving plans |
 | `/app/deposits` | View owned and historical deposit certificates |
 | `/app/deposits/:id` | View one deposit and available actions |
-| `/app/pending-interest` | View and claim deferred interest after C1 |
+| `/app/pending-interest` | View and claim deferred interest |
 | `/app/activity` | Optional user transaction and event history |
 | `/app/settings` | Optional network, display, and wallet preferences |
 
@@ -988,10 +1006,10 @@ The action area depends on:
 - SavingCore pause state;
 - VaultManager pause state;
 - selected renewal-plan validity;
-- pending-interest state after C1;
+- implemented C1 pending-interest and claimant state;
 - implemented contract capability.
 
-Phase 9 action rules:
+Phase 10 action rules:
 
 - offer early withdrawal only when the deposit is `Active`;
 - offer early withdrawal only when the connected wallet is the direct
@@ -1000,6 +1018,25 @@ Phase 9 action rules:
 - offer early withdrawal only while `block.timestamp < maturityAt`;
 - stop offering early withdrawal at exactly `maturityAt`;
 - offer maturity withdrawal when `block.timestamp >= maturityAt`;
+- explain before maturity settlement that principal and interest have separate
+  custody sources;
+- after a fully funded maturity settlement, show principal and interest as
+  paid immediately;
+- after a deferred maturity settlement, show principal as paid and the full
+  calculated interest as pending;
+- show `Withdrawn.interest` as interest paid immediately, not as the total
+  interest obligation;
+- show the direct current NFT owner at settlement as the snapshotted claimant;
+- do not change the displayed claimant merely because the historical NFT is
+  transferred after settlement;
+- offer `claimPendingInterest(depositId)` only when
+  `pendingInterest(depositId) > 0`;
+- offer the claim only to `interestClaimant(depositId)`;
+- do not treat ERC721 approval as pending-interest claim authorization;
+- do not allow the claimant to select another payout recipient or partial
+  claim amount;
+- after a successful claim, show pending interest as zero while retaining the
+  historical claimant;
 - offer manual renewal only while the old deposit remains `Active`;
 - offer manual renewal only to the direct current certificate owner;
 - offer manual renewal only during
@@ -1044,7 +1081,7 @@ Possible actions:
 - withdraw at maturity;
 - manually renew during the grace period;
 - trigger permissionless auto-renew after the grace period;
-- claim pending interest after C1;
+- claim pending interest when the connected wallet is the snapshotted claimant;
 - view historical certificates.
 
 Unavailable future actions must be labeled unavailable rather than silently
@@ -1085,7 +1122,7 @@ The UI should explain:
 - the current owner controls economic actions;
 - the original depositor loses those rights after transfer;
 - historical certificates remain visible after completion;
-- transferring after C1 settlement does not transfer an already snapshotted pending-interest claim.
+- transferring the historical NFT after deferred maturity settlement does not transfer the already snapshotted pending-interest claim.
 
 ---
 
@@ -1107,12 +1144,14 @@ The confirmation must show:
 - transaction contract;
 - network.
 
-After C1, an underfunded flow must explain:
+For an underfunded Phase 10 maturity settlement, the interface must explain:
 
 - principal can still be returned;
-- some or all interest may become pending;
-- the claimant will be snapshotted;
-- pending interest may be claimed later after funding.
+- the full calculated interest becomes pending when VaultManager cannot pay
+  the complete amount;
+- no partial interest payout is attempted;
+- the direct current NFT owner is snapshotted as claimant;
+- pending interest may be claimed later after VaultManager funding.
 
 ---
 
@@ -1544,7 +1583,7 @@ The status must be read from the contract.
 
 ## 27. Pending Interest Page
 
-This page becomes functional only after C1 is implemented.
+The Phase 10 contract capabilities required by this page are implemented, but the page itself remains planned and has not been built.
 
 ## 27.1 Summary
 
@@ -1880,11 +1919,15 @@ SavingCore and VaultManager have separate pause states and the UI must display t
 
 It must not display a single healthy state when one contract remains paused.
 
-Phase 9 operation-specific behavior:
+Phase 10 operation-specific behavior:
 
 - SavingCore paused: deposit opening, maturity withdrawal, early withdrawal,
-  manual renewal, and auto-renew are blocked;
+  manual renewal, auto-renew, and pending-interest claims are blocked;
 - VaultManager paused: positive-interest payout operations are blocked;
+- a paused VaultManager does not activate C1 interest deferral because pause
+  is not `InsufficientVaultBalance`;
+- a pending-interest claim fails while VaultManager is paused and remains
+  claimable after unpause;
 - VaultManager paused by itself does not block early withdrawal;
 - VaultManager paused by itself may not block zero-interest manual renewal
   or zero-interest auto-renew;
@@ -1928,7 +1971,7 @@ The audit page should organize events by category.
 - ownership transfer started;
 - ownership accepted.
 
-## 34.5 Bonus Events
+## 34.5 C1 and Future C2 Events
 
 - InterestDeferred;
 - PendingInterestClaimed;
@@ -2955,7 +2998,7 @@ Help should not replace visible transaction summaries.
 
 ## 73. Frontend Technology Decision
 
-No frontend framework has been selected as of Phase 9.
+No frontend framework has been selected as of Phase 10.
 
 Potential options include:
 
@@ -3152,9 +3195,9 @@ The Admin Portal will not be considered complete until:
 
 ---
 
-## 80. Phase 9 UI/UX Planning Status
+## 80. Phase 10 UI/UX Planning Status
 
-At the current Phase 9 contract baseline:
+At the current Phase 10 contract baseline:
 
 Completed as planning:
 
@@ -3191,14 +3234,18 @@ Completed as planning:
 - accessibility rules;
 - wallet and network validation plan;
 - AI placement and fallback plan;
-- alignment with the Phase 9 SavingCore ABI.
+- alignment with the Phase 10 SavingCore ABI.
 
 Implemented contract interfaces include:
 
 - maturity withdrawal;
 - early withdrawal;
 - manual renewal;
-- permissionless auto-renewal.
+- permissionless auto-renewal;
+- C1 principal-first maturity settlement;
+- pending-interest and claimant reads;
+- claimant-only pending-interest claims;
+- `InterestDeferred` and `PendingInterestClaimed` events.
 
 Not implemented:
 
@@ -3214,6 +3261,9 @@ Not implemented:
 - early-withdrawal frontend controls;
 - manual-renewal frontend controls;
 - auto-renew frontend controls;
+- principal-first settlement presentation;
+- pending-interest and claimant components;
+- pending-interest claim frontend controls;
 - responsive CSS;
 - accessibility testing;
 - AI integration;

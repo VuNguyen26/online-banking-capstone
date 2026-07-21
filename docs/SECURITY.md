@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Security Model and Threat Analysis |
-| Current project phase | Phase 9 — Permissionless auto-renewal after the grace period |
-| Implementation status | Security controls for mandatory smart-contract flows through Phase 9 are implemented and validated locally; bonuses, frontend, AI, and deployment controls remain pending |
+| Current project phase | Phase 10 — Bonus C1 Principal-First Settlement |
+| Implementation status | Security controls for mandatory smart-contract flows through Phase 9 and Bonus C1 in Phase 10 are implemented and validated locally; Bonus C2, frontend, AI, and deployment controls remain pending |
 | Security approach | Defense-in-depth and risk reduction |
 | Smart contract model | Non-upgradeable |
 | Test asset | MockUSDC with 6 decimals |
@@ -15,13 +15,13 @@
 
 This document records implemented security controls together with the planned security model for later SafeBank phases.
 
-As of Phase 9, the project has locally validated access control, pause behavior, dependency validation, SafeERC20 principal transfers, deposit validation, deposit snapshot integrity, safe ERC721 minting, exact maturity and grace-boundary authorization, snapshotted withdrawal settlement, early-withdrawal penalty settlement, manual-renewal authorization, permissionless but ownership-safe auto-renewal, funded interest compounding, atomic rollback, terminal-action ordering, and direct plus cross-function callback reentrancy protection.
+As of Phase 10, the project has locally validated access control, pause behavior, dependency validation, SafeERC20 principal transfers, deposit validation, deposit snapshot integrity, safe ERC721 minting, exact maturity and grace-boundary authorization, snapshotted withdrawal settlement, early-withdrawal penalty settlement, manual-renewal authorization, permissionless but ownership-safe auto-renewal, funded interest compounding, C1 principal-first maturity settlement, full-value deferred-interest accounting, fixed claimant snapshots, claimant-only later claims, atomic rollback, terminal-action ordering, and direct plus cross-function callback reentrancy protection.
 
 It does not claim that:
 
 - the contracts have been independently audited;
 - the project is production-ready;
-- C1, C2, frontend, AI, or deployment mitigations are already active;
+- C2, frontend, AI, or deployment mitigations are already active;
 - every possible attack has been eliminated;
 - passing tests or high coverage alone prove security.
 
@@ -74,7 +74,7 @@ The intended security layers include:
 - frontend confirmations and warnings;
 - deterministic financial calculations;
 - secret-management discipline;
-- future principal-first settlement;
+- implemented principal-first settlement and deferred-interest claims;
 - future solvency reserve accounting.
 
 The correct security language for SafeBank is:
@@ -129,10 +129,12 @@ SafeBank additionally requires:
 
 The selected bonuses are:
 
-- C1 — Principal-First Settlement;
-- C2 — Solvency Guard.
+- C1 — Principal-First Settlement, implemented and validated locally in
+  Phase 10;
+- C2 — Solvency Guard, selected but not yet implemented.
 
-They remain planned security and resilience extensions and are not implemented as of Phase 9.
+C1 is now an active resilience control. C2 remains a planned security and
+solvency extension.
 
 ### 3.4 Product Security Extensions
 
@@ -754,9 +756,9 @@ After C2:
 | Wrong SavingCore authorization | Interest liquidity | Address validation, controlled setup, event emission | Configuration tests |
 | Admin over-withdrawal after C2 | Interest liabilities | `availableLiquidity` limit | Over-withdraw test |
 | Reserve underflow | Interest liabilities | Exact lifecycle transitions and Solidity checked arithmetic | Release-twice test |
-| Underfunded vault | User interest | Base revert; later C1 principal-first settlement | Insufficient-vault tests |
-| Principal locked by missing interest | User principal | C1 deferred-interest design | Principal-first integration tests |
-| Claim pending interest twice | Vault liquidity | Clear debt before interaction or equivalent safe ordering | Double-claim test |
+| Underfunded vault | User interest | C1 full-or-defer principal-first settlement | Principal-first and claim rollback tests |
+| Principal locked by missing interest | User principal | Implemented C1 principal-first settlement | Principal-first integration tests |
+| Claim pending interest twice | Vault liquidity | Clear pending debt before payout and rely on EVM rollback on failure | Double-claim and payout-rollback tests |
 | NFT transfer confusion | Economic rights | Current-owner logic and UI warning | Transfer-before-withdraw test |
 | Auto-renew caller steals NFT | NFT ownership | Mint to current owner | Third-party caller test |
 | Exact maturity bug | User rights | Explicit `<` and `>=` rules | Exact-second boundary tests |
@@ -1233,22 +1235,47 @@ Tests must include:
 
 ## 20.1 Base-Spec Risk
 
-The base design may require maturity withdrawal to revert when the vault lacks interest.
+The original base specification may require maturity withdrawal to revert when the vault lacks interest.
 
 That can prevent principal recovery even though SavingCore still holds the principal.
 
 ## 20.2 Bonus C1 Response
 
-C1 will permit:
+Phase 10 implements principal-first settlement for the specific case where
+VaultManager reports insufficient liquidity through
+`InsufficientVaultBalance`.
 
-- principal settlement;
-- deferred interest recording;
-- later interest claim.
+The maturity path now:
 
-C1 does not guarantee immediate interest payment.
+- returns principal from `SavingCore`;
+- changes the deposit to terminal `Withdrawn` status;
+- records the full unpaid calculated interest in
+  `pendingInterest[depositId]`;
+- snapshots the direct current NFT owner in
+  `interestClaimant[depositId]`;
+- emits `InterestDeferred`;
+- permits a later full-value claim through
+  `claimPendingInterest(depositId)`.
+
+The implementation is full-or-defer:
+
+- it does not attempt a partial interest payment;
+- the claimant cannot choose a different recipient;
+- an approved ERC721 operator does not inherit claim authority;
+- transferring the historical NFT after settlement does not transfer the
+  pending claim.
+
+`claimPendingInterest` clears the pending amount before calling VaultManager.
+If payout fails, EVM rollback restores the pending debt.
+
+C1 does not guarantee immediate interest payment. It prevents insufficient
+interest liquidity from being the sole reason depositor principal remains
+locked.
+
+Paused, unauthorized, malformed, empty-revert, and other non-liquidity
+VaultManager failures continue to revert the complete maturity transaction.
 
 ## 20.3 Renewal Shortfall
-
 Manual or auto-renew requires funded interest to create a new compounded principal.
 
 If the vault lacks interest:
@@ -1277,10 +1304,11 @@ The UI and AI Risk Assistant must display the shortfall rather than hiding it.
 
 ---
 
-## 20.6 Phase 9 Withdrawal and Renewal Security Evidence
+## 20.6 Phase 10 Withdrawal, Renewal, and C1 Security Evidence
 
-Phase 9 retains all validated maturity-withdrawal, early-withdrawal, and
-manual-renewal controls and adds permissionless auto-renew security controls.
+Phase 10 retains all validated maturity-withdrawal, early-withdrawal,
+manual-renewal, and permissionless auto-renew controls and adds C1
+principal-first settlement and deferred-interest claim security controls.
 
 ### 20.6.1 Active-Only Lifecycle Enforcement
 
@@ -1451,20 +1479,42 @@ Auto-renew does not emit:
 - `DepositOpened`;
 - `Withdrawn`.
 
-### 20.6.11 Verified Phase 9 Evidence
+### 20.6.11 Principal-First Settlement and Deferred Claims
+
+Phase 10 validates the following controls:
+
+- only the direct current NFT owner may perform maturity settlement;
+- principal is transferred before the optional interest payout result is
+  finalized;
+- only the exact VaultManager `InsufficientVaultBalance` selector activates
+  deferral;
+- the full calculated amount is deferred without partial payout;
+- the current owner is snapshotted as the fixed claimant;
+- post-settlement NFT transfer does not change that claimant;
+- unrelated callers and approved ERC721 operators cannot claim;
+- a successful claim clears the pending amount exactly once;
+- an underfunded or paused claim restores pending debt through rollback;
+- an empty or unexpected VaultManager revert restores the entire maturity
+  settlement;
+- callback reentrancy cannot duplicate the pending-interest claim;
+- manual and auto-renew continue to require fully funded positive interest.
+
+### 20.6.12 Verified Phase 10 Evidence
 
 Verified results:
 
-- `17` focused permissionless auto-renew tests pass;
-- `161` SavingCore tests pass;
-- `221` tests pass across the complete project;
+- `173` SavingCore tests pass;
+- `233` tests pass across the complete project;
 - SavingCore achieves 100% statements, branches, functions, and lines;
 - no SavingCore statement, branch, function, or line remains uncovered;
-- SavingCore deployed bytecode is approximately `11.021 KiB`;
-- SavingCore initcode is approximately `12.266 KiB`.
+- complete project coverage reports 98.92% statements, 96.97% branches,
+  96.43% functions, and 96.62% lines;
+- SavingCore deployed bytecode is approximately `11.905 KiB`;
+- SavingCore initcode is approximately `13.149 KiB`;
+- principal-first, later-claim, wrong-claimant, double-claim, pause,
+  underfunding, empty-revert, and callback-reentrancy paths are validated.
 
 Residual risks still include:
-
 - compromised administrator ownership;
 - incorrect dependency configuration;
 - insufficient future interest funding;
@@ -2070,7 +2120,7 @@ Planned design responses include:
 - prefer direct mappings;
 - keep auto-renew permissionless;
 - preserve maturity withdrawal after grace;
-- implement C1 for principal recovery;
+- preserve the implemented C1 principal-recovery guarantees;
 - maintain frontend RPC error states;
 - avoid dependence on AI for transactions.
 
@@ -2503,7 +2553,7 @@ SafeBank does not attempt to:
 
 ## 42. Security Decision Status
 
-Resolved and implemented through Phase 9:
+Resolved and implemented through Phase 10:
 
 1. Basic `ERC721` is used without `ERC721Enumerable`.
 2. APR, tenor, and penalty validation bounds are fixed.
@@ -2568,7 +2618,7 @@ Deferred security decisions must be finalized before their related implementatio
 
 ---
 
-## 43. Phase 9 Security Status
+## 43. Phase 10 Security Status
 
 Completed and validated locally:
 
@@ -2632,13 +2682,13 @@ Completed and validated locally:
 - ERC721 renewal-mint callback protection;
 - exclusion between all terminal lifecycle paths;
 - security mocks and automated tests;
-- `17` focused permissionless auto-renew tests;
-- `161` SavingCore tests;
-- `221` full-suite tests;
+- principal-first settlement and deferred-interest claim tests;
+- `173` SavingCore tests;
+- `233` full-suite tests;
 - 100% statements, branches, functions, and lines coverage for SavingCore;
 - no uncovered SavingCore statement, branch, function, or line;
-- SavingCore deployed bytecode of approximately `11.021 KiB`;
-- SavingCore initcode of approximately `12.266 KiB`.
+- SavingCore deployed bytecode of approximately `11.905 KiB`;
+- SavingCore initcode of approximately `13.149 KiB`.
 
 Not completed:
 
