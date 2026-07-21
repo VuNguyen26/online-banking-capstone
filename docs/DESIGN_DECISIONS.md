@@ -6,18 +6,19 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Architecture and Product Decision Records |
-| Current project phase | Phase 12 — Bonus C2 Solvency Guard |
-| Implementation status | Decisions governing mandatory smart-contract flows, Bonus C1, and Bonus C2 are reflected in implemented contracts and tests; frontend, AI, deployment, and rich metadata decisions remain pending or deferred |
+| Current project phase | Phase 13 — Deployment scripts and deterministic local demo seed |
+| Implementation status | Mandatory contract decisions, Bonus C1, Bonus C2, and local deployment decisions are reflected in implemented code, tests, and observed execution; Sepolia, frontend, AI, and rich metadata decisions remain pending or deferred |
 | Architecture model | Non-upgradeable |
+| Local deployment model | Hardhat and localhost only, chain ID 31337 |
 | Student ID | 3122560090 |
 | Test token | MockUSDC with 6 decimals |
 
 This document is the living record of accepted, implemented, rejected, and
 deferred SafeBank decisions.
 
-A decision marked implemented is backed by the current Solidity code, tests,
-and observed execution results. Accepted or deferred product decisions are not
-proof that frontend, AI, deployment, or metadata features already exist.
+A decision marked implemented is backed by current code, tests, and observed
+execution results. Local deployment decisions do not prove that Sepolia,
+frontend, AI, or metadata features already exist.
 
 ## 2. Decision Categories
 
@@ -143,6 +144,10 @@ Statuses mean:
 | ADR-040 | Final NFT metadata strategy remains deferred | Deferred |
 | ADR-041 | Resolve the current fee receiver at early settlement | Implemented |
 | ADR-042 | Use atomic user-net-first early settlement with independent pauses | Implemented |
+| ADR-043 | Restrict Phase 13 deployment and seed to local chain ID 31337 | Implemented |
+| ADR-044 | Use deterministic separated local roles and fixed demo targets | Implemented |
+| ADR-045 | Make persistent local deployment and seed idempotent with no default deposits | Implemented |
+| ADR-046 | Ignore local deployment records and export production ABIs only | Implemented |
 
 ---
 
@@ -2392,6 +2397,216 @@ SafeBank UI reads financial details directly from SavingCore.
 
 ---
 
+# Phase 13 Deployment Decision Records
+
+## ADR-043 — Local-Only Phase 13 Deployment Guard
+
+**Status:** Implemented
+
+**Category:** Deployment and security decision
+
+### Context
+
+The repository already contains Sepolia and mainnet network concepts, but
+Phase 13 is limited to local deployment and deterministic demo seed.
+
+Running the local public-mint and deterministic-account workflow on another
+network would be unsafe and outside scope.
+
+### Decision
+
+Every Phase 13 deployment and seed script accepts only:
+
+- `hardhat`;
+- `localhost`.
+
+The chain ID must equal `31337`.
+
+A mismatch fails before the deployment is accepted.
+
+Sepolia deployment and Etherscan verification are deferred to Phase 14.
+
+### Rationale
+
+Network-name and chain-ID checks reduce accidental broadcast risk and keep the
+local demo workflow separate from public-testnet operations.
+
+### Trade-offs
+
+The Phase 13 scripts cannot be reused directly for Sepolia. Phase 14 requires a
+separate reviewed configuration and secret-management process.
+
+### Test implication
+
+Deployment regression tests execute the tagged local fixture, while real
+localhost validation proves both reset and rerun behavior.
+
+### UI implication
+
+Local addresses must never be presented as public or Sepolia deployment
+configuration.
+
+---
+
+## ADR-044 — Deterministic Local Roles and Demo Targets
+
+**Status:** Implemented
+
+**Category:** Deployment and demonstration decision
+
+### Context
+
+A repeatable demo requires stable local roles and balances while preserving
+separation between administrator, fee receiver, users, and keeper.
+
+### Decision
+
+The standard Hardhat accounts are assigned as:
+
+- account 0: deployer and administrator;
+- account 1: fee receiver;
+- account 2: demo user one;
+- account 3: demo user two;
+- account 4: permissionless keeper.
+
+Target balances are:
+
+- demo user one: 5,000 mUSDC;
+- demo user two: 10,000 mUSDC;
+- VaultManager: 25,000 mUSDC.
+
+The canonical plan uses:
+
+- 180-day tenor;
+- 200-bps APR;
+- 100 mUSDC minimum;
+- 10,000 mUSDC maximum;
+- 750-bps early-withdrawal penalty;
+- enabled status.
+
+### Rationale
+
+Separated deterministic roles make ownership, fee receipt, user activity, and
+permissionless automation easy to demonstrate and verify.
+
+### Trade-offs
+
+The addresses are tied to the standard local Hardhat mnemonic and must never be
+treated as secure public keys.
+
+### Test implication
+
+Deployment tests verify role distinction, exact plan values, balances,
+ownership, fee receiver, and Personal Variant constants.
+
+### UI implication
+
+A future local frontend may use these roles for development fixtures but must
+derive current contract addresses from deployment configuration rather than
+hard-code them as public addresses.
+
+---
+
+## ADR-045 — Idempotent Local Seed Without Default Deposits
+
+**Status:** Implemented
+
+**Category:** Deployment and state-management decision
+
+### Context
+
+A persistent localhost node may be reused across commands. Blind reseeding
+would duplicate plans, authorization attempts, token balances, or liabilities.
+
+Creating default deposits would also introduce timestamp-sensitive state and
+reserved-interest liabilities into the base environment.
+
+### Decision
+
+The persistent local workflow is idempotent:
+
+- matching contracts are reused;
+- expected existing authorization is skipped;
+- a different existing authorization fails;
+- plan ID `1` is created only when `planCount == 0` and is always verified;
+- demo users receive only the balance delta below their targets;
+- the vault receives only the delta below its exact target;
+- a vault balance above the target fails;
+- the base seed creates no deposits.
+
+### Rationale
+
+The result is deterministic, rerunnable, and suitable as a clean baseline for
+manual demonstrations and frontend development.
+
+### Trade-offs
+
+The seed intentionally does not reset arbitrary user-created state. Use the
+reset workflow or restart the node when a fresh chain is required.
+
+### Test implication
+
+Real localhost validation runs reset deployment, verification, idempotent
+rerun, and a second verification. The fixture test mutates token state and
+proves snapshot restoration.
+
+### UI implication
+
+A future demo script must create deposits explicitly and must not assume the
+base seed already contains a certificate.
+
+---
+
+## ADR-046 — Local Deployment Record and Production ABI Policy
+
+**Status:** Implemented
+
+**Category:** Repository and integration decision
+
+### Context
+
+Persistent deployment metadata is useful locally but is generated state.
+Unrestricted ABI export also produced test-mock and internal-interface files
+that are not part of the public product interface.
+
+### Decision
+
+The repository ignores:
+
+- `deployments/hardhat/`;
+- `deployments/localhost/`.
+
+No separate local address file is committed in Phase 13.
+
+The ABI exporter retains exactly:
+
+- MockUSDC;
+- VaultManager;
+- SavingCore.
+
+Local addresses are read from hardhat-deploy records or emitted by the
+verification script.
+
+### Rationale
+
+This keeps Git focused on reproducible source and avoids presenting local
+addresses or internal test interfaces as stable public integration artifacts.
+
+### Trade-offs
+
+A frontend cannot rely on a committed Phase 13 address file. A later phase must
+define environment-specific public address configuration.
+
+### Test implication
+
+Clean compilation and post-coverage audits verify an ABI count of exactly
+three and the absence of mock or internal-interface ABI output.
+
+### UI implication
+
+The future frontend must use explicit environment-aware address configuration
+and validate bytecode, chain ID, and contract relationships.
+
 # Rejected Alternatives
 
 ## 5. Upgradeable Proxy Contracts
@@ -2992,7 +3207,7 @@ The following remain deferred until their relevant phases:
 - frontend deployment provider;
 - event-indexing technology.
 
-The current Solidity storage layout, custom errors, function signatures, and implemented event-indexing parameters are defined by the Phase 12 contracts and exported ABIs.
+The current Solidity storage layout, custom errors, function signatures, deployment relationships, and implemented event-indexing parameters are defined by the Phase 13 contracts, deployment scripts, tests, and exported ABIs.
 
 Deferred details must not contradict accepted financial and security behavior.
 
@@ -3000,10 +3215,11 @@ Deferred details must not contradict accepted financial and security behavior.
 
 ## 40. Current Decision Implementation Status
 
-Implemented and validated through Phase 12:
+Implemented and validated through Phase 13:
 
 - ADR-005, ADR-006, ADR-007, ADR-009, ADR-010, ADR-011, ADR-025,
-  ADR-026, ADR-027, ADR-028, ADR-029, ADR-030, ADR-041, and ADR-042;
+  ADR-026, ADR-027, ADR-028, ADR-029, ADR-030, ADR-041, ADR-042,
+  ADR-043, ADR-044, ADR-045, and ADR-046;
 - mandatory deposit, withdrawal, and renewal lifecycle decisions;
 - C1 principal-first settlement and fixed pending claims;
 - C2 aggregate reserve creation, release, consumption, and renewal
@@ -3011,11 +3227,25 @@ Implemented and validated through Phase 12:
 - undercollateralized opening with explicit shortfall;
 - available-liquidity withdrawal enforcement;
 - atomic rollback and reserve-underflow protection;
+- local-only deployment and chain-ID guards;
+- deterministic separated local roles;
+- exact constructor and dependency configuration;
+- one-time authorization before deployment readiness;
+- canonical plan and deterministic demo funding;
+- idempotent persistent localhost reconciliation;
+- no default deposits in the base seed;
+- ignored local deployment records;
+- production-only ABI export;
+- read-only local deployment verification;
+- 5 deployment workflow tests;
 - 185 SavingCore tests;
 - 55 VaultManager tests;
-- 253 full-suite tests;
+- 13 MockUSDC tests;
+- 258 full-suite tests;
 - 100% statements, branches, functions, and lines for SavingCore;
 - 100% statements, functions, and lines for VaultManager;
+- production coverage of 100% statements, 98.40% branches,
+  100% functions, and 100% lines;
 - complete project coverage of 99.11% statements, 97.17% branches,
   96.97% functions, and 96.98% lines;
 - SavingCore deployed bytecode approximately `12.654 KiB`;
@@ -3026,11 +3256,11 @@ Implemented and validated through Phase 12:
 Not implemented:
 
 - rich NFT metadata;
-- deployment scripts and local deployment;
 - Sepolia deployment and verification;
+- public address configuration;
 - frontend;
 - AI assistants;
-- demo and final submission audit.
+- demo video and final submission audit.
 
 This file records both accepted design decisions and their verified
 implementation status.
@@ -3052,3 +3282,7 @@ SafeBank will be implemented as a non-upgradeable, three-contract savings system
 11. C2 prevents withdrawal of reserved liquidity.
 12. The frontend and AI never replace on-chain authorization.
 13. Every implemented decision must be proven through tests and actual execution output.
+14. Phase 13 deploy and seed scripts are local-only and require chain ID 31337.
+15. Local roles and demo targets are deterministic and separated by responsibility.
+16. Persistent local deployment and seed behavior is idempotent and creates no default deposits.
+17. Local deployment records remain generated artifacts and production ABI export is restricted to three contracts.

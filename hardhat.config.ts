@@ -39,6 +39,19 @@ const reportGas = process.env.REPORT_GAS;
  */
 module.exports = {
   networks: {
+    hardhat: {
+      chainId: 31337,
+      live: false,
+      saveDeployments: false,
+      tags: ["local", "ephemeral"],
+    },
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      chainId: 31337,
+      live: false,
+      saveDeployments: true,
+      tags: ["local", "persistent"],
+    },
     sepolia: {
       url: "https://ethereum-sepolia-rpc.publicnode.com",
       accounts: testnetPrivateKey ? [testnetPrivateKey] : [],
@@ -71,7 +84,11 @@ module.exports = {
     runOnCompile: true,
     clear: true,
     flat: false,
-    only: [],
+    only: [
+      ":MockUSDC$",
+      ":VaultManager$",
+      ":SavingCore$",
+    ],
     spacing: 4,
   },
 
@@ -100,7 +117,24 @@ module.exports = {
   },
 
   namedAccounts: {
-    deployer: 0,
+    deployer: {
+      default: 0,
+    },
+    admin: {
+      default: 0,
+    },
+    feeReceiver: {
+      default: 1,
+    },
+    demoUserOne: {
+      default: 2,
+    },
+    demoUserTwo: {
+      default: 3,
+    },
+    keeper: {
+      default: 4,
+    },
   },
 
   typechain: {

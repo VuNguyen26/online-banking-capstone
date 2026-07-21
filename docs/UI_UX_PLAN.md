@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | UI/UX Product Plan |
-| Current project phase | Phase 12 — Bonus C2 Solvency Guard |
-| Implementation status | Frontend remains planned only; mandatory contract interfaces, Bonus C1, and Bonus C2 interfaces are implemented and validated locally |
+| Current project phase | Phase 13 — Deployment scripts and deterministic local demo seed |
+| Implementation status | Frontend remains planned only; mandatory contracts, Bonus C1, Bonus C2, local deployment scripts, deterministic seed, and local verification are implemented and validated |
 | Target product areas | User Banking App and Admin Portal |
 | Product style | Modern, trustworthy, clear, accessible, and responsive |
 | Branding model | Original SafeBank identity |
@@ -15,22 +15,23 @@
 | Student ID | 3122560090 |
 
 This document defines the planned SafeBank user experience and is aligned with
-the implemented contract interfaces through Phase 12. No frontend application
-has been created yet.
+the implemented contract and local deployment interfaces through Phase 13. No
+frontend application has been created yet.
 
 It does not claim that:
 
 - a frontend framework has been selected;
 - frontend source code exists;
 - wallet integration exists;
-- deployment addresses are available;
+- a public address configuration exists;
 - AI assistants have been implemented;
 - any Sepolia deployment exists;
+- Etherscan verification exists;
 - the product is production-ready.
 
-All mandatory contract flows, C1 pending-interest interfaces, and C2 solvency
-interfaces are validated locally. Deployment and frontend implementation remain
-pending.
+The local deployment workflow provides a deterministic development baseline.
+Its local addresses are not public deployment addresses and must not be
+hard-coded as Sepolia configuration.
 
 ## 1.1 SafeBank Personal Variant
 
@@ -48,7 +49,7 @@ UI calculations and input handling must use six-decimal token units.
 
 The interface must not use `parseEther` for MockUSDC.
 
-## 1.2 Phase 12 Contract Integration Baseline
+## 1.2 Phase 13 Local Integration Baseline
 
 The future frontend may rely on these implemented and locally validated
 interfaces:
@@ -57,20 +58,33 @@ interfaces:
 - deposit opening and ERC721 certificate issuance;
 - maturity withdrawal and early withdrawal;
 - manual renewal and permissionless auto-renew;
-- C1 `pendingInterest`, `interestClaimant`, and
-  `claimPendingInterest`;
-- C2 `SavingCore.totalReservedInterest`;
-- C2 `VaultManager.totalReservedInterest`;
-- C2 `VaultManager.availableLiquidity`;
-- C2 `VaultManager.fundingShortfall`;
+- C1 pending-interest reads and claims;
+- C2 reserved-interest, available-liquidity, and funding-shortfall reads;
 - owner vault withdrawal constrained by available liquidity;
-- `InterestDeferred` and `PendingInterestClaimed`;
-- `InterestReserved`, `ReservedInterestReleased`, and
-  `ReservedInterestConsumed`;
-- plan, deposit, certificate, ownership, balance, fee receiver, authorization,
+- plan, deposit, certificate, ownership, token, fee receiver, authorization,
   and independent pause reads;
-- implemented custom errors for lifecycle, C1, C2, access, pause, and
-  liquidity failures.
+- implemented custom errors and lifecycle events;
+- production ABIs for MockUSDC, VaultManager, and SavingCore.
+
+Phase 13 also provides:
+
+- an ephemeral Hardhat deployment command;
+- a persistent localhost reset-deployment command;
+- an idempotent localhost reconciliation command;
+- a read-only localhost verification command;
+- deterministic local roles for admin, fee receiver, two users, and keeper;
+- canonical plan ID `1`;
+- deterministic user and vault balances;
+- no pre-created deposits.
+
+The standard local addresses are deterministic only under the default Hardhat
+mnemonic. A future frontend must read environment-specific addresses from a
+defined configuration source and must validate:
+
+- chain ID;
+- address format;
+- deployed bytecode;
+- token, vault, and SavingCore relationships.
 
 No frontend route, component, transaction hook, wallet integration, or
 rendered metric exists yet.
@@ -78,6 +92,7 @@ rendered metric exists yet.
 The frontend must not present these as available yet:
 
 - Sepolia contract addresses;
+- Etherscan links for SafeBank deployments;
 - autonomous AI transaction execution;
 - rich NFT metadata.
 
@@ -3181,9 +3196,9 @@ The Admin Portal will not be considered complete until:
 
 ---
 
-## 80. Phase 12 UI/UX Planning Status
+## 80. Phase 13 UI/UX Planning Status
 
-At the current Phase 12 contract baseline:
+At the current Phase 13 baseline:
 
 Completed as planning:
 
@@ -3195,32 +3210,42 @@ Completed as planning:
 - administrator withdrawal review constrained by the contract maximum;
 - C1 and C2 event presentation;
 - multi-contract pause behavior;
-- wallet, network, address, and ABI validation;
+- wallet, network, address, bytecode, and ABI validation;
 - AI placement and deterministic fallback requirements;
-- alignment with the Phase 12 SavingCore and VaultManager ABIs.
+- alignment with the implemented Phase 13 contracts and production ABIs;
+- local environment distinction between ephemeral Hardhat and persistent
+  localhost;
+- deterministic local role and seed documentation;
+- warning that local deterministic addresses are not public deployment
+  addresses;
+- requirement for environment-aware public address configuration in a later
+  phase.
 
-Implemented contract interfaces include:
+Implemented technical integration assets include:
 
-- mandatory deposit lifecycle operations;
-- C1 principal-first maturity settlement;
-- pending-interest and claimant reads and claims;
-- aggregate reserved interest;
-- available liquidity and funding shortfall;
-- owner-withdrawal solvency enforcement;
-- C1 and C2 events.
+- all mandatory deposit lifecycle operations;
+- C1 principal-first settlement and claims;
+- C2 reserve and solvency reads;
+- local deployment and seed scripts;
+- read-only deployment verification;
+- production-only ABI export;
+- deterministic local accounts and balances;
+- five deployment workflow tests.
 
 Not implemented:
 
 - frontend folder and package;
 - routes, components, styling, and state management;
 - wallet connection;
-- contract reads and writes;
+- contract reads and writes in a browser;
+- environment-specific frontend address configuration;
 - transaction lifecycle code;
 - user and admin controls;
 - pending-interest components;
 - solvency and reserve components;
 - responsive and accessibility testing;
 - AI integration;
+- Sepolia-linked UI;
 - deployed frontend.
 
 This remains a planning document. It does not claim that a user interface

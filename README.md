@@ -10,86 +10,93 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 12 — Bonus C2 Solvency Guard implemented and validated locally**
+**Phase 13 — Deployment scripts and deterministic local demo seed implemented and validated locally**
 
-Phase 12 deliverables:
+Phase 13 deliverables:
 
-- `contracts/SavingCore.sol`
-- `contracts/VaultManager.sol`
-- `contracts/mocks/MockSavingCoreCaller.sol`
-- `contracts/mocks/MockSavingCoreHarness.sol`
-- `test/SavingCore.test.ts`
-- `test/VaultManager.test.ts`
-- updated production ABIs for `SavingCore` and `VaultManager`
-- Phase 12 documentation updates
+- `hardhat.config.ts` local-network and named-account configuration;
+- `.gitignore` policy for local deployment records;
+- `deploy/00_deploy_mock_usdc.ts`;
+- `deploy/01_deploy_vault_manager.ts`;
+- `deploy/02_deploy_saving_core.ts`;
+- `deploy/03_authorize_saving_core.ts`;
+- `deploy/04_seed_demo.ts`;
+- `scripts/verify-local-deployment.ts`;
+- `test/Deployment.test.ts`;
+- local deployment, verification, and focused-test npm workflows;
+- production-only ABI export allowlist;
+- Phase 13 documentation alignment.
 
-Phase 12 implementation includes:
+Phase 13 implementation includes:
 
-- aggregate `totalReservedInterest` stored by `SavingCore`;
-- one expected-interest reservation for every positive-interest active deposit;
-- zero-rounded interest producing no phantom reserve;
-- reserve values calculated from each deposit's snapshotted principal, APR,
-  and tenor;
-- early withdrawal releasing the old term's full unused reserve;
-- fully funded maturity settlement consuming the old reserve;
-- C1 deferred interest remaining reserved until a successful later claim;
-- successful pending-interest claims consuming the remaining reserve;
-- manual renewal atomically consuming the old reserve and creating the new
-  selected-plan reserve;
-- permissionless auto-renew atomically consuming the old reserve and creating
-  the new snapshot-based reserve;
-- complete EVM rollback of reserve transitions when token transfers, vault
-  payouts, authorization, pause checks, or safe NFT minting fail;
-- undercollateralized deposit opening remaining allowed;
-- `VaultManager.totalReservedInterest()` reading aggregate liabilities from
-  the one-time authorized `SavingCore`;
-- `VaultManager.availableLiquidity()` using saturating subtraction;
-- `VaultManager.fundingShortfall()` exposing uncovered liabilities;
-- owner withdrawal limited to current available liquidity;
-- zero reserve reported by `VaultManager` before SavingCore authorization;
-- direct vault funding and direct ERC20 transfers changing balance metrics
-  without changing liabilities;
-- no user principal held by `VaultManager`;
-- no production dependency on test-only mocks or harnesses.
+- explicit local network support for `hardhat` and `localhost`;
+- chain ID `31337` enforcement in every Phase 13 deployment script;
+- rejection of nonlocal networks by the deploy and seed workflow;
+- deterministic named accounts for deployer/admin, fee receiver, two demo
+  users, and a low-privilege keeper;
+- deployment order:
+  1. MockUSDC;
+  2. VaultManager;
+  3. SavingCore;
+  4. one-time SavingCore authorization;
+  5. deterministic demo seed;
+- exact constructor configuration:
+  - `MockUSDC()`;
+  - `VaultManager(token, admin, feeReceiver)`;
+  - `SavingCore(token, vaultManager, admin)`;
+- dependency, bytecode, owner, pause, fee receiver, token, vault, and
+  authorization verification after deployment;
+- canonical plan ID `1` with 180-day tenor, 200-bps APR, 100–10,000 mUSDC
+  limits, 750-bps early-withdrawal penalty, and enabled status;
+- demo user target balances of 5,000 and 10,000 mUSDC;
+- VaultManager target balance of 25,000 mUSDC;
+- no default deposit creation;
+- idempotent authorization, plan, user-balance, and vault-funding behavior;
+- persistent `localhost` deployment records ignored by Git;
+- ephemeral `hardhat` deployment without saved records;
+- read-only post-deployment verification with structured JSON output;
+- ABI export restricted to MockUSDC, VaultManager, and SavingCore.
 
-Phase 12 validation completed:
+Phase 13 validation completed:
 
-- `npm run clean`;
-- Solidity `0.8.28` compilation with optimizer `1,000` runs and `viaIR`;
+- clean Solidity compilation using Solidity `0.8.28`, optimizer `1,000` runs,
+  and `viaIR`;
 - TypeScript validation with `npx tsc --noEmit`;
-- TypeChain generation for 37 artifacts and 108 typings;
-- 13 MockUSDC tests;
-- 55 VaultManager tests;
-- 185 SavingCore tests;
-- **253 passing** across the complete project suite;
-- C2 tests for reservation, release, consumption, deferred liabilities,
-  renewal transitions, undercollateralization, available liquidity, funding
-  shortfall, withdrawal limits, rollback, and invariant protection;
-- 100% statements, branches, functions, and lines for `SavingCore`;
-- 100% statements, functions, and lines for `VaultManager`;
+- ephemeral `hardhat` deployment and deterministic seed;
+- persistent `localhost` reset deployment;
+- two successful `verify:local` runs;
+- successful idempotent `deploy:local` rerun with reused contracts and no
+  duplicate seed state;
+- three deployed contracts with nonempty bytecode;
+- matching token, vault, ownership, fee-receiver, authorization, and Personal
+  Variant configuration;
+- seeded state:
+  - plan count `1`;
+  - deposit count `0`;
+  - demo user balances `5000.0` and `10000.0` mUSDC;
+  - vault balance `25000.0` mUSDC;
+  - reserved interest `0.0` mUSDC;
+  - available liquidity `25000.0` mUSDC;
+  - funding shortfall `0.0` mUSDC;
+- 5 focused deployment workflow tests;
+- **258 passing** across the complete project suite;
 - production-contract coverage of 100% statements, 98.40% branches,
   100% functions, and 100% lines;
 - complete project coverage of 99.11% statements, 97.17% branches,
   96.97% functions, and 96.98% lines;
-- `SavingCore` deployed bytecode approximately `12.654 KiB`;
-- `SavingCore` initcode approximately `13.905 KiB`;
-- `VaultManager` deployed bytecode approximately `3.483 KiB`;
-- `VaultManager` initcode approximately `3.897 KiB`;
-- production ABI audit:
-  - SavingCore: 107 entries, 50 functions, 19 events, 37 errors;
-  - VaultManager: 42 entries, 20 functions, 9 events, 12 errors;
-  - MockUSDC: 19 entries, 10 functions, 2 events, 6 errors;
-- generated coverage output, test-mock ABIs, and internal interface ABI removed
-  before staging.
+- exactly three retained production ABI files;
+- local node shutdown and temporary-log cleanup verified.
 
 Current limitations and pending work:
 
+- Phase 13 documentation, final audits, staging, commit, push, remote
+  verification, checkpoint, and handoff remain pending until completed;
 - rich NFT metadata remains unimplemented;
-- deployment scripts and local deployment workflow remain pending;
-- Sepolia deployment and Etherscan verification remain pending;
+- no Sepolia deployment has been performed;
+- no Etherscan verification has been performed;
 - frontend, AI assistants, demo video, and final submission remain pending;
-- Phase 12 staging, commit, push, remote verification, and final checkpoint
-  remain pending.
+- local deterministic addresses are development-only and are not public
+  deployment addresses.
 
 Previous completed phases:
 
@@ -105,7 +112,8 @@ Previous completed phases:
 - Phase 8: manual renewal during the two-day grace period;
 - Phase 9: permissionless auto-renewal after the grace period;
 - Phase 10: hardening, regression, security, and documentation alignment;
-- Phase 11: Bonus C1 principal-first settlement and deferred-interest claims.
+- Phase 11: Bonus C1 principal-first settlement and deferred-interest claims;
+- Phase 12: Bonus C2 reserved-interest solvency guard.
 
 ## Current Implementation Status
 
@@ -126,25 +134,27 @@ Completed:
 - Full-value deferred interest and fixed claimant snapshots
 - Claimant-only pending-interest claims with rollback and reentrancy protection
 - C2 aggregate reserved-interest accounting
-- Reservation on positive-interest deposit opening
-- Reserve release on early withdrawal
-- Reserve consumption on funded maturity and successful pending claim
-- Old-reserve consumption plus new-reserve creation on manual and auto renewal
+- Reservation, release, consumption, and renewal reserve transitions
 - Undercollateralized deposit opening with explicit funding shortfall
-- Vault available-liquidity calculation
-- Owner-withdrawal protection for reserved liquidity
-- Production ABI export for MockUSDC, SavingCore, and VaultManager
-- 253 passing tests
-- 100% statements, branches, functions, and lines for SavingCore
-- 100% statements, functions, and lines for VaultManager
+- Vault available-liquidity calculation and owner-withdrawal protection
+- Production ABI export restricted to MockUSDC, SavingCore, and VaultManager
+- Local-only deployment scripts with chain-ID and network guards
+- Deterministic named local roles
+- One-time SavingCore authorization workflow
+- Idempotent canonical-plan and demo-liquidity seed
+- Ephemeral Hardhat and persistent localhost deployment modes
+- Read-only local deployment verification
+- Deployment fixture regression tests
+- 258 passing tests
+- Production coverage of 100% statements, 98.40% branches, 100% functions,
+  and 100% lines
 
 Not implemented yet:
 
 - Rich NFT metadata or custom `tokenURI`
-- Deployment scripts
-- Local deployment workflow
 - Sepolia deployment
 - Etherscan verification
+- Public or production deployment addresses
 - User Banking App
 - Admin Portal
 - AI Banking Assistant
@@ -152,8 +162,9 @@ Not implemented yet:
 - Demo video
 - Final submission audit
 
-Mandatory contract flows, Bonus C1, and Bonus C2 are implemented and validated
-locally. Deployment and product layers remain pending.
+Mandatory contract flows, Bonus C1, Bonus C2, and the deterministic local
+deployment workflow are implemented and validated. Public testnet and product
+layers remain pending.
 
 ## Core Contracts
 
@@ -469,39 +480,41 @@ The project currently uses npm and `package-lock.json`.
 |---|---|
 | `npm install` | Install dependencies |
 | `npx tsc --noEmit` | Check TypeScript without generating output |
-| `npm run compile` | Compile Solidity contracts |
+| `npm run compile` | Compile Solidity contracts and export production ABIs |
 | `npm test` | Run the complete Hardhat test suite |
+| `npm run test:deployment` | Run the focused local deployment regression suite |
 | `npx hardhat test test\SavingCore.test.ts` | Run focused SavingCore tests |
+| `npx hardhat test test\VaultManager.test.ts` | Run focused VaultManager tests |
 | `npm run coverage` | Generate Solidity coverage |
 | `npm run clean` | Remove Hardhat-generated files |
 | `npm run size` | Report compiled contract sizes |
-| `npm run node` | Start a local Hardhat node |
+| `npm run node` | Start a Hardhat node using normal deploy-task behavior |
+| `npm run node:local` | Start a persistent localhost node without auto-deploy |
+| `npm run deploy:ephemeral` | Deploy and seed on the ephemeral Hardhat network |
+| `npm run deploy:local:reset` | Reset-deploy and seed on a running localhost node |
+| `npm run deploy:local` | Reuse localhost deployments and idempotently reconcile seed state |
+| `npm run verify:local` | Read and verify the current localhost deployment |
 
-At the current locally validated Phase 12 state:
+Validated Phase 13 checkpoints:
 
-- Solidity `0.8.28`, optimizer with `1,000` runs, and `viaIR` compile
-  successfully;
-- TypeScript validation passes with `npx tsc --noEmit`;
-- focused SavingCore testing reports `185 passing`;
-- focused VaultManager testing reports `55 passing`;
-- the complete project suite reports `253 passing`;
+- Solidity compilation succeeds with `0.8.28`, optimizer `1,000` runs, and
+  `viaIR`;
+- TypeScript validation succeeds;
+- focused deployment testing reports `5 passing`;
+- the complete project suite reports `258 passing`;
 - SavingCore deployed bytecode is approximately `12.654 KiB`;
 - SavingCore initcode is approximately `13.905 KiB`;
 - VaultManager deployed bytecode is approximately `3.483 KiB`;
 - VaultManager initcode is approximately `3.897 KiB`;
-- SavingCore coverage reports 100% statements, branches, functions, and lines;
-- VaultManager coverage reports 100% statements, functions, and lines;
 - production-contract coverage reports 100% statements, 98.40% branches,
   100% functions, and 100% lines;
 - complete project coverage reports 99.11% statements, 97.17% branches,
   96.97% functions, and 96.98% lines;
-- `artifacts/`, `cache/`, `typechain/`, `coverage/`, and `coverage.json` remain
-  ignored;
-- production MockUSDC, VaultManager, and SavingCore ABIs are retained;
-- generated test-mock and internal-interface ABIs are removed before staging.
-
+- only the three production ABI files are retained;
+- `deployments/hardhat/` and `deployments/localhost/` remain ignored.
 
 ## Project Structure
+
 Current relevant structure:
 
     online-banking-capstone/
@@ -524,15 +537,20 @@ Current relevant structure:
     │           └── VaultManager.sol/
     │               └── VaultManager.json
     ├── deploy/
-    │   └── .gitkeep
+    │   ├── 00_deploy_mock_usdc.ts
+    │   ├── 01_deploy_vault_manager.ts
+    │   ├── 02_deploy_saving_core.ts
+    │   ├── 03_authorize_saving_core.ts
+    │   └── 04_seed_demo.ts
     ├── docs/
     │   ├── ARCHITECTURE.md
     │   ├── DESIGN_DECISIONS.md
     │   ├── SECURITY.md
     │   └── UI_UX_PLAN.md
     ├── scripts/
-    │   └── .gitkeep
+    │   └── verify-local-deployment.ts
     ├── test/
+    │   ├── Deployment.test.ts
     │   ├── MockUSDC.test.ts
     │   ├── SavingCore.test.ts
     │   └── VaultManager.test.ts
@@ -544,11 +562,19 @@ Current relevant structure:
     ├── README.md
     └── tsconfig.json
 
-`MockSavingCoreCaller.sol` and `MockSavingCoreHarness.sol` are test-only contracts. The harness exposes one internal invariant solely for coverage and is not part of the production architecture or retained ABI set.
+`MockSavingCoreCaller.sol` and `MockSavingCoreHarness.sol` are test-only
+contracts. They are not part of the retained production ABI set.
+
+The local deployment-record directories are generated at runtime and ignored:
+
+- `deployments/hardhat/`;
+- `deployments/localhost/`.
 
 The `frontend/` directory has not been created.
 
-Generated Hardhat artifacts, cache files, TypeChain output, coverage reports, and test-mock ABIs are not part of the tracked source structure.
+Generated Hardhat artifacts, cache files, TypeChain output, coverage reports,
+test-mock ABIs, internal-interface ABIs, local deployment records, and
+temporary node logs are not part of the tracked source structure.
 
 ## Security Notice
 
@@ -596,31 +622,27 @@ Current development branch:
 
 The current action is to finalize:
 
-**Phase 12 — Bonus C2 Solvency Guard**
+**Phase 13 — Deployment scripts and deterministic local demo seed**
 
-Before Phase 12 may be declared complete:
+Before Phase 13 may be declared complete:
 
-1. keep README, architecture, security, UI/UX, and design decisions aligned with
-   the validated C2 behavior;
-2. confirm aggregate reserve transitions across open, early withdrawal,
-   maturity, deferred C1 claims, manual renewal, and auto-renew;
-3. confirm undercollateralized deposit opening remains allowed;
-4. confirm `availableLiquidity` and `fundingShortfall` use saturating
-   subtraction;
-5. confirm owner withdrawal cannot consume reserved liquidity;
-6. retain only production ABIs;
-7. run final clean compile, TypeScript, focused tests, full regression,
-   coverage, contract-size, whitespace, scope, secret, and generated-file
-   audits;
-8. stage only approved Phase 12 files;
-9. commit and push the Phase 12 changes;
-10. fetch the remote and confirm local and remote hashes match;
-11. confirm ahead/behind is `0 0` and the working tree is clean;
-12. produce the complete Phase 12 checkpoint and MASTER HANDOFF PROMPT;
-13. stop before Phase 13.
+1. review the complete Phase 13 source and documentation diff;
+2. confirm only approved deployment, verification, test, configuration, ABI,
+   and documentation files are included;
+3. run final whitespace, generated-file, scope, `parseEther`, debug-marker,
+   and secret audits;
+4. run the final clean compile, TypeScript, focused deployment test, complete
+   regression suite, coverage assessment, contract-size report, and ABI audit;
+5. stage only the approved Phase 13 files;
+6. run the cached diff and cached whitespace checks;
+7. commit and push Phase 13;
+8. fetch the remote and verify matching local and remote commit hashes;
+9. confirm ahead/behind is `0 0` and the working tree is clean;
+10. produce the complete Phase 13 checkpoint and MASTER HANDOFF PROMPT;
+11. stop before Phase 14.
 
-After Phase 12 is committed, pushed, and verified, the next planned phase is:
+After Phase 13 is committed, pushed, and verified, the next planned phase is:
 
-**Phase 13 — Deployment scripts and local deployment workflow**
+**Phase 14 — Sepolia deployment and Etherscan verification**
 
-Phase 13 must not begin automatically.
+Phase 14 must not begin automatically.

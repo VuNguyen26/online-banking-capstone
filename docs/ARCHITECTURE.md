@@ -6,25 +6,26 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | System Architecture |
-| Current phase | Phase 12 — Bonus C2 Solvency Guard |
-| Implementation status | Mandatory smart-contract flows, Bonus C1, and Bonus C2 are implemented and validated locally; frontend, AI, deployment, demo, and final submission remain pending |
+| Current phase | Phase 13 — Deployment scripts and deterministic local demo seed |
+| Implementation status | Mandatory smart-contract flows, Bonus C1, Bonus C2, and the deterministic local deployment workflow are implemented and validated; Sepolia, frontend, AI, demo video, and final submission remain pending |
 | Smart contract model | Non-upgradeable |
-| Target environments | Hardhat local network and Ethereum Sepolia testnet |
+| Validated local environments | Ephemeral Hardhat network and persistent localhost, chain ID 31337 |
+| Target public environment | Ethereum Sepolia testnet in a later phase |
 | Test token | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
 This document records the implemented architecture and the planned direction
-for later SafeBank product and deployment phases.
+for later SafeBank product and public-deployment phases.
 
-As of Phase 12, MockUSDC, VaultManager, SavingCore plan management, deposit
-opening, principal custody, financial snapshots, ERC721 certificates, maturity
-withdrawal, early withdrawal, manual renewal, permissionless auto-renewal,
-Bonus C1 principal-first settlement, deferred-interest claims, aggregate
-reserved-interest accounting, available-liquidity protection, and funding
-shortfall reporting are implemented and validated locally.
+As of Phase 13, MockUSDC, VaultManager, SavingCore, all mandatory lifecycle
+flows, Bonus C1, Bonus C2, production ABI export, local deployment scripts,
+one-time authorization, deterministic demo seed, idempotent localhost reruns,
+read-only deployment verification, and deployment regression tests are
+implemented and validated.
 
-Frontend, AI, deployment, public testnet verification, and production-readiness
-claims remain outside the current implementation.
+No Sepolia deployment or Etherscan verification has been performed. Frontend,
+AI, rich NFT metadata, demo video, and production-readiness claims remain
+outside the current implementation.
 
 ## 2. Project Overview
 
@@ -335,7 +336,7 @@ SafeBank must treat contract state as authoritative.
 
 ## 7. High-Level Architecture
 
-The planned contract relationship is:
+The implemented contract relationship is:
 
 ~~~mermaid
 flowchart LR
@@ -1651,7 +1652,7 @@ Phase 12 validates:
 
 ## 25. Contract Dependency Model
 
-The planned dependency relationship is:
+The implemented dependency relationship is:
 
 ~~~mermaid
 flowchart TD
@@ -1699,52 +1700,145 @@ by VaultManager's solvency getters.
 
 ---
 
-## 26. Planned Deployment Relationship
+## 26. Implemented Local Deployment Relationship
 
-The expected deployment sequence is:
+Phase 13 implements the local deployment sequence:
 
 1. Deploy `MockUSDC`.
-2. Deploy `VaultManager` with required configuration.
-3. Deploy `SavingCore` with token and vault dependencies.
-4. Authorize `SavingCore` in `VaultManager`.
-5. Verify the dependency addresses.
-6. Create the default personal-variant plan.
-7. Fund demonstration accounts.
-8. Fund the vault.
-9. Export addresses for scripts and frontend.
-10. Verify contracts on Sepolia during the deployment phase.
+2. Deploy `VaultManager`.
+3. Deploy `SavingCore`.
+4. Authorize the deployed `SavingCore` exactly once in `VaultManager`.
+5. Verify all contract relationships and ownership state.
+6. Create or verify the canonical plan.
+7. Reconcile deterministic demo-user balances.
+8. Reconcile the target vault balance.
+9. Verify C2 reserve, available-liquidity, and funding-shortfall formulas.
+10. Leave the base seed with no deposit certificates.
 
-No contract has been deployed at the time this document is written.
+Exact constructor configuration:
 
-Constructor signatures and exact configuration functions are not yet finalized.
+- `MockUSDC()`;
+- `VaultManager(tokenAddress, adminAddress, feeReceiverAddress)`;
+- `SavingCore(tokenAddress, vaultManagerAddress, adminAddress)`.
 
----
+The one-time authorization step occurs before the deployment is considered
+ready and before operational seed verification completes.
 
-## 27. Planned Security Building Blocks
+### 26.1 Local Network Modes
 
-The project expects to use OpenZeppelin components where appropriate.
+The configured local modes are:
 
-Planned controls include:
+- `hardhat`:
+  - chain ID `31337`;
+  - ephemeral execution;
+  - deployment records are not saved;
+- `localhost`:
+  - RPC URL `http://127.0.0.1:8545`;
+  - chain ID `31337`;
+  - deployment records are saved for reuse;
+  - generated records remain ignored by Git.
+
+Every Phase 13 deploy and seed script rejects:
+
+- a network name other than `hardhat` or `localhost`;
+- a chain ID other than `31337`.
+
+### 26.2 Deterministic Local Roles
+
+The default Hardhat accounts are mapped as:
+
+| Role | Account index | Local address |
+|---|---:|---|
+| Deployer and administrator | 0 | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` |
+| Fee receiver | 1 | `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` |
+| Demo user one | 2 | `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC` |
+| Demo user two | 3 | `0x90F79bf6EB2c4f870365E785982E1f101E93b906` |
+| Permissionless keeper | 4 | `0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65` |
+
+These addresses are deterministic only for the standard local Hardhat mnemonic.
+They are not Sepolia addresses and must not be treated as portable public
+configuration.
+
+### 26.3 Canonical Demo Seed
+
+The canonical plan is plan ID `1`:
+
+- tenor: 180 days;
+- APR: 200 bps;
+- minimum deposit: 100 mUSDC;
+- maximum deposit: 10,000 mUSDC;
+- early-withdrawal penalty: 750 bps;
+- enabled: true.
+
+Deterministic balance targets:
+
+- demo user one: 5,000 mUSDC;
+- demo user two: 10,000 mUSDC;
+- VaultManager: 25,000 mUSDC.
+
+The base seed creates no deposits. Therefore its initial C2 state is:
+
+- `totalReservedInterest = 0`;
+- `availableLiquidity = 25,000 mUSDC`;
+- `fundingShortfall = 0`.
+
+### 26.4 Idempotency
+
+The persistent localhost workflow is intentionally rerunnable:
+
+- deployed contracts are reused when deployment records match;
+- SavingCore authorization is skipped when the expected address is already
+  authorized;
+- the canonical plan is created only when no plan exists and is always
+  verified;
+- demo users are minted only the delta below their target balances;
+- the vault is funded only the delta below its exact target;
+- a vault balance above the target causes a failure instead of hiding drift.
+
+### 26.5 Address and ABI Consumption
+
+Phase 13 does not commit a separate local address file.
+
+Local contract addresses come from the `hardhat-deploy` records or the
+read-only verification output.
+
+The retained ABI set is restricted to:
+
+- MockUSDC;
+- VaultManager;
+- SavingCore.
+
+Test mocks and the internal reserve interface are excluded from production ABI
+output.
+
+Sepolia deployment and Etherscan verification are explicitly deferred to
+Phase 14.
+
+## 27. Implemented Security Building Blocks
+
+The implemented defense-in-depth controls include:
 
 - `Ownable2Step`;
-- `Pausable`;
+- independent `Pausable` state;
 - `ReentrancyGuard`;
 - `SafeERC20`;
-- ERC721 ownership checks;
-- custom errors;
-- checks-effects-interactions;
-- explicit status validation;
-- zero-address validation;
-- amount validation;
-- plan existence validation;
-- timestamp boundary validation;
-- event emission for sensitive actions.
+- safe ERC721 minting;
+- direct current-owner authorization;
+- immutable financial snapshots;
+- exact timestamp and terminal-state validation;
+- zero-address and deployed-bytecode dependency validation;
+- one-time SavingCore authorization;
+- aggregate reserve accounting and available-liquidity enforcement;
+- network-name and chain-ID deployment guards;
+- deterministic local role separation;
+- post-deployment bytecode and relationship verification;
+- fail-closed authorization and seed mismatch handling;
+- idempotent persistent-local deployment behavior;
+- production-only ABI export;
+- ignored local deployment records and temporary outputs.
 
-These are planned defense-in-depth measures.
-
-Their actual presence and effectiveness must later be confirmed through code review and tests.
-
----
+These controls reduce identified risks but do not constitute a professional
+audit or make the capstone production-ready.
 
 ## 28. Core Architectural Invariants
 
@@ -1957,7 +2051,7 @@ The application must remain usable when the AI provider is unavailable.
 
 ## 34. Architectural Decision Status
 
-Resolved and implemented through Phase 12:
+Resolved and implemented through Phase 13:
 
 1. Basic OpenZeppelin `ERC721` is used without `ERC721Enumerable`.
 2. Plan and deposit storage structures are defined in `SavingCore`.
@@ -2099,7 +2193,7 @@ Future phases must follow these rules:
 
 ## 37. Current Architecture Status
 
-Implemented and validated locally through Phase 12:
+Implemented and validated locally through Phase 13:
 
 - non-upgradeable MockUSDC, SavingCore, and VaultManager architecture;
 - principal and interest custody separation;
@@ -2114,9 +2208,19 @@ Implemented and validated locally through Phase 12:
 - C2 available-liquidity and funding-shortfall calculations;
 - C2 owner-withdrawal protection;
 - atomic rollback and callback reentrancy protection;
-- 185 SavingCore tests, 55 VaultManager tests, and 253 total tests;
-- 100% statements, branches, functions, and lines for SavingCore;
-- 100% statements, functions, and lines for VaultManager;
+- deterministic local deployment and seed architecture;
+- local-only network and chain-ID guards;
+- exact constructor and role configuration;
+- one-time SavingCore authorization;
+- ephemeral Hardhat and persistent localhost modes;
+- idempotent persistent-local reconciliation;
+- production-only ABI export;
+- read-only local deployment verification;
+- 5 deployment workflow tests;
+- 185 SavingCore tests, 55 VaultManager tests, 13 MockUSDC tests, and
+  258 total tests;
+- production coverage of 100% statements, 98.40% branches, 100% functions,
+  and 100% lines;
 - SavingCore deployed bytecode approximately `12.654 KiB`;
 - SavingCore initcode approximately `13.905 KiB`;
 - VaultManager deployed bytecode approximately `3.483 KiB`;
@@ -2125,14 +2229,16 @@ Implemented and validated locally through Phase 12:
 Not implemented:
 
 - rich NFT metadata or custom `tokenURI`;
-- deployment scripts and local deployment workflow;
 - Sepolia deployment and Etherscan verification;
 - User Banking App and Admin Portal;
 - AI assistants;
 - demonstration video;
 - final submission audit.
 
-Sections covering deployment, frontend, and AI remain specifications until
-their implementations are validated.
+Local deterministic addresses are development artifacts, not public deployment
+addresses.
 
-This document is a living architecture record updated through Phase 12.
+Sections covering Sepolia, frontend, and AI remain specifications until their
+implementations are validated.
+
+This document is a living architecture record updated through Phase 13.

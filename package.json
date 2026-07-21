@@ -11,7 +11,13 @@
     "clean": "hardhat clean",
     "run:sepolia": "hardhat run --network sepolia",
     "coverage": "hardhat coverage",
-    "run:mainnet": "hardhat run --network mainnet"
+    "run:mainnet": "hardhat run --network mainnet",
+    "node:local": "hardhat node --no-deploy",
+    "deploy:ephemeral": "hardhat deploy --network hardhat --tags SeedDemo --reset",
+    "deploy:local": "hardhat deploy --network localhost --tags SeedDemo",
+    "deploy:local:reset": "hardhat deploy --network localhost --tags SeedDemo --reset",
+    "verify:local": "hardhat run scripts/verify-local-deployment.ts --network localhost --no-compile",
+    "test:deployment": "hardhat test test/Deployment.test.ts"
   },
   "license": "ISC",
   "devDependencies": {

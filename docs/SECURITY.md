@@ -6,35 +6,36 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Security Model and Threat Analysis |
-| Current project phase | Phase 12 — Bonus C2 Solvency Guard |
-| Implementation status | Security controls for mandatory smart-contract flows, Bonus C1, and Bonus C2 are implemented and validated locally; frontend, AI, deployment, and professional-audit controls remain pending |
+| Current project phase | Phase 13 — Deployment scripts and deterministic local demo seed |
+| Implementation status | Smart-contract controls, Bonus C1, Bonus C2, and local deployment protections are implemented and validated; Sepolia, frontend, AI, and professional-audit controls remain pending |
 | Security approach | Defense-in-depth and risk reduction |
 | Smart contract model | Non-upgradeable |
+| Validated local network | Chain ID 31337 on Hardhat and localhost |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
 This document records implemented security controls together with the planned
 security model for later SafeBank phases.
 
-As of Phase 12, the project has locally validated access control, dependency
-validation, independent pause behavior, SafeERC20 token movement, immutable
-financial snapshots, safe ERC721 minting, exact timestamp boundaries, terminal
-state ordering, maturity and early settlement, funded renewal, C1
-principal-first settlement, fixed pending claims, C2 aggregate reserve
-accounting, available-liquidity withdrawal protection, funding-shortfall
-reporting, atomic rollback, reserve-underflow protection, and direct plus
-cross-function callback reentrancy protection.
+As of Phase 13, the project has locally validated contract access control,
+dependency validation, independent pause behavior, safe token and NFT
+interactions, immutable snapshots, exact state boundaries, C1, C2, atomic
+rollback, reentrancy protection, local-only deployment guards, deterministic
+role separation, exact dependency wiring, one-time authorization, idempotent
+seed reconciliation, read-only post-deployment verification, and
+production-only ABI export.
 
 It does not claim that:
 
 - the contracts have been independently audited;
 - the project is production-ready;
-- frontend, AI, or deployment mitigations are active;
+- any Sepolia deployment or Etherscan verification exists;
+- frontend or AI mitigations are active;
 - every possible attack has been eliminated;
 - passing tests or high coverage alone prove security.
 
 Every security statement must remain consistent with the code, tests,
-configuration, and observed execution results.
+configuration, deployment scripts, and observed execution results.
 
 ## 1.1 Personal Variant Security Baseline
 
@@ -1993,49 +1994,122 @@ Before commits, the project should inspect:
 
 ## 30. Deployment Security
 
-## 30.1 Dependency Verification
+## 30.1 Implemented Local Network Guard
 
-Deployment scripts must verify:
+Every Phase 13 deploy and seed script accepts only:
 
-- token address;
-- vault address;
-- SavingCore address;
-- authorized SavingCore relationship;
+- `hardhat`;
+- `localhost`.
+
+The runtime chain ID must equal `31337`.
+
+A network-name or chain-ID mismatch causes the script to fail before the
+deployment is treated as valid.
+
+This guard prevents accidental use of the Phase 13 local seed workflow on
+Sepolia, mainnet, or another configured network.
+
+## 30.2 Deterministic Role Separation
+
+The local role model separates:
+
+- deployer and administrator;
 - fee receiver;
-- network chain ID;
-- deployer address.
+- demo user one;
+- demo user two;
+- permissionless keeper.
 
-## 30.2 Non-Upgradeable Model
+The administrator and fee receiver are different accounts.
 
-SafeBank currently uses non-upgradeable contracts.
+The keeper is intentionally low privilege because permissionless auto-renew
+does not require the administrator key.
 
-Benefits:
+These are local development accounts only.
 
-- simpler deployment model;
-- no proxy-admin risk;
-- no storage-layout upgrade risk;
-- easier capstone explanation.
+## 30.3 Dependency and Bytecode Verification
 
-Trade-off:
+The workflow verifies:
 
-- a deployed bug cannot be patched in place;
-- fixes require new deployment and configuration migration.
+- nonempty deployed bytecode for all three contracts;
+- MockUSDC metadata and six decimals;
+- VaultManager token, owner, pending owner, fee receiver, and pause state;
+- SavingCore token, vault, owner, pending owner, pause state, and Personal
+  Variant constants;
+- one-time SavingCore authorization;
+- canonical plan contents;
+- demo balances;
+- vault balance;
+- C2 reserve, available-liquidity, and shortfall formulas.
 
-## 30.3 Sepolia Only for Public Demo
+A mismatched dependency or unexpected authorization causes failure.
 
-Sepolia deployment uses test assets.
+## 30.4 Authorization Ordering
 
-The project must not imply that a Sepolia deployment is a production bank.
+VaultManager reports zero reserved interest before SavingCore authorization.
 
-## 30.4 Verification
+Therefore, Phase 13 treats one-time authorization as a required deployment
+step before operational seed verification completes.
 
-Etherscan verification improves transparency but does not prove that the contract is secure.
+The seed verifies authorization before accepting the deployment as ready.
 
-## 30.5 Wrong-Network Protection
+## 30.5 Idempotent Seed Controls
 
-Scripts must reject unintended chain IDs for sensitive deployment operations where practical.
+Persistent localhost reruns:
 
----
+- reuse matching deployments;
+- skip duplicate authorization;
+- create the canonical plan only when no plan exists;
+- mint only balance deltas below deterministic user targets;
+- fund only the delta below the exact vault target;
+- fail when the vault balance exceeds the expected target.
+
+The workflow does not silently overwrite drift.
+
+The base seed creates no deposits.
+
+## 30.6 Deployment Record and ABI Policy
+
+Generated local deployment records remain ignored:
+
+- `deployments/hardhat/`;
+- `deployments/localhost/`.
+
+They may contain useful local metadata but are not stable public deployment
+configuration.
+
+The ABI exporter retains exactly:
+
+- MockUSDC;
+- VaultManager;
+- SavingCore.
+
+Test mocks and internal interfaces are excluded from production ABI output.
+
+## 30.7 Verification Script
+
+`scripts/verify-local-deployment.ts` is read-only.
+
+It checks current deployment records and on-chain state without sending a
+transaction.
+
+It emits a structured JSON summary containing public local addresses, roles,
+plan and deposit counters, user balances, and C2 metrics.
+
+## 30.8 Non-Upgradeable Model
+
+SafeBank uses ordinary non-upgradeable deployments.
+
+A deployed bug requires a new contract deployment and configuration rather than
+an in-place upgrade.
+
+## 30.9 Public Testnet Status
+
+No Sepolia deployment or Etherscan verification exists in Phase 13.
+
+Future Sepolia deployment must use a dedicated testnet key, explicit chain
+validation, public transaction review, and separate verification steps.
+
+Etherscan verification improves transparency but does not prove security.
 
 ## 31. Event and Audit Security
 
@@ -2532,7 +2606,7 @@ SafeBank does not attempt to:
 
 ## 42. Security Decision Status
 
-Resolved and implemented through Phase 12:
+Resolved and implemented through Phase 13:
 
 1. Basic `ERC721` is used without `ERC721Enumerable`.
 2. APR, tenor, and penalty validation bounds are fixed.
@@ -2658,3 +2732,42 @@ SafeBank is designed around the following security priorities:
 12. validate every claim through code and tests.
 
 The project will only describe a control as implemented after the corresponding code has been written, tested, reviewed, committed, and verified in its designated phase.
+
+## 43. Phase 13 Local Deployment Security Evidence
+
+Validated evidence includes:
+
+- successful ephemeral Hardhat deployment and seed;
+- successful persistent localhost reset deployment;
+- successful persistent localhost rerun with reused contracts;
+- one-time authorization skipped safely on rerun;
+- no duplicate plan, user funding, or vault funding;
+- two successful read-only verification runs;
+- three contracts with nonempty bytecode;
+- exact constructor relationships and owner configuration;
+- fee receiver distinct from the administrator;
+- chain ID `31337`;
+- canonical plan ID `1`;
+- deterministic demo balances;
+- vault target `25,000` mUSDC;
+- zero initial reserve and shortfall;
+- five deployment regression tests;
+- 258 complete project tests;
+- production coverage of 100% statements, 98.40% branches, 100% functions,
+  and 100% lines;
+- exactly three retained production ABI files;
+- ignored local deployment records;
+- cleaned temporary local-node logs;
+- no Sepolia transaction, address, or verification claim.
+
+Residual deployment risks include:
+
+- misuse of deterministic local keys outside local development;
+- a future public deployment with incorrect secrets or network selection;
+- incorrect external RPC responses;
+- administrator-key compromise;
+- non-upgradeable redeployment cost;
+- absence of an independent professional audit.
+
+The Phase 13 workflow reduces local configuration risk but does not replace
+public-testnet review or professional deployment operations.

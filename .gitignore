@@ -17,3 +17,6 @@ node_modules
 ignition/deployments/chain-31337
 data/abi/@openzeppelin/
 deployments/*/solcInputs/
+# Local hardhat-deploy records
+/deployments/hardhat/
+/deployments/localhost/
