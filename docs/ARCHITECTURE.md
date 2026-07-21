@@ -6,26 +6,25 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | System Architecture |
-| Current phase | Phase 13 — Deployment scripts and deterministic local demo seed |
-| Implementation status | Mandatory smart-contract flows, Bonus C1, Bonus C2, and the deterministic local deployment workflow are implemented and validated; Sepolia, frontend, AI, demo video, and final submission remain pending |
+| Current phase | Phase 14 — Sepolia deployment and Etherscan verification |
+| Implementation status | Mandatory contracts, Bonus C1, Bonus C2, deterministic local deployment, and the Sepolia public-deployment baseline are implemented and validated; frontend, AI, demo video, rich metadata, and final submission remain pending |
 | Smart contract model | Non-upgradeable |
 | Validated local environments | Ephemeral Hardhat network and persistent localhost, chain ID 31337 |
-| Target public environment | Ethereum Sepolia testnet in a later phase |
+| Validated public environment | Ethereum Sepolia, chain ID 11155111 |
 | Test token | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
 This document records the implemented architecture and the planned direction
-for later SafeBank product and public-deployment phases.
+for later SafeBank product phases.
 
-As of Phase 13, MockUSDC, VaultManager, SavingCore, all mandatory lifecycle
-flows, Bonus C1, Bonus C2, production ABI export, local deployment scripts,
-one-time authorization, deterministic demo seed, idempotent localhost reruns,
-read-only deployment verification, and deployment regression tests are
-implemented and validated.
+Phase 14 deployed MockUSDC, VaultManager, and SavingCore to Sepolia, completed
+one-time authorization, created canonical plan ID `1`, verified receipts and
+public state, demonstrated idempotent reuse, retained public deployment
+records, created compact metadata, and verified all three sources on Etherscan.
 
-No Sepolia deployment or Etherscan verification has been performed. Frontend,
-AI, rich NFT metadata, demo video, and production-readiness claims remain
-outside the current implementation.
+The public deployment contains no demo mint, no vault funding, and no deposit.
+Frontend, AI, rich NFT metadata, demo video, final submission, and
+production-readiness claims remain outside the current implementation.
 
 ## 2. Project Overview
 
@@ -1811,8 +1810,60 @@ The retained ABI set is restricted to:
 Test mocks and the internal reserve interface are excluded from production ABI
 output.
 
-Sepolia deployment and Etherscan verification are explicitly deferred to
-Phase 14.
+The local deployment relationship above remains the authoritative Phase 13
+baseline. Phase 14 public deployment is documented separately below.
+
+## 26.6 Implemented Sepolia Public Deployment
+
+Phase 14 adds a separate public workflow without changing the Phase 13 local
+deployment model.
+
+Dedicated script:
+
+`deploy/10_deploy_sepolia.ts`
+
+Required public environment:
+
+- network name `sepolia`;
+- chain ID `11155111`;
+- exactly one configured signer;
+- deployer, owner, and fee receiver
+  `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9`;
+- two confirmations for new deployment and setup transactions.
+
+Public contract addresses:
+
+| Contract | Address |
+|---|---|
+| MockUSDC | `0xcf779EC5D80573D3254054a17c5B4f0117491662` |
+| VaultManager | `0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7` |
+| SavingCore | `0xa35c55e7E2dB5874699cC9fb8d0E25032f51b443` |
+
+Public initialization:
+
+1. deploy the three contracts with exact constructor relationships;
+2. authorize SavingCore once;
+3. create canonical plan ID `1`;
+4. verify bytecode, metadata, ownership, pause states, Personal Variant,
+   canonical plan, and C2 formulas;
+5. create no demo mint, vault funding, or default deposit.
+
+Tracked records:
+
+- `deployments/sepolia/.chainId`;
+- `deployments/sepolia/MockUSDC.json`;
+- `deployments/sepolia/VaultManager.json`;
+- `deployments/sepolia/SavingCore.json`;
+- `data/deployments/sepolia.json`.
+
+Generated `deployments/*/solcInputs/` remain ignored.
+
+A validated rerun reused all contracts, skipped the correct authorization,
+preserved plan ID `1`, kept nonce `5`, and sent no transaction.
+
+All three contracts were successfully verified on Etherscan with exact
+constructor arguments. Verified source improves transparency but does not
+replace an independent security audit.
 
 ## 27. Implemented Security Building Blocks
 
@@ -2193,7 +2244,7 @@ Future phases must follow these rules:
 
 ## 37. Current Architecture Status
 
-Implemented and validated locally through Phase 13:
+Implemented and validated through Phase 14:
 
 - non-upgradeable MockUSDC, SavingCore, and VaultManager architecture;
 - principal and interest custody separation;
@@ -2216,6 +2267,12 @@ Implemented and validated locally through Phase 13:
 - idempotent persistent-local reconciliation;
 - production-only ABI export;
 - read-only local deployment verification;
+- dedicated guarded Sepolia deployment and preflight;
+- public receipt and state verification;
+- canonical public plan ID `1`;
+- tracked public deployment records and compact metadata;
+- idempotent public deployment reuse;
+- Etherscan verification for all three production contracts;
 - 5 deployment workflow tests;
 - 185 SavingCore tests, 55 VaultManager tests, 13 MockUSDC tests, and
   258 total tests;
@@ -2229,7 +2286,6 @@ Implemented and validated locally through Phase 13:
 Not implemented:
 
 - rich NFT metadata or custom `tokenURI`;
-- Sepolia deployment and Etherscan verification;
 - User Banking App and Admin Portal;
 - AI assistants;
 - demonstration video;
@@ -2238,7 +2294,7 @@ Not implemented:
 Local deterministic addresses are development artifacts, not public deployment
 addresses.
 
-Sections covering Sepolia, frontend, and AI remain specifications until their
+Sections covering frontend and AI remain specifications until their
 implementations are validated.
 
-This document is a living architecture record updated through Phase 13.
+This document is a living architecture record updated through Phase 14.

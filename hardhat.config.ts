@@ -24,6 +24,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 });
 
 const {
+  SEPOLIA_RPC_URL: sepoliaRpcUrl,
   TESTNET_PRIVATE_KEY: testnetPrivateKey,
   MAINNET_PRIVATE_KEY: mainnetPrivateKey,
   ETHERSCAN_API_KEY: etherscanApiKey,
@@ -53,9 +54,15 @@ module.exports = {
       tags: ["local", "persistent"],
     },
     sepolia: {
-      url: "https://ethereum-sepolia-rpc.publicnode.com",
+      url:
+        sepoliaRpcUrl ||
+        "https://ethereum-sepolia-rpc.publicnode.com",
+      chainId: 11_155_111,
       accounts: testnetPrivateKey ? [testnetPrivateKey] : [],
-      timeout: 40000,
+      live: true,
+      saveDeployments: true,
+      tags: ["public", "testnet"],
+      timeout: 60_000,
     },
     mainnet: {
       url: "https://eth-mainnet.public.blastapi.io",

@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | UI/UX Product Plan |
-| Current project phase | Phase 13 — Deployment scripts and deterministic local demo seed |
-| Implementation status | Frontend remains planned only; mandatory contracts, Bonus C1, Bonus C2, local deployment scripts, deterministic seed, and local verification are implemented and validated |
+| Current project phase | Phase 14 — Sepolia deployment and Etherscan verification |
+| Implementation status | Frontend remains planned only; mandatory contracts, Bonus C1, Bonus C2, local deployment, Sepolia deployment, public metadata, and explorer verification are implemented and validated |
 | Target product areas | User Banking App and Admin Portal |
 | Product style | Modern, trustworthy, clear, accessible, and responsive |
 | Branding model | Original SafeBank identity |
@@ -15,23 +15,11 @@
 | Student ID | 3122560090 |
 
 This document defines the planned SafeBank user experience and is aligned with
-the implemented contract and local deployment interfaces through Phase 13. No
-frontend application has been created yet.
+the implemented contract, local deployment, and public Sepolia interfaces
+through Phase 14. No frontend application has been created yet.
 
-It does not claim that:
-
-- a frontend framework has been selected;
-- frontend source code exists;
-- wallet integration exists;
-- a public address configuration exists;
-- AI assistants have been implemented;
-- any Sepolia deployment exists;
-- Etherscan verification exists;
-- the product is production-ready.
-
-The local deployment workflow provides a deterministic development baseline.
-Its local addresses are not public deployment addresses and must not be
-hard-coded as Sepolia configuration.
+The public deployment is educational and uses freely mintable MockUSDC with no
+real-world monetary value.
 
 ## 1.1 SafeBank Personal Variant
 
@@ -91,13 +79,43 @@ rendered metric exists yet.
 
 The frontend must not present these as available yet:
 
-- Sepolia contract addresses;
-- Etherscan links for SafeBank deployments;
 - autonomous AI transaction execution;
 - rich NFT metadata.
 
 Contract state remains authoritative even when the UI displays a deterministic
 estimate.
+
+## 1.3 Phase 14 Public Integration Baseline
+
+The future frontend may consume:
+
+- production ABIs for MockUSDC, VaultManager, and SavingCore;
+- `data/deployments/sepolia.json`;
+- tracked Sepolia deployment records;
+- verified Etherscan links.
+
+Validated configuration:
+
+| Item | Value |
+|---|---|
+| Chain ID | `11155111` |
+| MockUSDC | `0xcf779EC5D80573D3254054a17c5B4f0117491662` |
+| VaultManager | `0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7` |
+| SavingCore | `0xa35c55e7E2dB5874699cC9fb8d0E25032f51b443` |
+| Initial administrator | `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9` |
+| Canonical plan | ID `1` |
+| Initial deposit count | `0` |
+| Initial vault balance | `0` |
+
+The future frontend must still validate chain ID, address format, bytecode,
+token decimals, contract relationships, owners, fee receiver, and pause state
+at runtime.
+
+The UI must not treat a metadata flag or Etherscan verification as an
+authorization boundary or security audit.
+
+No Sepolia demo user balances or deposits exist yet. Local deterministic
+addresses remain local-only.
 
 ## 2. Product Vision
 
@@ -3196,9 +3214,9 @@ The Admin Portal will not be considered complete until:
 
 ---
 
-## 80. Phase 13 UI/UX Planning Status
+## 80. Phase 14 UI/UX Planning Status
 
-At the current Phase 13 baseline:
+At the current Phase 14 baseline:
 
 Completed as planning:
 
@@ -3218,8 +3236,12 @@ Completed as planning:
 - deterministic local role and seed documentation;
 - warning that local deterministic addresses are not public deployment
   addresses;
-- requirement for environment-aware public address configuration in a later
-  phase.
+- environment-aware public address configuration;
+- actual Sepolia addresses and explorer links;
+- compact public deployment metadata;
+- accurate zero-vault and zero-deposit initial public state;
+- runtime public chain, bytecode, and dependency validation requirements;
+- warning that verified source is not a security audit.
 
 Implemented technical integration assets include:
 
@@ -3230,7 +3252,10 @@ Implemented technical integration assets include:
 - read-only deployment verification;
 - production-only ABI export;
 - deterministic local accounts and balances;
-- five deployment workflow tests.
+- five deployment workflow tests;
+- guarded Sepolia deployment and read-only verifier;
+- public deployment records and compact metadata;
+- Etherscan-verified production contract sources.
 
 Not implemented:
 
@@ -3238,14 +3263,12 @@ Not implemented:
 - routes, components, styling, and state management;
 - wallet connection;
 - contract reads and writes in a browser;
-- environment-specific frontend address configuration;
 - transaction lifecycle code;
 - user and admin controls;
 - pending-interest components;
 - solvency and reserve components;
 - responsive and accessibility testing;
 - AI integration;
-- Sepolia-linked UI;
 - deployed frontend.
 
 This remains a planning document. It does not claim that a user interface

@@ -6,36 +6,26 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Security Model and Threat Analysis |
-| Current project phase | Phase 13 — Deployment scripts and deterministic local demo seed |
-| Implementation status | Smart-contract controls, Bonus C1, Bonus C2, and local deployment protections are implemented and validated; Sepolia, frontend, AI, and professional-audit controls remain pending |
+| Current project phase | Phase 14 — Sepolia deployment and Etherscan verification |
+| Implementation status | Smart-contract controls, Bonus C1, Bonus C2, local deployment protections, and the Sepolia public-deployment baseline are implemented and validated; frontend, AI, and professional-audit controls remain pending |
 | Security approach | Defense-in-depth and risk reduction |
 | Smart contract model | Non-upgradeable |
-| Validated local network | Chain ID 31337 on Hardhat and localhost |
+| Validated networks | Local chain ID 31337 and Ethereum Sepolia chain ID 11155111 |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
 This document records implemented security controls together with the planned
 security model for later SafeBank phases.
 
-As of Phase 13, the project has locally validated contract access control,
-dependency validation, independent pause behavior, safe token and NFT
-interactions, immutable snapshots, exact state boundaries, C1, C2, atomic
-rollback, reentrancy protection, local-only deployment guards, deterministic
-role separation, exact dependency wiring, one-time authorization, idempotent
-seed reconciliation, read-only post-deployment verification, and
-production-only ABI export.
+Phase 14 adds public deployment evidence without changing the contract
+security model. The public workflow validates network identity, dedicated
+signer identity, fee budget, nonce state, dependencies, ownership,
+authorization, pause state, Personal Variant values, C1/C2 reads, canonical
+plan state, receipts, deployment records, and source verification.
 
-It does not claim that:
-
-- the contracts have been independently audited;
-- the project is production-ready;
-- any Sepolia deployment or Etherscan verification exists;
-- frontend or AI mitigations are active;
-- every possible attack has been eliminated;
-- passing tests or high coverage alone prove security.
-
-Every security statement must remain consistent with the code, tests,
-configuration, deployment scripts, and observed execution results.
+It does not claim that the contracts have been independently audited, that the
+system is production-ready, or that source verification proves absence of
+vulnerabilities.
 
 ## 1.1 Personal Variant Security Baseline
 
@@ -2104,12 +2094,42 @@ an in-place upgrade.
 
 ## 30.9 Public Testnet Status
 
-No Sepolia deployment or Etherscan verification exists in Phase 13.
+Phase 14 deployed SafeBank to Ethereum Sepolia, chain ID `11155111`.
 
-Future Sepolia deployment must use a dedicated testnet key, explicit chain
-validation, public transaction review, and separate verification steps.
+The dedicated public workflow requires:
 
-Etherscan verification improves transparency but does not prove security.
+- exactly one configured signer;
+- expected deployer
+  `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9`;
+- nonzero SepoliaETH balance;
+- exact constructor dependencies;
+- expected ownership and fee receiver;
+- zero pending owner;
+- unpaused contracts;
+- correct one-time SavingCore authorization;
+- correct Personal Variant and canonical plan;
+- empty initial public operational state.
+
+Five public receipts succeeded: three deployments, authorization, and
+canonical-plan creation.
+
+The public deployment intentionally created no demo mint, vault funding, or
+deposit.
+
+A rerun reused the existing contracts and sent no transaction.
+
+Public records and compact metadata were audited for expected addresses,
+transaction hashes, blocks, constructor arguments, ABI, bytecode, and
+secret-related fields.
+
+All three production contracts were source-verified on Etherscan. Verification
+establishes source-to-bytecode transparency; it does not replace a professional
+audit.
+
+Residual public-deployment risks include administrator-key compromise,
+insufficient future vault funding, RPC or explorer outage, future frontend
+misconfiguration, non-upgradeable redeployment cost, and absence of multisig
+administration.
 
 ## 31. Event and Audit Security
 
@@ -2771,3 +2791,27 @@ Residual deployment risks include:
 
 The Phase 13 workflow reduces local configuration risk but does not replace
 public-testnet review or professional deployment operations.
+
+## 45. Phase 14 Sepolia Deployment Security Evidence
+
+Observed results:
+
+- chain ID `11155111`;
+- deployer, owner, and fee receiver
+  `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9`;
+- one configured signer;
+- five successful receipts;
+- nonempty bytecode for all three contracts;
+- correct token, vault, owner, fee receiver, and authorization relationships;
+- zero pending owner;
+- both production contracts unpaused;
+- correct 2-day grace period, 180-day tenor, 200-bps APR, and 750-bps penalty;
+- canonical plan ID `1`;
+- zero deposits, vault balance, reserve, available liquidity, and shortfall;
+- no demo mint, funding, or default deposits;
+- idempotent rerun with nonce and balance unchanged;
+- deployment-record and public-metadata audits passed;
+- Etherscan verification succeeded for all three contracts.
+
+Passing deployment checks and source verification reduce identified
+configuration risk. They do not guarantee security.

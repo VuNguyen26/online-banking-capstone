@@ -1,0 +1,848 @@
+{
+  "address": "0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token_",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "initialOwner_",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "initialFeeReceiver_",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "AddressIsNotContract",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "EnforcedPause",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ExpectedPause",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "available",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "required",
+          "type": "uint256"
+        }
+      ],
+      "name": "InsufficientVaultBalance",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAmount",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnableInvalidOwner",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "OwnableUnauthorizedAccount",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ReentrancyGuardReentrantCall",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "SafeERC20FailedOperation",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "currentSavingCore",
+          "type": "address"
+        }
+      ],
+      "name": "SavingCoreAlreadyAuthorized",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "caller",
+          "type": "address"
+        }
+      ],
+      "name": "UnauthorizedSavingCore",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousFeeReceiver",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newFeeReceiver",
+          "type": "address"
+        }
+      ],
+      "name": "FeeReceiverUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "savingCore",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "InterestPaid",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferStarted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "Paused",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "savingCore",
+          "type": "address"
+        }
+      ],
+      "name": "SavingCoreAuthorized",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "Unpaused",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "funder",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "VaultFunded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "VaultWithdrawn",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "acceptOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "savingCore_",
+          "type": "address"
+        }
+      ],
+      "name": "authorizeSavingCore",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "availableLiquidity",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "feeReceiver",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "fundVault",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "fundingShortfall",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pause",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "paused",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "payInterest",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pendingOwner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "savingCore",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newFeeReceiver",
+          "type": "address"
+        }
+      ],
+      "name": "setFeeReceiver",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "token",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalReservedInterest",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "unpause",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "vaultBalance",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdrawVault",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x815109fdaa03422d1b8692e80d1d9f8ec3ba25b3d21a5488e90b7347f66a7dbf",
+  "receipt": {
+    "to": null,
+    "from": "0xA998526b0A5F23680f50fa3677f5c6576Dba89d9",
+    "contractAddress": "0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7",
+    "transactionIndex": 81,
+    "gasUsed": "894736",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000800000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000020000000000100000001800000000000000000000000020000000400000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000008000000000000",
+    "blockHash": "0xd932efccbdd1a6a150f2194797c742257433f46e681863200c75606364816d1f",
+    "transactionHash": "0x815109fdaa03422d1b8692e80d1d9f8ec3ba25b3d21a5488e90b7347f66a7dbf",
+    "logs": [
+      {
+        "transactionIndex": 81,
+        "blockNumber": 11320267,
+        "transactionHash": "0x815109fdaa03422d1b8692e80d1d9f8ec3ba25b3d21a5488e90b7347f66a7dbf",
+        "address": "0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x000000000000000000000000a998526b0a5f23680f50fa3677f5c6576dba89d9"
+        ],
+        "data": "0x",
+        "logIndex": 538,
+        "blockHash": "0xd932efccbdd1a6a150f2194797c742257433f46e681863200c75606364816d1f"
+      }
+    ],
+    "blockNumber": 11320267,
+    "cumulativeGasUsed": "11428831",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xcf779EC5D80573D3254054a17c5B4f0117491662",
+    "0xA998526b0A5F23680f50fa3677f5c6576Dba89d9",
+    "0xA998526b0A5F23680f50fa3677f5c6576Dba89d9"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "20cbb21c568cb985bde5e26ceea9902d",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.28+commit.7893614a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"token_\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"initialOwner_\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"initialFeeReceiver_\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"AddressIsNotContract\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"EnforcedPause\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ExpectedPause\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"available\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"required\",\"type\":\"uint256\"}],\"name\":\"InsufficientVaultBalance\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidAddress\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidAmount\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"OwnableInvalidOwner\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"OwnableUnauthorizedAccount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReentrancyGuardReentrantCall\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"SafeERC20FailedOperation\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"currentSavingCore\",\"type\":\"address\"}],\"name\":\"SavingCoreAlreadyAuthorized\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"caller\",\"type\":\"address\"}],\"name\":\"UnauthorizedSavingCore\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousFeeReceiver\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newFeeReceiver\",\"type\":\"address\"}],\"name\":\"FeeReceiverUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"savingCore\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"InterestPaid\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferStarted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Paused\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"savingCore\",\"type\":\"address\"}],\"name\":\"SavingCoreAuthorized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"Unpaused\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"funder\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"VaultFunded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"VaultWithdrawn\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"acceptOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"savingCore_\",\"type\":\"address\"}],\"name\":\"authorizeSavingCore\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"availableLiquidity\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feeReceiver\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"fundVault\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"fundingShortfall\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pause\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"paused\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"payInterest\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pendingOwner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"savingCore\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newFeeReceiver\",\"type\":\"address\"}],\"name\":\"setFeeReceiver\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token\",\"outputs\":[{\"internalType\":\"contract IERC20\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalReservedInterest\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"unpause\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"vaultBalance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdrawVault\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"- This contract never holds or manages user deposit principal. - Only the one-time authorized SavingCore contract may request interest payouts. - Privileged administration uses OpenZeppelin Ownable2Step. - Bonus C2 reads aggregate interest liabilities from the authorized   SavingCore and protects reserved vault liquidity from owner withdrawal. - The contract is non-upgradeable.\",\"errors\":{\"AddressIsNotContract(address)\":[{\"details\":\"The supplied SavingCore address has no deployed bytecode.\"}],\"EnforcedPause()\":[{\"details\":\"The operation failed because the contract is paused.\"}],\"ExpectedPause()\":[{\"details\":\"The operation failed because the contract is not paused.\"}],\"InsufficientVaultBalance(uint256,uint256)\":[{\"details\":\"The vault has insufficient transferable liquidity.\"}],\"InvalidAddress()\":[{\"details\":\"A required address was the zero address.\"}],\"InvalidAmount()\":[{\"details\":\"A token amount must be greater than zero.\"}],\"OwnableInvalidOwner(address)\":[{\"details\":\"The owner is not a valid owner account. (eg. `address(0)`)\"}],\"OwnableUnauthorizedAccount(address)\":[{\"details\":\"The caller account is not authorized to perform an operation.\"}],\"ReentrancyGuardReentrantCall()\":[{\"details\":\"Unauthorized reentrant call.\"}],\"SafeERC20FailedOperation(address)\":[{\"details\":\"An operation with an ERC-20 token failed.\"}],\"SavingCoreAlreadyAuthorized(address)\":[{\"details\":\"SavingCore has already been permanently configured.\"}],\"UnauthorizedSavingCore(address)\":[{\"details\":\"The caller is not the authorized SavingCore contract.\"}]},\"events\":{\"Paused(address)\":{\"details\":\"Emitted when the pause is triggered by `account`.\"},\"Unpaused(address)\":{\"details\":\"Emitted when the pause is lifted by `account`.\"}},\"kind\":\"dev\",\"methods\":{\"acceptOwnership()\":{\"details\":\"The new owner accepts the ownership transfer.\"},\"authorizeSavingCore(address)\":{\"details\":\"This operation may succeed only once.\",\"params\":{\"savingCore_\":\"Deployed SavingCore contract address.\"}},\"availableLiquidity()\":{\"details\":\"Uses saturating subtraction when liabilities exceed the balance.\"},\"constructor\":{\"params\":{\"initialFeeReceiver_\":\"Initial early-withdrawal fee receiver.\",\"initialOwner_\":\"Initial bank administrator.\",\"token_\":\"ERC20 token used for vault liquidity.\"}},\"fundVault(uint256)\":{\"details\":\"Funding remains available while paused so liquidity can be restored.\",\"params\":{\"amount\":\"Token amount transferred from the owner.\"}},\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"paused()\":{\"details\":\"Returns true if the contract is paused, and false otherwise.\"},\"payInterest(address,uint256)\":{\"details\":\"Only the authorized SavingCore may call this function.\",\"params\":{\"amount\":\"Interest amount.\",\"recipient\":\"Address receiving interest.\"}},\"pendingOwner()\":{\"details\":\"Returns the address of the pending owner.\"},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.\"},\"setFeeReceiver(address)\":{\"params\":{\"newFeeReceiver\":\"New nonzero fee receiver.\"}},\"totalReservedInterest()\":{\"details\":\"Returns zero before a SavingCore contract is authorized.\"},\"transferOwnership(address)\":{\"details\":\"Starts the ownership transfer of the contract to a new account. Replaces the pending transfer if there is one. Can only be called by the current owner. Setting `newOwner` to the zero address is allowed; this can be used to cancel an initiated ownership transfer.\"},\"withdrawVault(uint256)\":{\"details\":\"The withdrawal cannot exceed current available liquidity.\",\"params\":{\"amount\":\"Token amount withdrawn to the current owner.\"}}},\"title\":\"VaultManager\",\"version\":1},\"userdoc\":{\"events\":{\"FeeReceiverUpdated(address,address)\":{\"notice\":\"Emitted when the early-withdrawal fee receiver changes.\"},\"InterestPaid(address,address,uint256)\":{\"notice\":\"Emitted when SavingCore requests a successful interest payout.\"},\"SavingCoreAuthorized(address)\":{\"notice\":\"Emitted when SavingCore is permanently authorized.\"},\"VaultFunded(address,uint256)\":{\"notice\":\"Emitted when the owner funds the vault.\"},\"VaultWithdrawn(address,uint256)\":{\"notice\":\"Emitted when the current owner withdraws vault liquidity.\"}},\"kind\":\"user\",\"methods\":{\"authorizeSavingCore(address)\":{\"notice\":\"Permanently authorizes the SavingCore contract.\"},\"availableLiquidity()\":{\"notice\":\"Returns liquidity that the administrator may withdraw.\"},\"feeReceiver()\":{\"notice\":\"Address that receives early-withdrawal penalties from SavingCore.\"},\"fundVault(uint256)\":{\"notice\":\"Transfers bank-funded interest liquidity into the vault.\"},\"fundingShortfall()\":{\"notice\":\"Returns liabilities not currently covered by vault tokens.\"},\"pause()\":{\"notice\":\"Pauses interest payouts and owner withdrawals.\"},\"payInterest(address,uint256)\":{\"notice\":\"Pays interest from the vault to a specified recipient.\"},\"savingCore()\":{\"notice\":\"One-time authorized SavingCore contract.\"},\"setFeeReceiver(address)\":{\"notice\":\"Updates the address that receives early-withdrawal penalties.\"},\"token()\":{\"notice\":\"ERC20 token used as the bank-funded interest asset.\"},\"totalReservedInterest()\":{\"notice\":\"Returns aggregate interest liabilities recorded by SavingCore.\"},\"unpause()\":{\"notice\":\"Restores normal interest payouts and owner withdrawals.\"},\"vaultBalance()\":{\"notice\":\"Returns the actual ERC20 balance currently held by the vault.\"},\"withdrawVault(uint256)\":{\"notice\":\"Withdraws unreserved vault liquidity to the current owner.\"}},\"notice\":\"Holds bank-funded ERC20 liquidity used to pay deposit interest.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/VaultManager.sol\":\"VaultManager\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[],\"viaIR\":true},\"sources\":{\"@openzeppelin/contracts/access/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (access/Ownable.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {Context} from \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * The initial owner is set to the address provided by the deployer. This can\\n * later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable is Context {\\n    address private _owner;\\n\\n    /**\\n     * @dev The caller account is not authorized to perform an operation.\\n     */\\n    error OwnableUnauthorizedAccount(address account);\\n\\n    /**\\n     * @dev The owner is not a valid owner account. (eg. `address(0)`)\\n     */\\n    error OwnableInvalidOwner(address owner);\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the address provided by the deployer as the initial owner.\\n     */\\n    constructor(address initialOwner) {\\n        if (initialOwner == address(0)) {\\n            revert OwnableInvalidOwner(address(0));\\n        }\\n        _transferOwnership(initialOwner);\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        _checkOwner();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if the sender is not the owner.\\n     */\\n    function _checkOwner() internal view virtual {\\n        if (owner() != _msgSender()) {\\n            revert OwnableUnauthorizedAccount(_msgSender());\\n        }\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby disabling any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _transferOwnership(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        if (newOwner == address(0)) {\\n            revert OwnableInvalidOwner(address(0));\\n        }\\n        _transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n}\\n\",\"keccak256\":\"0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb\",\"license\":\"MIT\"},\"@openzeppelin/contracts/access/Ownable2Step.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (access/Ownable2Step.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {Ownable} from \\\"./Ownable.sol\\\";\\n\\n/**\\n * @dev Contract module which provides access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * This extension of the {Ownable} contract includes a two-step mechanism to transfer\\n * ownership, where the new owner must call {acceptOwnership} in order to replace the\\n * old one. This can help prevent common mistakes, such as transfers of ownership to\\n * incorrect accounts, or to contracts that are unable to interact with the\\n * permission system.\\n *\\n * The initial owner is specified at deployment time in the constructor for `Ownable`. This\\n * can later be changed with {transferOwnership} and {acceptOwnership}.\\n *\\n * This module is used through inheritance. It will make available all functions\\n * from parent (Ownable).\\n */\\nabstract contract Ownable2Step is Ownable {\\n    address private _pendingOwner;\\n\\n    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Returns the address of the pending owner.\\n     */\\n    function pendingOwner() public view virtual returns (address) {\\n        return _pendingOwner;\\n    }\\n\\n    /**\\n     * @dev Starts the ownership transfer of the contract to a new account. Replaces the pending transfer if there is one.\\n     * Can only be called by the current owner.\\n     *\\n     * Setting `newOwner` to the zero address is allowed; this can be used to cancel an initiated ownership transfer.\\n     */\\n    function transferOwnership(address newOwner) public virtual override onlyOwner {\\n        _pendingOwner = newOwner;\\n        emit OwnershipTransferStarted(owner(), newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`) and deletes any pending owner.\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual override {\\n        delete _pendingOwner;\\n        super._transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev The new owner accepts the ownership transfer.\\n     */\\n    function acceptOwnership() public virtual {\\n        address sender = _msgSender();\\n        if (pendingOwner() != sender) {\\n            revert OwnableUnauthorizedAccount(sender);\\n        }\\n        _transferOwnership(sender);\\n    }\\n}\\n\",\"keccak256\":\"0xdcad8898fda432696597752e8ec361b87d85c82cb258115427af006dacf7128c\",\"license\":\"MIT\"},\"@openzeppelin/contracts/interfaces/IERC1363.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (interfaces/IERC1363.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IERC20} from \\\"./IERC20.sol\\\";\\nimport {IERC165} from \\\"./IERC165.sol\\\";\\n\\n/**\\n * @title IERC1363\\n * @dev Interface of the ERC-1363 standard as defined in the https://eips.ethereum.org/EIPS/eip-1363[ERC-1363].\\n *\\n * Defines an extension interface for ERC-20 tokens that supports executing code on a recipient contract\\n * after `transfer` or `transferFrom`, or code on a spender contract after `approve`, in a single transaction.\\n */\\ninterface IERC1363 is IERC20, IERC165 {\\n    /*\\n     * Note: the ERC-165 identifier for this interface is 0xb0202a11.\\n     * 0xb0202a11 ===\\n     *   bytes4(keccak256('transferAndCall(address,uint256)')) ^\\n     *   bytes4(keccak256('transferAndCall(address,uint256,bytes)')) ^\\n     *   bytes4(keccak256('transferFromAndCall(address,address,uint256)')) ^\\n     *   bytes4(keccak256('transferFromAndCall(address,address,uint256,bytes)')) ^\\n     *   bytes4(keccak256('approveAndCall(address,uint256)')) ^\\n     *   bytes4(keccak256('approveAndCall(address,uint256,bytes)'))\\n     */\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from the caller's account to `to`\\n     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.\\n     * @param to The address which you want to transfer to.\\n     * @param value The amount of tokens to be transferred.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function transferAndCall(address to, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from the caller's account to `to`\\n     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.\\n     * @param to The address which you want to transfer to.\\n     * @param value The amount of tokens to be transferred.\\n     * @param data Additional data with no specified format, sent in call to `to`.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function transferAndCall(address to, uint256 value, bytes calldata data) external returns (bool);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from `from` to `to` using the allowance mechanism\\n     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.\\n     * @param from The address which you want to send tokens from.\\n     * @param to The address which you want to transfer to.\\n     * @param value The amount of tokens to be transferred.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function transferFromAndCall(address from, address to, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from `from` to `to` using the allowance mechanism\\n     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.\\n     * @param from The address which you want to send tokens from.\\n     * @param to The address which you want to transfer to.\\n     * @param value The amount of tokens to be transferred.\\n     * @param data Additional data with no specified format, sent in call to `to`.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function transferFromAndCall(address from, address to, uint256 value, bytes calldata data) external returns (bool);\\n\\n    /**\\n     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the\\n     * caller's tokens and then calls {IERC1363Spender-onApprovalReceived} on `spender`.\\n     * @param spender The address which will spend the funds.\\n     * @param value The amount of tokens to be spent.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function approveAndCall(address spender, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the\\n     * caller's tokens and then calls {IERC1363Spender-onApprovalReceived} on `spender`.\\n     * @param spender The address which will spend the funds.\\n     * @param value The amount of tokens to be spent.\\n     * @param data Additional data with no specified format, sent in call to `spender`.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function approveAndCall(address spender, uint256 value, bytes calldata data) external returns (bool);\\n}\\n\",\"keccak256\":\"0x9b6b3e7803bc5f2f8cd7ad57db8ac1def61a9930a5a3107df4882e028a9605d7\",\"license\":\"MIT\"},\"@openzeppelin/contracts/interfaces/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (interfaces/IERC165.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IERC165} from \\\"../utils/introspection/IERC165.sol\\\";\\n\",\"keccak256\":\"0xde7e9fd9aee8d4f40772f96bb3b58836cbc6dfc0227014a061947f8821ea9724\",\"license\":\"MIT\"},\"@openzeppelin/contracts/interfaces/IERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (interfaces/IERC20.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IERC20} from \\\"../token/ERC20/IERC20.sol\\\";\\n\",\"keccak256\":\"0xce41876e78d1badc0512229b4d14e4daf83bc1003d7f83978d18e0e56f965b9c\",\"license\":\"MIT\"},\"@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (token/ERC20/IERC20.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface of the ERC-20 standard as defined in the ERC.\\n */\\ninterface IERC20 {\\n    /**\\n     * @dev Emitted when `value` tokens are moved from one account (`from`) to\\n     * another (`to`).\\n     *\\n     * Note that `value` may be zero.\\n     */\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n\\n    /**\\n     * @dev Emitted when the allowance of a `spender` for an `owner` is set by\\n     * a call to {approve}. `value` is the new allowance.\\n     */\\n    event Approval(address indexed owner, address indexed spender, uint256 value);\\n\\n    /**\\n     * @dev Returns the value of tokens in existence.\\n     */\\n    function totalSupply() external view returns (uint256);\\n\\n    /**\\n     * @dev Returns the value of tokens owned by `account`.\\n     */\\n    function balanceOf(address account) external view returns (uint256);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from the caller's account to `to`.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transfer(address to, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Returns the remaining number of tokens that `spender` will be\\n     * allowed to spend on behalf of `owner` through {transferFrom}. This is\\n     * zero by default.\\n     *\\n     * This value changes when {approve} or {transferFrom} are called.\\n     */\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /**\\n     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the\\n     * caller's tokens.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * IMPORTANT: Beware that changing an allowance with this method brings the risk\\n     * that someone may use both the old and the new allowance by unfortunate\\n     * transaction ordering. One possible solution to mitigate this race\\n     * condition is to first reduce the spender's allowance to 0 and set the\\n     * desired value afterwards:\\n     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\\n     *\\n     * Emits an {Approval} event.\\n     */\\n    function approve(address spender, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from `from` to `to` using the\\n     * allowance mechanism. `value` is then deducted from the caller's\\n     * allowance.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transferFrom(address from, address to, uint256 value) external returns (bool);\\n}\\n\",\"keccak256\":\"0xe06a3f08a987af6ad2e1c1e774405d4fe08f1694b67517438b467cecf0da0ef7\",\"license\":\"MIT\"},\"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.3.0) (token/ERC20/utils/SafeERC20.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IERC20} from \\\"../IERC20.sol\\\";\\nimport {IERC1363} from \\\"../../../interfaces/IERC1363.sol\\\";\\n\\n/**\\n * @title SafeERC20\\n * @dev Wrappers around ERC-20 operations that throw on failure (when the token\\n * contract returns false). Tokens that return no value (and instead revert or\\n * throw on failure) are also supported, non-reverting calls are assumed to be\\n * successful.\\n * To use this library you can add a `using SafeERC20 for IERC20;` statement to your contract,\\n * which allows you to call the safe operations as `token.safeTransfer(...)`, etc.\\n */\\nlibrary SafeERC20 {\\n    /**\\n     * @dev An operation with an ERC-20 token failed.\\n     */\\n    error SafeERC20FailedOperation(address token);\\n\\n    /**\\n     * @dev Indicates a failed `decreaseAllowance` request.\\n     */\\n    error SafeERC20FailedDecreaseAllowance(address spender, uint256 currentAllowance, uint256 requestedDecrease);\\n\\n    /**\\n     * @dev Transfer `value` amount of `token` from the calling contract to `to`. If `token` returns no value,\\n     * non-reverting calls are assumed to be successful.\\n     */\\n    function safeTransfer(IERC20 token, address to, uint256 value) internal {\\n        _callOptionalReturn(token, abi.encodeCall(token.transfer, (to, value)));\\n    }\\n\\n    /**\\n     * @dev Transfer `value` amount of `token` from `from` to `to`, spending the approval given by `from` to the\\n     * calling contract. If `token` returns no value, non-reverting calls are assumed to be successful.\\n     */\\n    function safeTransferFrom(IERC20 token, address from, address to, uint256 value) internal {\\n        _callOptionalReturn(token, abi.encodeCall(token.transferFrom, (from, to, value)));\\n    }\\n\\n    /**\\n     * @dev Variant of {safeTransfer} that returns a bool instead of reverting if the operation is not successful.\\n     */\\n    function trySafeTransfer(IERC20 token, address to, uint256 value) internal returns (bool) {\\n        return _callOptionalReturnBool(token, abi.encodeCall(token.transfer, (to, value)));\\n    }\\n\\n    /**\\n     * @dev Variant of {safeTransferFrom} that returns a bool instead of reverting if the operation is not successful.\\n     */\\n    function trySafeTransferFrom(IERC20 token, address from, address to, uint256 value) internal returns (bool) {\\n        return _callOptionalReturnBool(token, abi.encodeCall(token.transferFrom, (from, to, value)));\\n    }\\n\\n    /**\\n     * @dev Increase the calling contract's allowance toward `spender` by `value`. If `token` returns no value,\\n     * non-reverting calls are assumed to be successful.\\n     *\\n     * IMPORTANT: If the token implements ERC-7674 (ERC-20 with temporary allowance), and if the \\\"client\\\"\\n     * smart contract uses ERC-7674 to set temporary allowances, then the \\\"client\\\" smart contract should avoid using\\n     * this function. Performing a {safeIncreaseAllowance} or {safeDecreaseAllowance} operation on a token contract\\n     * that has a non-zero temporary allowance (for that particular owner-spender) will result in unexpected behavior.\\n     */\\n    function safeIncreaseAllowance(IERC20 token, address spender, uint256 value) internal {\\n        uint256 oldAllowance = token.allowance(address(this), spender);\\n        forceApprove(token, spender, oldAllowance + value);\\n    }\\n\\n    /**\\n     * @dev Decrease the calling contract's allowance toward `spender` by `requestedDecrease`. If `token` returns no\\n     * value, non-reverting calls are assumed to be successful.\\n     *\\n     * IMPORTANT: If the token implements ERC-7674 (ERC-20 with temporary allowance), and if the \\\"client\\\"\\n     * smart contract uses ERC-7674 to set temporary allowances, then the \\\"client\\\" smart contract should avoid using\\n     * this function. Performing a {safeIncreaseAllowance} or {safeDecreaseAllowance} operation on a token contract\\n     * that has a non-zero temporary allowance (for that particular owner-spender) will result in unexpected behavior.\\n     */\\n    function safeDecreaseAllowance(IERC20 token, address spender, uint256 requestedDecrease) internal {\\n        unchecked {\\n            uint256 currentAllowance = token.allowance(address(this), spender);\\n            if (currentAllowance < requestedDecrease) {\\n                revert SafeERC20FailedDecreaseAllowance(spender, currentAllowance, requestedDecrease);\\n            }\\n            forceApprove(token, spender, currentAllowance - requestedDecrease);\\n        }\\n    }\\n\\n    /**\\n     * @dev Set the calling contract's allowance toward `spender` to `value`. If `token` returns no value,\\n     * non-reverting calls are assumed to be successful. Meant to be used with tokens that require the approval\\n     * to be set to zero before setting it to a non-zero value, such as USDT.\\n     *\\n     * NOTE: If the token implements ERC-7674, this function will not modify any temporary allowance. This function\\n     * only sets the \\\"standard\\\" allowance. Any temporary allowance will remain active, in addition to the value being\\n     * set here.\\n     */\\n    function forceApprove(IERC20 token, address spender, uint256 value) internal {\\n        bytes memory approvalCall = abi.encodeCall(token.approve, (spender, value));\\n\\n        if (!_callOptionalReturnBool(token, approvalCall)) {\\n            _callOptionalReturn(token, abi.encodeCall(token.approve, (spender, 0)));\\n            _callOptionalReturn(token, approvalCall);\\n        }\\n    }\\n\\n    /**\\n     * @dev Performs an {ERC1363} transferAndCall, with a fallback to the simple {ERC20} transfer if the target has no\\n     * code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when\\n     * targeting contracts.\\n     *\\n     * Reverts if the returned value is other than `true`.\\n     */\\n    function transferAndCallRelaxed(IERC1363 token, address to, uint256 value, bytes memory data) internal {\\n        if (to.code.length == 0) {\\n            safeTransfer(token, to, value);\\n        } else if (!token.transferAndCall(to, value, data)) {\\n            revert SafeERC20FailedOperation(address(token));\\n        }\\n    }\\n\\n    /**\\n     * @dev Performs an {ERC1363} transferFromAndCall, with a fallback to the simple {ERC20} transferFrom if the target\\n     * has no code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when\\n     * targeting contracts.\\n     *\\n     * Reverts if the returned value is other than `true`.\\n     */\\n    function transferFromAndCallRelaxed(\\n        IERC1363 token,\\n        address from,\\n        address to,\\n        uint256 value,\\n        bytes memory data\\n    ) internal {\\n        if (to.code.length == 0) {\\n            safeTransferFrom(token, from, to, value);\\n        } else if (!token.transferFromAndCall(from, to, value, data)) {\\n            revert SafeERC20FailedOperation(address(token));\\n        }\\n    }\\n\\n    /**\\n     * @dev Performs an {ERC1363} approveAndCall, with a fallback to the simple {ERC20} approve if the target has no\\n     * code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when\\n     * targeting contracts.\\n     *\\n     * NOTE: When the recipient address (`to`) has no code (i.e. is an EOA), this function behaves as {forceApprove}.\\n     * Opposedly, when the recipient address (`to`) has code, this function only attempts to call {ERC1363-approveAndCall}\\n     * once without retrying, and relies on the returned value to be true.\\n     *\\n     * Reverts if the returned value is other than `true`.\\n     */\\n    function approveAndCallRelaxed(IERC1363 token, address to, uint256 value, bytes memory data) internal {\\n        if (to.code.length == 0) {\\n            forceApprove(token, to, value);\\n        } else if (!token.approveAndCall(to, value, data)) {\\n            revert SafeERC20FailedOperation(address(token));\\n        }\\n    }\\n\\n    /**\\n     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement\\n     * on the return value: the return value is optional (but if data is returned, it must not be false).\\n     * @param token The token targeted by the call.\\n     * @param data The call data (encoded using abi.encode or one of its variants).\\n     *\\n     * This is a variant of {_callOptionalReturnBool} that reverts if call fails to meet the requirements.\\n     */\\n    function _callOptionalReturn(IERC20 token, bytes memory data) private {\\n        uint256 returnSize;\\n        uint256 returnValue;\\n        assembly (\\\"memory-safe\\\") {\\n            let success := call(gas(), token, 0, add(data, 0x20), mload(data), 0, 0x20)\\n            // bubble errors\\n            if iszero(success) {\\n                let ptr := mload(0x40)\\n                returndatacopy(ptr, 0, returndatasize())\\n                revert(ptr, returndatasize())\\n            }\\n            returnSize := returndatasize()\\n            returnValue := mload(0)\\n        }\\n\\n        if (returnSize == 0 ? address(token).code.length == 0 : returnValue != 1) {\\n            revert SafeERC20FailedOperation(address(token));\\n        }\\n    }\\n\\n    /**\\n     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement\\n     * on the return value: the return value is optional (but if data is returned, it must not be false).\\n     * @param token The token targeted by the call.\\n     * @param data The call data (encoded using abi.encode or one of its variants).\\n     *\\n     * This is a variant of {_callOptionalReturn} that silently catches all reverts and returns a bool instead.\\n     */\\n    function _callOptionalReturnBool(IERC20 token, bytes memory data) private returns (bool) {\\n        bool success;\\n        uint256 returnSize;\\n        uint256 returnValue;\\n        assembly (\\\"memory-safe\\\") {\\n            success := call(gas(), token, 0, add(data, 0x20), mload(data), 0, 0x20)\\n            returnSize := returndatasize()\\n            returnValue := mload(0)\\n        }\\n        return success && (returnSize == 0 ? address(token).code.length > 0 : returnValue == 1);\\n    }\\n}\\n\",\"keccak256\":\"0x982c5cb790ab941d1e04f807120a71709d4c313ba0bfc16006447ffbd27fbbd5\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n\\n    function _contextSuffixLength() internal view virtual returns (uint256) {\\n        return 0;\\n    }\\n}\\n\",\"keccak256\":\"0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Pausable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.3.0) (utils/Pausable.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {Context} from \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which allows children to implement an emergency stop\\n * mechanism that can be triggered by an authorized account.\\n *\\n * This module is used through inheritance. It will make available the\\n * modifiers `whenNotPaused` and `whenPaused`, which can be applied to\\n * the functions of your contract. Note that they will not be pausable by\\n * simply including this module, only once the modifiers are put in place.\\n */\\nabstract contract Pausable is Context {\\n    bool private _paused;\\n\\n    /**\\n     * @dev Emitted when the pause is triggered by `account`.\\n     */\\n    event Paused(address account);\\n\\n    /**\\n     * @dev Emitted when the pause is lifted by `account`.\\n     */\\n    event Unpaused(address account);\\n\\n    /**\\n     * @dev The operation failed because the contract is paused.\\n     */\\n    error EnforcedPause();\\n\\n    /**\\n     * @dev The operation failed because the contract is not paused.\\n     */\\n    error ExpectedPause();\\n\\n    /**\\n     * @dev Modifier to make a function callable only when the contract is not paused.\\n     *\\n     * Requirements:\\n     *\\n     * - The contract must not be paused.\\n     */\\n    modifier whenNotPaused() {\\n        _requireNotPaused();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Modifier to make a function callable only when the contract is paused.\\n     *\\n     * Requirements:\\n     *\\n     * - The contract must be paused.\\n     */\\n    modifier whenPaused() {\\n        _requirePaused();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns true if the contract is paused, and false otherwise.\\n     */\\n    function paused() public view virtual returns (bool) {\\n        return _paused;\\n    }\\n\\n    /**\\n     * @dev Throws if the contract is paused.\\n     */\\n    function _requireNotPaused() internal view virtual {\\n        if (paused()) {\\n            revert EnforcedPause();\\n        }\\n    }\\n\\n    /**\\n     * @dev Throws if the contract is not paused.\\n     */\\n    function _requirePaused() internal view virtual {\\n        if (!paused()) {\\n            revert ExpectedPause();\\n        }\\n    }\\n\\n    /**\\n     * @dev Triggers stopped state.\\n     *\\n     * Requirements:\\n     *\\n     * - The contract must not be paused.\\n     */\\n    function _pause() internal virtual whenNotPaused {\\n        _paused = true;\\n        emit Paused(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Returns to normal state.\\n     *\\n     * Requirements:\\n     *\\n     * - The contract must be paused.\\n     */\\n    function _unpause() internal virtual whenPaused {\\n        _paused = false;\\n        emit Unpaused(_msgSender());\\n    }\\n}\\n\",\"keccak256\":\"0xdb484371dfbb848cb6f5d70464e9ac9b2900e4164ead76bbce4fef0b44bcc68f\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/ReentrancyGuard.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (utils/ReentrancyGuard.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Contract module that helps prevent reentrant calls to a function.\\n *\\n * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier\\n * available, which can be applied to functions to make sure there are no nested\\n * (reentrant) calls to them.\\n *\\n * Note that because there is a single `nonReentrant` guard, functions marked as\\n * `nonReentrant` may not call one another. This can be worked around by making\\n * those functions `private`, and then adding `external` `nonReentrant` entry\\n * points to them.\\n *\\n * TIP: If EIP-1153 (transient storage) is available on the chain you're deploying at,\\n * consider using {ReentrancyGuardTransient} instead.\\n *\\n * TIP: If you would like to learn more about reentrancy and alternative ways\\n * to protect against it, check out our blog post\\n * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].\\n */\\nabstract contract ReentrancyGuard {\\n    // Booleans are more expensive than uint256 or any type that takes up a full\\n    // word because each write operation emits an extra SLOAD to first read the\\n    // slot's contents, replace the bits taken up by the boolean, and then write\\n    // back. This is the compiler's defense against contract upgrades and\\n    // pointer aliasing, and it cannot be disabled.\\n\\n    // The values being non-zero value makes deployment a bit more expensive,\\n    // but in exchange the refund on every call to nonReentrant will be lower in\\n    // amount. Since refunds are capped to a percentage of the total\\n    // transaction's gas, it is best to keep them low in cases like this one, to\\n    // increase the likelihood of the full refund coming into effect.\\n    uint256 private constant NOT_ENTERED = 1;\\n    uint256 private constant ENTERED = 2;\\n\\n    uint256 private _status;\\n\\n    /**\\n     * @dev Unauthorized reentrant call.\\n     */\\n    error ReentrancyGuardReentrantCall();\\n\\n    constructor() {\\n        _status = NOT_ENTERED;\\n    }\\n\\n    /**\\n     * @dev Prevents a contract from calling itself, directly or indirectly.\\n     * Calling a `nonReentrant` function from another `nonReentrant`\\n     * function is not supported. It is possible to prevent this from happening\\n     * by making the `nonReentrant` function external, and making it call a\\n     * `private` function that does the actual work.\\n     */\\n    modifier nonReentrant() {\\n        _nonReentrantBefore();\\n        _;\\n        _nonReentrantAfter();\\n    }\\n\\n    function _nonReentrantBefore() private {\\n        // On the first call to nonReentrant, _status will be NOT_ENTERED\\n        if (_status == ENTERED) {\\n            revert ReentrancyGuardReentrantCall();\\n        }\\n\\n        // Any calls to nonReentrant after this point will fail\\n        _status = ENTERED;\\n    }\\n\\n    function _nonReentrantAfter() private {\\n        // By storing the original value once again, a refund is triggered (see\\n        // https://eips.ethereum.org/EIPS/eip-2200)\\n        _status = NOT_ENTERED;\\n    }\\n\\n    /**\\n     * @dev Returns true if the reentrancy guard is currently set to \\\"entered\\\", which indicates there is a\\n     * `nonReentrant` function in the call stack.\\n     */\\n    function _reentrancyGuardEntered() internal view returns (bool) {\\n        return _status == ENTERED;\\n    }\\n}\\n\",\"keccak256\":\"0x11a5a79827df29e915a12740caf62fe21ebe27c08c9ae3e09abe9ee3ba3866d3\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/introspection/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (utils/introspection/IERC165.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface of the ERC-165 standard, as defined in the\\n * https://eips.ethereum.org/EIPS/eip-165[ERC].\\n *\\n * Implementers can declare support of contract interfaces, which can then be\\n * queried by others ({ERC165Checker}).\\n *\\n * For an implementation, see {ERC165}.\\n */\\ninterface IERC165 {\\n    /**\\n     * @dev Returns true if this contract implements the interface defined by\\n     * `interfaceId`. See the corresponding\\n     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[ERC section]\\n     * to learn more about how these ids are created.\\n     *\\n     * This function call must use less than 30 000 gas.\\n     */\\n    function supportsInterface(bytes4 interfaceId) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x79796192ec90263f21b464d5bc90b777a525971d3de8232be80d9c4f9fb353b8\",\"license\":\"MIT\"},\"contracts/VaultManager.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\r\\npragma solidity 0.8.28;\\r\\n\\r\\nimport {Ownable} from \\\"@openzeppelin/contracts/access/Ownable.sol\\\";\\r\\nimport {Ownable2Step} from \\\"@openzeppelin/contracts/access/Ownable2Step.sol\\\";\\r\\nimport {IERC20} from \\\"@openzeppelin/contracts/token/ERC20/IERC20.sol\\\";\\r\\nimport {SafeERC20} from \\\"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\\\";\\r\\nimport {Pausable} from \\\"@openzeppelin/contracts/utils/Pausable.sol\\\";\\r\\nimport {ReentrancyGuard} from \\\"@openzeppelin/contracts/utils/ReentrancyGuard.sol\\\";\\r\\n\\r\\n/**\\r\\n * @dev Minimal reserve interface exposed by the authorized SavingCore.\\r\\n */\\r\\ninterface ISavingCoreReserve {\\r\\n    function totalReservedInterest() external view returns (uint256);\\r\\n}\\r\\n\\r\\n/**\\r\\n * @title VaultManager\\r\\n * @notice Holds bank-funded ERC20 liquidity used to pay deposit interest.\\r\\n * @dev\\r\\n * - This contract never holds or manages user deposit principal.\\r\\n * - Only the one-time authorized SavingCore contract may request interest payouts.\\r\\n * - Privileged administration uses OpenZeppelin Ownable2Step.\\r\\n * - Bonus C2 reads aggregate interest liabilities from the authorized\\r\\n *   SavingCore and protects reserved vault liquidity from owner withdrawal.\\r\\n * - The contract is non-upgradeable.\\r\\n */\\r\\ncontract VaultManager is Ownable2Step, Pausable, ReentrancyGuard {\\r\\n    using SafeERC20 for IERC20;\\r\\n\\r\\n    /**\\r\\n     * @dev A required address was the zero address.\\r\\n     */\\r\\n    error InvalidAddress();\\r\\n\\r\\n    /**\\r\\n     * @dev A token amount must be greater than zero.\\r\\n     */\\r\\n    error InvalidAmount();\\r\\n\\r\\n    /**\\r\\n     * @dev The supplied SavingCore address has no deployed bytecode.\\r\\n     */\\r\\n    error AddressIsNotContract(address account);\\r\\n\\r\\n    /**\\r\\n     * @dev SavingCore has already been permanently configured.\\r\\n     */\\r\\n    error SavingCoreAlreadyAuthorized(address currentSavingCore);\\r\\n\\r\\n    /**\\r\\n     * @dev The caller is not the authorized SavingCore contract.\\r\\n     */\\r\\n    error UnauthorizedSavingCore(address caller);\\r\\n\\r\\n    /**\\r\\n     * @dev The vault has insufficient transferable liquidity.\\r\\n     */\\r\\n    error InsufficientVaultBalance(uint256 available, uint256 required);\\r\\n\\r\\n    /**\\r\\n     * @notice Emitted when the owner funds the vault.\\r\\n     */\\r\\n    event VaultFunded(address indexed funder, uint256 amount);\\r\\n\\r\\n    /**\\r\\n     * @notice Emitted when the current owner withdraws vault liquidity.\\r\\n     */\\r\\n    event VaultWithdrawn(address indexed recipient, uint256 amount);\\r\\n\\r\\n    /**\\r\\n     * @notice Emitted when the early-withdrawal fee receiver changes.\\r\\n     */\\r\\n    event FeeReceiverUpdated(\\r\\n        address indexed previousFeeReceiver,\\r\\n        address indexed newFeeReceiver\\r\\n    );\\r\\n\\r\\n    /**\\r\\n     * @notice Emitted when SavingCore is permanently authorized.\\r\\n     */\\r\\n    event SavingCoreAuthorized(address indexed savingCore);\\r\\n\\r\\n    /**\\r\\n     * @notice Emitted when SavingCore requests a successful interest payout.\\r\\n     */\\r\\n    event InterestPaid(\\r\\n        address indexed savingCore,\\r\\n        address indexed recipient,\\r\\n        uint256 amount\\r\\n    );\\r\\n\\r\\n    /**\\r\\n     * @notice ERC20 token used as the bank-funded interest asset.\\r\\n     */\\r\\n    IERC20 public immutable token;\\r\\n\\r\\n    /**\\r\\n     * @notice Address that receives early-withdrawal penalties from SavingCore.\\r\\n     */\\r\\n    address public feeReceiver;\\r\\n\\r\\n    /**\\r\\n     * @notice One-time authorized SavingCore contract.\\r\\n     */\\r\\n    address public savingCore;\\r\\n\\r\\n    /**\\r\\n     * @dev Restricts interest payouts to the configured SavingCore contract.\\r\\n     */\\r\\n    modifier onlySavingCore() {\\r\\n        if (_msgSender() != savingCore) {\\r\\n            revert UnauthorizedSavingCore(_msgSender());\\r\\n        }\\r\\n        _;\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @param token_ ERC20 token used for vault liquidity.\\r\\n     * @param initialOwner_ Initial bank administrator.\\r\\n     * @param initialFeeReceiver_ Initial early-withdrawal fee receiver.\\r\\n     */\\r\\n    constructor(\\r\\n        address token_,\\r\\n        address initialOwner_,\\r\\n        address initialFeeReceiver_\\r\\n    ) Ownable(initialOwner_) {\\r\\n        if (\\r\\n            token_ == address(0) ||\\r\\n            initialFeeReceiver_ == address(0)\\r\\n        ) {\\r\\n            revert InvalidAddress();\\r\\n        }\\r\\n\\r\\n        token = IERC20(token_);\\r\\n        feeReceiver = initialFeeReceiver_;\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Permanently authorizes the SavingCore contract.\\r\\n     * @dev This operation may succeed only once.\\r\\n     * @param savingCore_ Deployed SavingCore contract address.\\r\\n     */\\r\\n    function authorizeSavingCore(address savingCore_) external onlyOwner {\\r\\n        if (savingCore != address(0)) {\\r\\n            revert SavingCoreAlreadyAuthorized(savingCore);\\r\\n        }\\r\\n\\r\\n        if (savingCore_ == address(0)) {\\r\\n            revert InvalidAddress();\\r\\n        }\\r\\n\\r\\n        if (savingCore_.code.length == 0) {\\r\\n            revert AddressIsNotContract(savingCore_);\\r\\n        }\\r\\n\\r\\n        savingCore = savingCore_;\\r\\n\\r\\n        emit SavingCoreAuthorized(savingCore_);\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Transfers bank-funded interest liquidity into the vault.\\r\\n     * @dev Funding remains available while paused so liquidity can be restored.\\r\\n     * @param amount Token amount transferred from the owner.\\r\\n     */\\r\\n    function fundVault(uint256 amount) external onlyOwner nonReentrant {\\r\\n        if (amount == 0) {\\r\\n            revert InvalidAmount();\\r\\n        }\\r\\n\\r\\n        token.safeTransferFrom(_msgSender(), address(this), amount);\\r\\n\\r\\n        emit VaultFunded(_msgSender(), amount);\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Withdraws unreserved vault liquidity to the current owner.\\r\\n     * @dev The withdrawal cannot exceed current available liquidity.\\r\\n     * @param amount Token amount withdrawn to the current owner.\\r\\n     */\\r\\n    function withdrawVault(\\r\\n        uint256 amount\\r\\n    ) external onlyOwner whenNotPaused nonReentrant {\\r\\n        if (amount == 0) {\\r\\n            revert InvalidAmount();\\r\\n        }\\r\\n\\r\\n        uint256 available = availableLiquidity();\\r\\n\\r\\n        if (available < amount) {\\r\\n            revert InsufficientVaultBalance(available, amount);\\r\\n        }\\r\\n\\r\\n        address recipient = owner();\\r\\n\\r\\n        token.safeTransfer(recipient, amount);\\r\\n\\r\\n        emit VaultWithdrawn(recipient, amount);\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Pays interest from the vault to a specified recipient.\\r\\n     * @dev Only the authorized SavingCore may call this function.\\r\\n     * @param recipient Address receiving interest.\\r\\n     * @param amount Interest amount.\\r\\n     */\\r\\n    function payInterest(\\r\\n        address recipient,\\r\\n        uint256 amount\\r\\n    ) external onlySavingCore whenNotPaused nonReentrant {\\r\\n        if (recipient == address(0)) {\\r\\n            revert InvalidAddress();\\r\\n        }\\r\\n\\r\\n        if (amount == 0) {\\r\\n            revert InvalidAmount();\\r\\n        }\\r\\n\\r\\n        uint256 available = token.balanceOf(address(this));\\r\\n\\r\\n        if (available < amount) {\\r\\n            revert InsufficientVaultBalance(available, amount);\\r\\n        }\\r\\n\\r\\n        token.safeTransfer(recipient, amount);\\r\\n\\r\\n        emit InterestPaid(_msgSender(), recipient, amount);\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Updates the address that receives early-withdrawal penalties.\\r\\n     * @param newFeeReceiver New nonzero fee receiver.\\r\\n     */\\r\\n    function setFeeReceiver(address newFeeReceiver) external onlyOwner {\\r\\n        if (newFeeReceiver == address(0)) {\\r\\n            revert InvalidAddress();\\r\\n        }\\r\\n\\r\\n        address previousFeeReceiver = feeReceiver;\\r\\n        feeReceiver = newFeeReceiver;\\r\\n\\r\\n        emit FeeReceiverUpdated(previousFeeReceiver, newFeeReceiver);\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Pauses interest payouts and owner withdrawals.\\r\\n     */\\r\\n    function pause() external onlyOwner {\\r\\n        _pause();\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Restores normal interest payouts and owner withdrawals.\\r\\n     */\\r\\n    function unpause() external onlyOwner {\\r\\n        _unpause();\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Returns the actual ERC20 balance currently held by the vault.\\r\\n     */\\r\\n    function vaultBalance() external view returns (uint256) {\\r\\n        return token.balanceOf(address(this));\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Returns aggregate interest liabilities recorded by SavingCore.\\r\\n     * @dev Returns zero before a SavingCore contract is authorized.\\r\\n     */\\r\\n    function totalReservedInterest() public view returns (uint256) {\\r\\n        address configuredSavingCore = savingCore;\\r\\n\\r\\n        if (configuredSavingCore == address(0)) {\\r\\n            return 0;\\r\\n        }\\r\\n\\r\\n        return\\r\\n            ISavingCoreReserve(configuredSavingCore)\\r\\n                .totalReservedInterest();\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Returns liquidity that the administrator may withdraw.\\r\\n     * @dev Uses saturating subtraction when liabilities exceed the balance.\\r\\n     */\\r\\n    function availableLiquidity() public view returns (uint256) {\\r\\n        uint256 balance = token.balanceOf(address(this));\\r\\n        uint256 reserved = totalReservedInterest();\\r\\n\\r\\n        if (balance <= reserved) {\\r\\n            return 0;\\r\\n        }\\r\\n\\r\\n        return balance - reserved;\\r\\n    }\\r\\n\\r\\n    /**\\r\\n     * @notice Returns liabilities not currently covered by vault tokens.\\r\\n     */\\r\\n    function fundingShortfall() external view returns (uint256) {\\r\\n        uint256 balance = token.balanceOf(address(this));\\r\\n        uint256 reserved = totalReservedInterest();\\r\\n\\r\\n        if (reserved <= balance) {\\r\\n            return 0;\\r\\n        }\\r\\n\\r\\n        return reserved - balance;\\r\\n    }\\r\\n}\",\"keccak256\":\"0x6502d42cc5b35da66b2efafdedbefe45c93c8f59d7a4f44d5c0f565bbc998c05\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60a03461017857601f610f9738819003918201601f19168301916001600160401b0383118484101761017d578084926060946040528339810103126101785761004781610193565b90610060604061005960208401610193565b9201610193565b6001600160a01b0390911691821561016257600180546001600160a01b0319908116909155600080549182168517815560405194916001600160a01b0316907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09080a360016002556001600160a01b031680158015610151575b61014057608052600380546001600160a01b0319166001600160a01b0392909216919091179055610def90816101a8823960805181818161011b015281816102f00152818161040301528181610786015281816109b701528181610b430152610bed0152f35b63e6c4247b60e01b60005260046000fd5b506001600160a01b038216156100da565b631e4fbdf760e01b600052600060045260246000fd5b600080fd5b634e487b7160e01b600052604160045260246000fd5b51906001600160a01b03821682036101785756fe608080604052600436101561001357600080fd5b60003560e01c9081630bf6cc0814610986575080630f975719146108a85780631b7623be1461072f5780631f0d13d7146107145780633f4ba83a1461068c5780635c975abb14610666578063715018a6146105fd57806374375359146105e257806379ba50971461053c5780638456cb59146104cb5780638da5cb5b146104a45780638f18c8871461047d578063a309dc641461045a578063abe73ef51461038a578063b3f0067414610363578063b40afc1c14610277578063e30c397814610250578063efdcd974146101b3578063f2fde38b146101445763fc0c546a146100fb57600080fd5b3461013f57600036600319011261013f5760206040516001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000168152f35b600080fd5b3461013f57602036600319011261013f576001600160a01b03610165610a25565b61016d610c6b565b16806001600160a01b031960015416176001556001600160a01b03600054167f38d16b8cac22d99fc7c124b9cd0de2d3fa1faef420bfe791d8c362d765e22700600080a3005b3461013f57602036600319011261013f576001600160a01b036101d4610a25565b6101dc610c6b565b168015610226576001600160a01b03600354826001600160a01b0319821617600355167fa92ff4390fe6943f0b30e8fe715dde86f85ab79b2b2c640a10fc094cc4036cc8600080a3005b7fe6c4247b0000000000000000000000000000000000000000000000000000000060005260046000fd5b3461013f57600036600319011261013f5760206001600160a01b0360015416604051908152f35b3461013f57602036600319011261013f57600435610293610c6b565b61029b610c7f565b6102a3610cb8565b8015610339576102b1610b20565b81811061032257507f1b5775af7e7537be20684ccf94b9c6f4b180dabad653f5b57a234a9c6a3db40b60206001600160a01b03600054169261031481857f0000000000000000000000000000000000000000000000000000000000000000610cf1565b604051908152a26001600255005b63bce5067160e01b60005260045260245260446000fd5b7f2c5211c60000000000000000000000000000000000000000000000000000000060005260046000fd5b3461013f57600036600319011261013f5760206001600160a01b0360035416604051908152f35b3461013f57602036600319011261013f576004356103a6610c6b565b6103ae610cb8565b8015610339576104276040517f23b872dd00000000000000000000000000000000000000000000000000000000602082015233602482015230604482015282606482015260648152610401608482610a3b565b7f0000000000000000000000000000000000000000000000000000000000000000610d48565b6040519081527fba24bd9b798cca64d1031eda1ced9398802343e44e07779bb510d7a21ddddef160203392a26001600255005b3461013f57600036600319011261013f576020610475610bca565b604051908152f35b3461013f57600036600319011261013f5760206001600160a01b0360045416604051908152f35b3461013f57600036600319011261013f5760206001600160a01b0360005416604051908152f35b3461013f57600036600319011261013f576104e4610c6b565b6104ec610c7f565b7401000000000000000000000000000000000000000060ff60a01b1960015416176001557f62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a2586020604051338152a1005b3461013f57600036600319011261013f57336001600160a01b0360015416036105b4576001600160a01b031960015416600155600054336001600160a01b03198216176000556001600160a01b033391167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0600080a3005b7f118cdaa7000000000000000000000000000000000000000000000000000000006000523360045260246000fd5b3461013f57600036600319011261013f576020610475610b20565b3461013f57600036600319011261013f57610616610c6b565b6001600160a01b03196001541660015560006001600160a01b0381546001600160a01b031981168355167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e08280a3005b3461013f57600036600319011261013f57602060ff60015460a01c166040519015158152f35b3461013f57600036600319011261013f576106a5610c6b565b60015460ff8160a01c16156106ea5760ff60a01b19166001557f5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa6020604051338152a1005b7f8dfc202b0000000000000000000000000000000000000000000000000000000060005260046000fd5b3461013f57600036600319011261013f576020610475610a73565b3461013f57604036600319011261013f57610748610a25565b6024356001600160a01b0360045416330361087a57610765610c7f565b61076d610cb8565b6001600160a01b038216918215610226578115610339577f00000000000000000000000000000000000000000000000000000000000000006040516370a0823160e01b81523060048201526020816024816001600160a01b0386165afa90811561086e57600091610839575b5083811061082057506107ed918391610cf1565b6040519081527ff75e0f5f6602ca4c59226d587ca078ea5a4ac300638072b99386035b776f264460203392a36001600255005b839063bce5067160e01b60005260045260245260446000fd5b906020823d602011610866575b8161085360209383610a3b565b81010312610863575051856107d9565b80fd5b3d9150610846565b6040513d6000823e3d90fd5b7f1a7f7e86000000000000000000000000000000000000000000000000000000006000523360045260246000fd5b3461013f57602036600319011261013f576108c1610a25565b6108c9610c6b565b600454906001600160a01b0382168061095957506001600160a01b0381169182156102265782913b1561092b576001600160a01b031916176004557fb9bdef23629fad6b2b1e91edf32c936e88a00ccbb30c5a7b0a334eced98f26c8600080a2005b507ff08997ea0000000000000000000000000000000000000000000000000000000060005260045260246000fd5b7f7eac57f90000000000000000000000000000000000000000000000000000000060005260045260246000fd5b3461013f57600036600319011261013f576370a0823160e01b81523060048201526020816024816001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000165afa801561086e576000906109f2575b602090604051908152f35b506020813d602011610a1d575b81610a0c60209383610a3b565b8101031261013f57602090516109e7565b3d91506109ff565b600435906001600160a01b038216820361013f57565b90601f8019910116810190811067ffffffffffffffff821117610a5d57604052565b634e487b7160e01b600052604160045260246000fd5b6001600160a01b03600454168015610af7576020600491604051928380927f1f0d13d70000000000000000000000000000000000000000000000000000000082525afa90811561086e57600091610ac8575090565b90506020813d602011610aef575b81610ae360209383610a3b565b8101031261013f575190565b3d9150610ad6565b50600090565b91908203918211610b0a57565b634e487b7160e01b600052601160045260246000fd5b6040516370a0823160e01b81523060048201526020816024816001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000165afa90811561086e57600091610b98575b50610b7d610a73565b80821115610b9157610b8e91610afd565b90565b5050600090565b906020823d602011610bc2575b81610bb260209383610a3b565b8101031261086357505138610b74565b3d9150610ba5565b6040516370a0823160e01b81523060048201526020816024816001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000165afa90811561086e57600091610c39575b50610c27610a73565b9080821115610b9157610b8e91610afd565b906020823d602011610c63575b81610c5360209383610a3b565b8101031261086357505138610c1e565b3d9150610c46565b6001600160a01b036000541633036105b457565b60ff60015460a01c16610c8e57565b7fd93c06650000000000000000000000000000000000000000000000000000000060005260046000fd5b6002805414610cc75760028055565b7f3ee5aeb50000000000000000000000000000000000000000000000000000000060005260046000fd5b610d46926001600160a01b03604051937fa9059cbb000000000000000000000000000000000000000000000000000000006020860152166024840152604483015260448252610d41606483610a3b565b610d48565b565b906000602091828151910182855af11561086e576000513d610db057506001600160a01b0381163b155b610d795750565b6001600160a01b03907f5274afe7000000000000000000000000000000000000000000000000000000006000521660045260246000fd5b60011415610d7256fea2646970667358221220942902032e5ffa0cdaed131ee6cde7fd889706284de0f7eed44542974d2c384364736f6c634300081c0033",
+  "deployedBytecode": "0x608080604052600436101561001357600080fd5b60003560e01c9081630bf6cc0814610986575080630f975719146108a85780631b7623be1461072f5780631f0d13d7146107145780633f4ba83a1461068c5780635c975abb14610666578063715018a6146105fd57806374375359146105e257806379ba50971461053c5780638456cb59146104cb5780638da5cb5b146104a45780638f18c8871461047d578063a309dc641461045a578063abe73ef51461038a578063b3f0067414610363578063b40afc1c14610277578063e30c397814610250578063efdcd974146101b3578063f2fde38b146101445763fc0c546a146100fb57600080fd5b3461013f57600036600319011261013f5760206040516001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000168152f35b600080fd5b3461013f57602036600319011261013f576001600160a01b03610165610a25565b61016d610c6b565b16806001600160a01b031960015416176001556001600160a01b03600054167f38d16b8cac22d99fc7c124b9cd0de2d3fa1faef420bfe791d8c362d765e22700600080a3005b3461013f57602036600319011261013f576001600160a01b036101d4610a25565b6101dc610c6b565b168015610226576001600160a01b03600354826001600160a01b0319821617600355167fa92ff4390fe6943f0b30e8fe715dde86f85ab79b2b2c640a10fc094cc4036cc8600080a3005b7fe6c4247b0000000000000000000000000000000000000000000000000000000060005260046000fd5b3461013f57600036600319011261013f5760206001600160a01b0360015416604051908152f35b3461013f57602036600319011261013f57600435610293610c6b565b61029b610c7f565b6102a3610cb8565b8015610339576102b1610b20565b81811061032257507f1b5775af7e7537be20684ccf94b9c6f4b180dabad653f5b57a234a9c6a3db40b60206001600160a01b03600054169261031481857f0000000000000000000000000000000000000000000000000000000000000000610cf1565b604051908152a26001600255005b63bce5067160e01b60005260045260245260446000fd5b7f2c5211c60000000000000000000000000000000000000000000000000000000060005260046000fd5b3461013f57600036600319011261013f5760206001600160a01b0360035416604051908152f35b3461013f57602036600319011261013f576004356103a6610c6b565b6103ae610cb8565b8015610339576104276040517f23b872dd00000000000000000000000000000000000000000000000000000000602082015233602482015230604482015282606482015260648152610401608482610a3b565b7f0000000000000000000000000000000000000000000000000000000000000000610d48565b6040519081527fba24bd9b798cca64d1031eda1ced9398802343e44e07779bb510d7a21ddddef160203392a26001600255005b3461013f57600036600319011261013f576020610475610bca565b604051908152f35b3461013f57600036600319011261013f5760206001600160a01b0360045416604051908152f35b3461013f57600036600319011261013f5760206001600160a01b0360005416604051908152f35b3461013f57600036600319011261013f576104e4610c6b565b6104ec610c7f565b7401000000000000000000000000000000000000000060ff60a01b1960015416176001557f62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a2586020604051338152a1005b3461013f57600036600319011261013f57336001600160a01b0360015416036105b4576001600160a01b031960015416600155600054336001600160a01b03198216176000556001600160a01b033391167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0600080a3005b7f118cdaa7000000000000000000000000000000000000000000000000000000006000523360045260246000fd5b3461013f57600036600319011261013f576020610475610b20565b3461013f57600036600319011261013f57610616610c6b565b6001600160a01b03196001541660015560006001600160a01b0381546001600160a01b031981168355167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e08280a3005b3461013f57600036600319011261013f57602060ff60015460a01c166040519015158152f35b3461013f57600036600319011261013f576106a5610c6b565b60015460ff8160a01c16156106ea5760ff60a01b19166001557f5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa6020604051338152a1005b7f8dfc202b0000000000000000000000000000000000000000000000000000000060005260046000fd5b3461013f57600036600319011261013f576020610475610a73565b3461013f57604036600319011261013f57610748610a25565b6024356001600160a01b0360045416330361087a57610765610c7f565b61076d610cb8565b6001600160a01b038216918215610226578115610339577f00000000000000000000000000000000000000000000000000000000000000006040516370a0823160e01b81523060048201526020816024816001600160a01b0386165afa90811561086e57600091610839575b5083811061082057506107ed918391610cf1565b6040519081527ff75e0f5f6602ca4c59226d587ca078ea5a4ac300638072b99386035b776f264460203392a36001600255005b839063bce5067160e01b60005260045260245260446000fd5b906020823d602011610866575b8161085360209383610a3b565b81010312610863575051856107d9565b80fd5b3d9150610846565b6040513d6000823e3d90fd5b7f1a7f7e86000000000000000000000000000000000000000000000000000000006000523360045260246000fd5b3461013f57602036600319011261013f576108c1610a25565b6108c9610c6b565b600454906001600160a01b0382168061095957506001600160a01b0381169182156102265782913b1561092b576001600160a01b031916176004557fb9bdef23629fad6b2b1e91edf32c936e88a00ccbb30c5a7b0a334eced98f26c8600080a2005b507ff08997ea0000000000000000000000000000000000000000000000000000000060005260045260246000fd5b7f7eac57f90000000000000000000000000000000000000000000000000000000060005260045260246000fd5b3461013f57600036600319011261013f576370a0823160e01b81523060048201526020816024816001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000165afa801561086e576000906109f2575b602090604051908152f35b506020813d602011610a1d575b81610a0c60209383610a3b565b8101031261013f57602090516109e7565b3d91506109ff565b600435906001600160a01b038216820361013f57565b90601f8019910116810190811067ffffffffffffffff821117610a5d57604052565b634e487b7160e01b600052604160045260246000fd5b6001600160a01b03600454168015610af7576020600491604051928380927f1f0d13d70000000000000000000000000000000000000000000000000000000082525afa90811561086e57600091610ac8575090565b90506020813d602011610aef575b81610ae360209383610a3b565b8101031261013f575190565b3d9150610ad6565b50600090565b91908203918211610b0a57565b634e487b7160e01b600052601160045260246000fd5b6040516370a0823160e01b81523060048201526020816024816001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000165afa90811561086e57600091610b98575b50610b7d610a73565b80821115610b9157610b8e91610afd565b90565b5050600090565b906020823d602011610bc2575b81610bb260209383610a3b565b8101031261086357505138610b74565b3d9150610ba5565b6040516370a0823160e01b81523060048201526020816024816001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000165afa90811561086e57600091610c39575b50610c27610a73565b9080821115610b9157610b8e91610afd565b906020823d602011610c63575b81610c5360209383610a3b565b8101031261086357505138610c1e565b3d9150610c46565b6001600160a01b036000541633036105b457565b60ff60015460a01c16610c8e57565b7fd93c06650000000000000000000000000000000000000000000000000000000060005260046000fd5b6002805414610cc75760028055565b7f3ee5aeb50000000000000000000000000000000000000000000000000000000060005260046000fd5b610d46926001600160a01b03604051937fa9059cbb000000000000000000000000000000000000000000000000000000006020860152166024840152604483015260448252610d41606483610a3b565b610d48565b565b906000602091828151910182855af11561086e576000513d610db057506001600160a01b0381163b155b610d795750565b6001600160a01b03907f5274afe7000000000000000000000000000000000000000000000000000000006000521660045260246000fd5b60011415610d7256fea2646970667358221220942902032e5ffa0cdaed131ee6cde7fd889706284de0f7eed44542974d2c384364736f6c634300081c0033",
+  "devdoc": {
+    "details": "- This contract never holds or manages user deposit principal. - Only the one-time authorized SavingCore contract may request interest payouts. - Privileged administration uses OpenZeppelin Ownable2Step. - Bonus C2 reads aggregate interest liabilities from the authorized   SavingCore and protects reserved vault liquidity from owner withdrawal. - The contract is non-upgradeable.",
+    "errors": {
+      "AddressIsNotContract(address)": [
+        {
+          "details": "The supplied SavingCore address has no deployed bytecode."
+        }
+      ],
+      "EnforcedPause()": [
+        {
+          "details": "The operation failed because the contract is paused."
+        }
+      ],
+      "ExpectedPause()": [
+        {
+          "details": "The operation failed because the contract is not paused."
+        }
+      ],
+      "InsufficientVaultBalance(uint256,uint256)": [
+        {
+          "details": "The vault has insufficient transferable liquidity."
+        }
+      ],
+      "InvalidAddress()": [
+        {
+          "details": "A required address was the zero address."
+        }
+      ],
+      "InvalidAmount()": [
+        {
+          "details": "A token amount must be greater than zero."
+        }
+      ],
+      "OwnableInvalidOwner(address)": [
+        {
+          "details": "The owner is not a valid owner account. (eg. `address(0)`)"
+        }
+      ],
+      "OwnableUnauthorizedAccount(address)": [
+        {
+          "details": "The caller account is not authorized to perform an operation."
+        }
+      ],
+      "ReentrancyGuardReentrantCall()": [
+        {
+          "details": "Unauthorized reentrant call."
+        }
+      ],
+      "SafeERC20FailedOperation(address)": [
+        {
+          "details": "An operation with an ERC-20 token failed."
+        }
+      ],
+      "SavingCoreAlreadyAuthorized(address)": [
+        {
+          "details": "SavingCore has already been permanently configured."
+        }
+      ],
+      "UnauthorizedSavingCore(address)": [
+        {
+          "details": "The caller is not the authorized SavingCore contract."
+        }
+      ]
+    },
+    "events": {
+      "Paused(address)": {
+        "details": "Emitted when the pause is triggered by `account`."
+      },
+      "Unpaused(address)": {
+        "details": "Emitted when the pause is lifted by `account`."
+      }
+    },
+    "kind": "dev",
+    "methods": {
+      "acceptOwnership()": {
+        "details": "The new owner accepts the ownership transfer."
+      },
+      "authorizeSavingCore(address)": {
+        "details": "This operation may succeed only once.",
+        "params": {
+          "savingCore_": "Deployed SavingCore contract address."
+        }
+      },
+      "availableLiquidity()": {
+        "details": "Uses saturating subtraction when liabilities exceed the balance."
+      },
+      "constructor": {
+        "params": {
+          "initialFeeReceiver_": "Initial early-withdrawal fee receiver.",
+          "initialOwner_": "Initial bank administrator.",
+          "token_": "ERC20 token used for vault liquidity."
+        }
+      },
+      "fundVault(uint256)": {
+        "details": "Funding remains available while paused so liquidity can be restored.",
+        "params": {
+          "amount": "Token amount transferred from the owner."
+        }
+      },
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "paused()": {
+        "details": "Returns true if the contract is paused, and false otherwise."
+      },
+      "payInterest(address,uint256)": {
+        "details": "Only the authorized SavingCore may call this function.",
+        "params": {
+          "amount": "Interest amount.",
+          "recipient": "Address receiving interest."
+        }
+      },
+      "pendingOwner()": {
+        "details": "Returns the address of the pending owner."
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+      },
+      "setFeeReceiver(address)": {
+        "params": {
+          "newFeeReceiver": "New nonzero fee receiver."
+        }
+      },
+      "totalReservedInterest()": {
+        "details": "Returns zero before a SavingCore contract is authorized."
+      },
+      "transferOwnership(address)": {
+        "details": "Starts the ownership transfer of the contract to a new account. Replaces the pending transfer if there is one. Can only be called by the current owner. Setting `newOwner` to the zero address is allowed; this can be used to cancel an initiated ownership transfer."
+      },
+      "withdrawVault(uint256)": {
+        "details": "The withdrawal cannot exceed current available liquidity.",
+        "params": {
+          "amount": "Token amount withdrawn to the current owner."
+        }
+      }
+    },
+    "title": "VaultManager",
+    "version": 1
+  },
+  "userdoc": {
+    "events": {
+      "FeeReceiverUpdated(address,address)": {
+        "notice": "Emitted when the early-withdrawal fee receiver changes."
+      },
+      "InterestPaid(address,address,uint256)": {
+        "notice": "Emitted when SavingCore requests a successful interest payout."
+      },
+      "SavingCoreAuthorized(address)": {
+        "notice": "Emitted when SavingCore is permanently authorized."
+      },
+      "VaultFunded(address,uint256)": {
+        "notice": "Emitted when the owner funds the vault."
+      },
+      "VaultWithdrawn(address,uint256)": {
+        "notice": "Emitted when the current owner withdraws vault liquidity."
+      }
+    },
+    "kind": "user",
+    "methods": {
+      "authorizeSavingCore(address)": {
+        "notice": "Permanently authorizes the SavingCore contract."
+      },
+      "availableLiquidity()": {
+        "notice": "Returns liquidity that the administrator may withdraw."
+      },
+      "feeReceiver()": {
+        "notice": "Address that receives early-withdrawal penalties from SavingCore."
+      },
+      "fundVault(uint256)": {
+        "notice": "Transfers bank-funded interest liquidity into the vault."
+      },
+      "fundingShortfall()": {
+        "notice": "Returns liabilities not currently covered by vault tokens."
+      },
+      "pause()": {
+        "notice": "Pauses interest payouts and owner withdrawals."
+      },
+      "payInterest(address,uint256)": {
+        "notice": "Pays interest from the vault to a specified recipient."
+      },
+      "savingCore()": {
+        "notice": "One-time authorized SavingCore contract."
+      },
+      "setFeeReceiver(address)": {
+        "notice": "Updates the address that receives early-withdrawal penalties."
+      },
+      "token()": {
+        "notice": "ERC20 token used as the bank-funded interest asset."
+      },
+      "totalReservedInterest()": {
+        "notice": "Returns aggregate interest liabilities recorded by SavingCore."
+      },
+      "unpause()": {
+        "notice": "Restores normal interest payouts and owner withdrawals."
+      },
+      "vaultBalance()": {
+        "notice": "Returns the actual ERC20 balance currently held by the vault."
+      },
+      "withdrawVault(uint256)": {
+        "notice": "Withdraws unreserved vault liquidity to the current owner."
+      }
+    },
+    "notice": "Holds bank-funded ERC20 liquidity used to pay deposit interest.",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 8,
+        "contract": "contracts/VaultManager.sol:VaultManager",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 156,
+        "contract": "contracts/VaultManager.sol:VaultManager",
+        "label": "_pendingOwner",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 2831,
+        "contract": "contracts/VaultManager.sol:VaultManager",
+        "label": "_paused",
+        "offset": 20,
+        "slot": "1",
+        "type": "t_bool"
+      },
+      {
+        "astId": 2941,
+        "contract": "contracts/VaultManager.sol:VaultManager",
+        "label": "_status",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 10071,
+        "contract": "contracts/VaultManager.sol:VaultManager",
+        "label": "feeReceiver",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_address"
+      },
+      {
+        "astId": 10074,
+        "contract": "contracts/VaultManager.sol:VaultManager",
+        "label": "savingCore",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_address"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}

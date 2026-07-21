@@ -1,0 +1,76 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "confirmationPolicy": 2,
+  "deployer": "0xA998526b0A5F23680f50fa3677f5c6576Dba89d9",
+  "admin": "0xA998526b0A5F23680f50fa3677f5c6576Dba89d9",
+  "feeReceiver": "0xA998526b0A5F23680f50fa3677f5c6576Dba89d9",
+  "contracts": {
+    "MockUSDC": {
+      "address": "0xcf779EC5D80573D3254054a17c5B4f0117491662",
+      "deploymentTransactionHash": "0xa81c48442241a266792a81f735a5af0af1a3fa9251978b2ac9edeb6d4fe7b28a",
+      "deploymentBlockNumber": 11320265,
+      "gasUsed": "528845",
+      "verified": true,
+      "explorerUrl": "https://sepolia.etherscan.io/address/0xcf779EC5D80573D3254054a17c5B4f0117491662#code"
+    },
+    "VaultManager": {
+      "address": "0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7",
+      "deploymentTransactionHash": "0x815109fdaa03422d1b8692e80d1d9f8ec3ba25b3d21a5488e90b7347f66a7dbf",
+      "deploymentBlockNumber": 11320267,
+      "gasUsed": "894736",
+      "verified": true,
+      "explorerUrl": "https://sepolia.etherscan.io/address/0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7#code"
+    },
+    "SavingCore": {
+      "address": "0xa35c55e7E2dB5874699cC9fb8d0E25032f51b443",
+      "deploymentTransactionHash": "0xbfcd2b495cac445e3f7af8c29d9d93fdbf6ff2e491d788f4392d67945d3c3883",
+      "deploymentBlockNumber": 11320269,
+      "gasUsed": "2956882",
+      "verified": true,
+      "explorerUrl": "https://sepolia.etherscan.io/address/0xa35c55e7E2dB5874699cC9fb8d0E25032f51b443#code"
+    }
+  },
+  "setupTransactions": {
+    "authorizeSavingCore": {
+      "transactionHash": "0x6c665a22b299c14297c7492c9bf218475a8270702ac162a8ac6d92d78cc56061",
+      "blockNumber": 11320271,
+      "gasUsed": "49792"
+    },
+    "createCanonicalPlan": {
+      "transactionHash": "0x8913d7f10bb4e952f08543cd6ee550ff4285e9214c6656042b9dd5edb086415b",
+      "blockNumber": 11320273,
+      "gasUsed": "182389"
+    }
+  },
+  "canonicalPlan": {
+    "planId": "1",
+    "tenorDays": "180",
+    "aprBps": "200",
+    "minDeposit": "100000000",
+    "maxDeposit": "10000000000",
+    "earlyWithdrawPenaltyBps": "750",
+    "enabled": true,
+    "tokenDecimals": 6
+  },
+  "verifiedInitialState": {
+    "planCount": "1",
+    "depositCount": "0",
+    "vaultBalance": "0",
+    "totalReservedInterest": "0",
+    "availableLiquidity": "0",
+    "fundingShortfall": "0",
+    "vaultManagerPaused": false,
+    "savingCorePaused": false,
+    "demoBalancesMinted": false,
+    "vaultFunded": false,
+    "defaultDepositsCreated": false
+  },
+  "verificationEvidence": {
+    "receiptVerificationLatestBlock": 11320280,
+    "allTransactionStatuses": 1,
+    "allContractsHaveBytecode": true,
+    "allSourcesVerifiedOnEtherscan": true,
+    "verifiedSourceIsNotSecurityAudit": true
+  }
+}

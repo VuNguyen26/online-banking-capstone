@@ -10,9 +10,56 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 13 — Deployment scripts and deterministic local demo seed implemented and validated locally**
+**Phase 14 — Sepolia deployment and Etherscan verification implemented and validated; final repository audits and Git checkpoint remain pending**
 
-Phase 13 deliverables:
+Phase 14 public deployment:
+
+| Item | Value |
+|---|---|
+| Network | Ethereum Sepolia |
+| Chain ID | `11155111` |
+| Deployer, administrator, and fee receiver | `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9` |
+| Confirmation policy | 2 confirmations |
+| MockUSDC | `0xcf779EC5D80573D3254054a17c5B4f0117491662` |
+| VaultManager | `0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7` |
+| SavingCore | `0xa35c55e7E2dB5874699cC9fb8d0E25032f51b443` |
+| Canonical plan | Plan ID `1` |
+| Etherscan source verification | Successful for all three contracts |
+
+Public deployment transactions:
+
+| Action | Transaction hash | Block |
+|---|---|---:|
+| Deploy MockUSDC | `0xa81c48442241a266792a81f735a5af0af1a3fa9251978b2ac9edeb6d4fe7b28a` | `11320265` |
+| Deploy VaultManager | `0x815109fdaa03422d1b8692e80d1d9f8ec3ba25b3d21a5488e90b7347f66a7dbf` | `11320267` |
+| Deploy SavingCore | `0xbfcd2b495cac445e3f7af8c29d9d93fdbf6ff2e491d788f4392d67945d3c3883` | `11320269` |
+| Authorize SavingCore | `0x6c665a22b299c14297c7492c9bf218475a8270702ac162a8ac6d92d78cc56061` | `11320271` |
+| Create canonical plan | `0x8913d7f10bb4e952f08543cd6ee550ff4285e9214c6656042b9dd5edb086415b` | `11320273` |
+
+Validated public initial state:
+
+- plan count `1`;
+- deposit count `0`;
+- canonical plan: 180 days, 200-bps APR, 100–10,000 mUSDC limits,
+  750-bps early-withdrawal penalty, enabled;
+- VaultManager balance `0`;
+- total reserved interest `0`;
+- available liquidity `0`;
+- funding shortfall `0`;
+- SavingCore and VaultManager unpaused;
+- no demo balances minted;
+- no vault funding;
+- no default deposits.
+
+The public workflow was rerun idempotently: all three contracts were reused,
+authorization was skipped, plan ID `1` was preserved, nonce stayed at `5`,
+and no additional SepoliaETH was spent.
+
+Etherscan source verification proves source-to-bytecode matching for the
+submitted compiler settings and constructor arguments. It is not an
+independent professional security audit.
+
+Retained Phase 13 local-deployment checkpoint:
 
 - `hardhat.config.ts` local-network and named-account configuration;
 - `.gitignore` policy for local deployment records;
@@ -89,11 +136,9 @@ Phase 13 validation completed:
 
 Current limitations and pending work:
 
-- Phase 13 documentation, final audits, staging, commit, push, remote
-  verification, checkpoint, and handoff remain pending until completed;
+- final Phase 14 documentation review, regression, audits, staging, commit,
+  push, remote verification, checkpoint, and handoff remain pending;
 - rich NFT metadata remains unimplemented;
-- no Sepolia deployment has been performed;
-- no Etherscan verification has been performed;
 - frontend, AI assistants, demo video, and final submission remain pending;
 - local deterministic addresses are development-only and are not public
   deployment addresses.
@@ -113,7 +158,8 @@ Previous completed phases:
 - Phase 9: permissionless auto-renewal after the grace period;
 - Phase 10: hardening, regression, security, and documentation alignment;
 - Phase 11: Bonus C1 principal-first settlement and deferred-interest claims;
-- Phase 12: Bonus C2 reserved-interest solvency guard.
+- Phase 12: Bonus C2 reserved-interest solvency guard;
+- Phase 13: deterministic local deployment scripts and demo seed.
 
 ## Current Implementation Status
 
@@ -144,6 +190,15 @@ Completed:
 - Idempotent canonical-plan and demo-liquidity seed
 - Ephemeral Hardhat and persistent localhost deployment modes
 - Read-only local deployment verification
+- Dedicated Sepolia deployment workflow separated from local demo seeding
+- Sepolia preflight validation for network, signer, nonce, balance, fee budget,
+  deployment-record state, and predicted addresses
+- Public deployment of MockUSDC, VaultManager, and SavingCore
+- One-time public SavingCore authorization and canonical plan ID `1`
+- Read-only public state and receipt verification
+- Idempotent public deployment rerun
+- Tracked public deployment records and compact machine-readable metadata
+- Etherscan source verification for all three production contracts
 - Deployment fixture regression tests
 - 258 passing tests
 - Production coverage of 100% statements, 98.40% branches, 100% functions,
@@ -152,9 +207,6 @@ Completed:
 Not implemented yet:
 
 - Rich NFT metadata or custom `tokenURI`
-- Sepolia deployment
-- Etherscan verification
-- Public or production deployment addresses
 - User Banking App
 - Admin Portal
 - AI Banking Assistant
@@ -494,6 +546,9 @@ The project currently uses npm and `package-lock.json`.
 | `npm run deploy:local:reset` | Reset-deploy and seed on a running localhost node |
 | `npm run deploy:local` | Reuse localhost deployments and idempotently reconcile seed state |
 | `npm run verify:local` | Read and verify the current localhost deployment |
+| `npx hardhat run scripts/preflight-sepolia-deployment.ts --network sepolia --no-compile` | Run the read-only Sepolia preflight |
+| `npm run deploy:sepolia` | Deploy or safely reuse the approved Sepolia deployment |
+| `npm run verify:sepolia:state` | Read and verify the Sepolia deployment state |
 
 Validated Phase 13 checkpoints:
 
@@ -512,6 +567,23 @@ Validated Phase 13 checkpoints:
   96.97% functions, and 96.98% lines;
 - only the three production ABI files are retained;
 - `deployments/hardhat/` and `deployments/localhost/` remain ignored.
+
+Validated Phase 14 checkpoints:
+
+- Sepolia chain ID `11155111`;
+- dedicated deployer, owner, and fee receiver
+  `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9`;
+- three deployed contracts with nonempty bytecode;
+- five successful public transaction receipts;
+- two-confirmation deployment policy;
+- correct constructor dependencies, ownership, authorization, pause states,
+  Personal Variant, canonical plan, and C2 formulas;
+- no public demo mint, vault funding, or default deposits;
+- idempotent rerun with unchanged nonce and balance;
+- all three production contracts verified on Etherscan;
+- public metadata stored in `data/deployments/sepolia.json`;
+- public deployment records retained under `deployments/sepolia/`;
+- generated `deployments/*/solcInputs/` files remain ignored.
 
 ## Project Structure
 
@@ -564,6 +636,19 @@ Current relevant structure:
 
 `MockSavingCoreCaller.sol` and `MockSavingCoreHarness.sol` are test-only
 contracts. They are not part of the retained production ABI set.
+
+Phase 14 adds these tracked public-deployment assets:
+
+- `deploy/10_deploy_sepolia.ts`;
+- `scripts/preflight-sepolia-deployment.ts`;
+- `scripts/verify-sepolia-deployment.ts`;
+- `data/deployments/sepolia.json`;
+- `deployments/sepolia/.chainId`;
+- `deployments/sepolia/MockUSDC.json`;
+- `deployments/sepolia/VaultManager.json`;
+- `deployments/sepolia/SavingCore.json`.
+
+Generated `deployments/*/solcInputs/` files remain ignored.
 
 The local deployment-record directories are generated at runtime and ignored:
 
@@ -622,27 +707,26 @@ Current development branch:
 
 The current action is to finalize:
 
-**Phase 13 — Deployment scripts and deterministic local demo seed**
-
-Before Phase 13 may be declared complete:
-
-1. review the complete Phase 13 source and documentation diff;
-2. confirm only approved deployment, verification, test, configuration, ABI,
-   and documentation files are included;
-3. run final whitespace, generated-file, scope, `parseEther`, debug-marker,
-   and secret audits;
-4. run the final clean compile, TypeScript, focused deployment test, complete
-   regression suite, coverage assessment, contract-size report, and ABI audit;
-5. stage only the approved Phase 13 files;
-6. run the cached diff and cached whitespace checks;
-7. commit and push Phase 13;
-8. fetch the remote and verify matching local and remote commit hashes;
-9. confirm ahead/behind is `0 0` and the working tree is clean;
-10. produce the complete Phase 13 checkpoint and MASTER HANDOFF PROMPT;
-11. stop before Phase 14.
-
-After Phase 13 is committed, pushed, and verified, the next planned phase is:
-
 **Phase 14 — Sepolia deployment and Etherscan verification**
 
-Phase 14 must not begin automatically.
+Before Phase 14 may be declared complete:
+
+1. review the complete Phase 14 source, deployment records, metadata, and
+   documentation diff;
+2. run final secret, generated-file, `parseEther`, scope, whitespace, and ABI
+   audits;
+3. run final clean compilation, TypeScript validation, focused deployment
+   tests, complete regression suite, coverage assessment, and size report;
+4. stage only approved Phase 14 files;
+5. run cached diff and cached whitespace checks;
+6. commit and push Phase 14;
+7. fetch and verify matching local and remote commit hashes;
+8. confirm ahead/behind is `0 0` and the working tree is clean;
+9. produce the Phase 14 checkpoint and MASTER HANDOFF PROMPT;
+10. stop before Phase 15.
+
+After Phase 14 is committed, pushed, and verified, the next planned phase is:
+
+**Phase 15 — User Banking App foundation**
+
+Phase 15 must not begin automatically.

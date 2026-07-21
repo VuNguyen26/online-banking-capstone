@@ -6,19 +6,19 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Architecture and Product Decision Records |
-| Current project phase | Phase 13 — Deployment scripts and deterministic local demo seed |
-| Implementation status | Mandatory contract decisions, Bonus C1, Bonus C2, and local deployment decisions are reflected in implemented code, tests, and observed execution; Sepolia, frontend, AI, and rich metadata decisions remain pending or deferred |
+| Current project phase | Phase 14 — Sepolia deployment and Etherscan verification |
+| Implementation status | Mandatory contract decisions, Bonus C1, Bonus C2, local deployment decisions, and public Sepolia deployment decisions are reflected in implemented code, tests, records, and observed execution; frontend, AI, and rich metadata decisions remain pending or deferred |
 | Architecture model | Non-upgradeable |
-| Local deployment model | Hardhat and localhost only, chain ID 31337 |
+| Deployment models | Guarded local chain ID 31337 and guarded Sepolia chain ID 11155111 |
 | Student ID | 3122560090 |
 | Test token | MockUSDC with 6 decimals |
 
-This document is the living record of accepted, implemented, rejected, and
-deferred SafeBank decisions.
+This document remains the living record of accepted, implemented, rejected,
+and deferred SafeBank decisions.
 
-A decision marked implemented is backed by current code, tests, and observed
-execution results. Local deployment decisions do not prove that Sepolia,
-frontend, AI, or metadata features already exist.
+A decision marked implemented is backed by current code and observed evidence.
+Etherscan verification is source-to-bytecode evidence, not a professional
+security audit.
 
 ## 2. Decision Categories
 
@@ -148,6 +148,10 @@ Statuses mean:
 | ADR-044 | Use deterministic separated local roles and fixed demo targets | Implemented |
 | ADR-045 | Make persistent local deployment and seed idempotent with no default deposits | Implemented |
 | ADR-046 | Ignore local deployment records and export production ABIs only | Implemented |
+| ADR-047 | Separate the guarded Sepolia workflow from local deterministic seeding | Implemented |
+| ADR-048 | Use one dedicated Sepolia deployer as initial owner and fee receiver with two confirmations | Implemented |
+| ADR-049 | Initialize Sepolia with only canonical plan ID 1 and no demo mint, funding, or deposits | Implemented |
+| ADR-050 | Track public deployment records and compact metadata and verify all sources on Etherscan | Implemented |
 
 ---
 
@@ -2607,6 +2611,147 @@ three and the absence of mock or internal-interface ABI output.
 The future frontend must use explicit environment-aware address configuration
 and validate bytecode, chain ID, and contract relationships.
 
+# Phase 14 Public Deployment Decision Records
+
+## ADR-047 — Separate Public Sepolia Workflow
+
+**Status:** Implemented
+
+**Category:** Deployment and security decision
+
+### Context
+
+The Phase 13 local workflow intentionally mints demo balances and funds a local
+vault target. Reusing it on Sepolia would mix development-only identities and
+state with public testnet configuration.
+
+### Decision
+
+Use a separate Sepolia script with explicit network, chain-ID, signer, and
+public-address guards. Keep every Phase 13 deploy and seed script local-only.
+
+### Rationale
+
+This prevents accidental public execution of deterministic local seed logic.
+
+### Trade-offs
+
+Two deployment workflows must keep shared constructor assumptions synchronized.
+
+### Test implication
+
+Reject the wrong network and independently verify every public relationship.
+
+### UI implication
+
+Select addresses by chain ID and never use local deterministic addresses on
+Sepolia.
+
+---
+
+## ADR-048 — Dedicated Sepolia Administrative Identity
+
+**Status:** Implemented
+
+**Category:** Deployment and operational security decision
+
+### Decision
+
+Use
+`0xA998526b0A5F23680f50fa3677f5c6576Dba89d9`
+as Sepolia deployer, initial SavingCore owner, initial VaultManager owner, and
+initial fee receiver.
+
+Require exactly one configured signer and two confirmations for new
+transactions.
+
+### Rationale
+
+One explicit testnet identity avoids unreviewed local-account assumptions.
+
+### Trade-offs
+
+The account is a centralized single-key operational dependency.
+
+### Test implication
+
+Verify signer identity, ownership, fee receiver, pending owner, nonce, balance,
+and receipts.
+
+### UI implication
+
+Read admin authorization from on-chain ownership.
+
+---
+
+## ADR-049 — Minimal Sepolia Initialization
+
+**Status:** Implemented
+
+**Category:** Public deployment and demo decision
+
+### Decision
+
+Create canonical plan ID `1` only.
+
+Do not mint demo balances, fund VaultManager, or create a default deposit.
+
+### Rationale
+
+Minimal public initialization is easier to verify and avoids misleading
+funding claims.
+
+### Trade-offs
+
+A later public demo requires separate explicit token and deposit transactions.
+
+### Test implication
+
+Verify plan count `1`, deposit count `0`, and zero vault and reserve
+metrics.
+
+### UI implication
+
+Display the actual zero-balance and zero-liability state until later actions
+occur.
+
+---
+
+## ADR-050 — Public Records, Metadata, and Explorer Verification
+
+**Status:** Implemented
+
+**Category:** Deployment transparency decision
+
+### Decision
+
+Track public hardhat-deploy records under `deployments/sepolia/` and compact
+metadata at `data/deployments/sepolia.json`.
+
+Continue ignoring generated `solcInputs/`.
+
+Verify all three production contracts on Etherscan with exact constructor
+arguments.
+
+### Rationale
+
+This provides machine-readable configuration and human-verifiable source
+transparency without committing secrets.
+
+### Trade-offs
+
+Deployment records are large and require explicit audit before commit.
+
+### Test implication
+
+Audit addresses, transaction hashes, blocks, arguments, receipts, ABI,
+bytecode, ignored generated inputs, and secret-related fields.
+
+### UI implication
+
+Consume compact metadata but still validate chain ID, bytecode, and contract
+relationships at runtime.
+
 # Rejected Alternatives
 
 ## 5. Upgradeable Proxy Contracts
@@ -3215,11 +3360,12 @@ Deferred details must not contradict accepted financial and security behavior.
 
 ## 40. Current Decision Implementation Status
 
-Implemented and validated through Phase 13:
+Implemented and validated through Phase 14:
 
 - ADR-005, ADR-006, ADR-007, ADR-009, ADR-010, ADR-011, ADR-025,
   ADR-026, ADR-027, ADR-028, ADR-029, ADR-030, ADR-041, ADR-042,
-  ADR-043, ADR-044, ADR-045, and ADR-046;
+  ADR-043, ADR-044, ADR-045, ADR-046, ADR-047, ADR-048, ADR-049,
+  and ADR-050;
 - mandatory deposit, withdrawal, and renewal lifecycle decisions;
 - C1 principal-first settlement and fixed pending claims;
 - C2 aggregate reserve creation, release, consumption, and renewal
@@ -3237,6 +3383,13 @@ Implemented and validated through Phase 13:
 - ignored local deployment records;
 - production-only ABI export;
 - read-only local deployment verification;
+- separate guarded Sepolia deployment and preflight;
+- dedicated public administrative identity and two-confirmation policy;
+- minimal canonical-plan-only public initialization;
+- public state and receipt verification;
+- tracked public deployment records and compact metadata;
+- idempotent public deployment reuse;
+- Etherscan verification for all production contracts;
 - 5 deployment workflow tests;
 - 185 SavingCore tests;
 - 55 VaultManager tests;
@@ -3256,8 +3409,6 @@ Implemented and validated through Phase 13:
 Not implemented:
 
 - rich NFT metadata;
-- Sepolia deployment and verification;
-- public address configuration;
 - frontend;
 - AI assistants;
 - demo video and final submission audit.
