@@ -6,26 +6,35 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Security Model and Threat Analysis |
-| Current project phase | Phase 10 — Bonus C1 Principal-First Settlement |
-| Implementation status | Security controls for mandatory smart-contract flows through Phase 9 and Bonus C1 in Phase 10 are implemented and validated locally; Bonus C2, frontend, AI, and deployment controls remain pending |
+| Current project phase | Phase 12 — Bonus C2 Solvency Guard |
+| Implementation status | Security controls for mandatory smart-contract flows, Bonus C1, and Bonus C2 are implemented and validated locally; frontend, AI, deployment, and professional-audit controls remain pending |
 | Security approach | Defense-in-depth and risk reduction |
 | Smart contract model | Non-upgradeable |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document records implemented security controls together with the planned security model for later SafeBank phases.
+This document records implemented security controls together with the planned
+security model for later SafeBank phases.
 
-As of Phase 10, the project has locally validated access control, pause behavior, dependency validation, SafeERC20 principal transfers, deposit validation, deposit snapshot integrity, safe ERC721 minting, exact maturity and grace-boundary authorization, snapshotted withdrawal settlement, early-withdrawal penalty settlement, manual-renewal authorization, permissionless but ownership-safe auto-renewal, funded interest compounding, C1 principal-first maturity settlement, full-value deferred-interest accounting, fixed claimant snapshots, claimant-only later claims, atomic rollback, terminal-action ordering, and direct plus cross-function callback reentrancy protection.
+As of Phase 12, the project has locally validated access control, dependency
+validation, independent pause behavior, SafeERC20 token movement, immutable
+financial snapshots, safe ERC721 minting, exact timestamp boundaries, terminal
+state ordering, maturity and early settlement, funded renewal, C1
+principal-first settlement, fixed pending claims, C2 aggregate reserve
+accounting, available-liquidity withdrawal protection, funding-shortfall
+reporting, atomic rollback, reserve-underflow protection, and direct plus
+cross-function callback reentrancy protection.
 
 It does not claim that:
 
 - the contracts have been independently audited;
 - the project is production-ready;
-- C2, frontend, AI, or deployment mitigations are already active;
+- frontend, AI, or deployment mitigations are active;
 - every possible attack has been eliminated;
 - passing tests or high coverage alone prove security.
 
-Every security statement must remain consistent with the actual Solidity code, tests, deployment configuration, and observed execution results.
+Every security statement must remain consistent with the code, tests,
+configuration, and observed execution results.
 
 ## 1.1 Personal Variant Security Baseline
 
@@ -75,7 +84,7 @@ The intended security layers include:
 - deterministic financial calculations;
 - secret-management discipline;
 - implemented principal-first settlement and deferred-interest claims;
-- future solvency reserve accounting.
+- implemented solvency reserve accounting.
 
 The correct security language for SafeBank is:
 
@@ -130,11 +139,13 @@ SafeBank additionally requires:
 The selected bonuses are:
 
 - C1 — Principal-First Settlement, implemented and validated locally in
-  Phase 10;
-- C2 — Solvency Guard, selected but not yet implemented.
+  Phase 11;
+- C2 — Solvency Guard, implemented and validated locally in Phase 12.
 
-C1 is now an active resilience control. C2 remains a planned security and
-solvency extension.
+C1 protects principal recovery during an interest-liquidity shortfall.
+
+C2 records interest liabilities, exposes funding shortfall, and prevents owner
+withdrawal from consuming reserved liquidity.
 
 ### 3.4 Product Security Extensions
 
@@ -196,7 +207,7 @@ The implementation must preserve:
 - multiplication-before-division;
 - deterministic integer rounding;
 - exact principal and interest balance movements;
-- reserve accounting after C2.
+- reserve accounting under the implemented C2 model.
 
 ### 4.6 Administrative Containment
 
@@ -265,7 +276,10 @@ It must be protected against:
 
 ## 5.4 Reserved Interest
 
-After C2, `totalReservedInterest` represents interest liabilities allocated to active deposits.
+`SavingCore.totalReservedInterest` represents the aggregate of:
+
+- expected positive interest for active deposits;
+- unpaid C1 pending-interest liabilities.
 
 It must be protected against:
 
@@ -273,8 +287,13 @@ It must be protected against:
 - double release;
 - missed release;
 - double reservation;
-- incorrect renewal transition;
-- inconsistent vault withdrawals.
+- incorrect renewal replacement;
+- debt loss after failed claims;
+- inconsistent VaultManager withdrawal limits.
+
+VaultManager does not mutate this value. It reads it from the one-time
+authorized SavingCore and uses it to calculate available liquidity and funding
+shortfall.
 
 ## 5.5 Early Withdrawal Penalty
 
@@ -563,7 +582,9 @@ No user-provided data may be assumed valid.
 
 This is a critical contract boundary.
 
-`VaultManager` must verify that payout and reserve calls originate from the authorized SavingCore.
+`VaultManager` verifies that interest-payout calls originate from the authorized SavingCore.
+
+Reserve transitions occur internally in SavingCore. VaultManager reads the aggregate reserve from that same authorized contract for solvency enforcement.
 
 `SavingCore` must not assume a payout succeeded unless the external call completes successfully.
 
@@ -730,10 +751,11 @@ After C1:
 
 ## 10.12 Reserve Integrity
 
-After C2:
+Under the implemented C2 model:
 
 - every reservation is recorded once;
 - every release or consumption is recorded once;
+- deferred C1 debt remains reserved until paid;
 - administrator withdrawal stays within available liquidity.
 
 ---
@@ -754,7 +776,7 @@ After C2:
 | Plan update changes old deposit | Financial terms | APR and penalty snapshots | Snapshot tests |
 | Vault drain by arbitrary caller | Interest liquidity | Authorized SavingCore and owner-only admin methods | Unauthorized payout tests |
 | Wrong SavingCore authorization | Interest liquidity | Address validation, controlled setup, event emission | Configuration tests |
-| Admin over-withdrawal after C2 | Interest liabilities | `availableLiquidity` limit | Over-withdraw test |
+| Admin over-withdrawal | Interest liabilities | Implemented `availableLiquidity` limit | Exact and one-unit-over withdrawal tests |
 | Reserve underflow | Interest liabilities | Exact lifecycle transitions and Solidity checked arithmetic | Release-twice test |
 | Underfunded vault | User interest | C1 full-or-defer principal-first settlement | Principal-first and claim rollback tests |
 | Principal locked by missing interest | User principal | Implemented C1 principal-first settlement | Principal-first integration tests |
@@ -1241,7 +1263,7 @@ That can prevent principal recovery even though SavingCore still holds the princ
 
 ## 20.2 Bonus C1 Response
 
-Phase 10 implements principal-first settlement for the specific case where
+Phase 11 implements principal-first settlement for the specific case where
 VaultManager reports insufficient liquidity through
 `InsufficientVaultBalance`.
 
@@ -1287,9 +1309,18 @@ If the vault lacks interest:
 
 ## 20.4 Bonus C2 Response
 
-C2 will track reserved interest and restrict administrator withdrawal.
+Phase 12 implements aggregate reserved-interest accounting.
 
-C2 does not necessarily require full collateral before every deposit opens.
+`SavingCore` records liabilities, while VaultManager:
+
+- reads the aggregate from the authorized SavingCore;
+- reports available liquidity;
+- reports funding shortfall;
+- blocks owner withdrawal above available liquidity.
+
+C2 does not require full collateral before every deposit opens. A new deposit
+may increase shortfall, but the liability remains visible and the owner cannot
+withdraw reserved liquidity.
 
 ## 20.5 Residual Insolvency Risk
 
@@ -1304,232 +1335,127 @@ The UI and AI Risk Assistant must display the shortfall rather than hiding it.
 
 ---
 
-## 20.6 Phase 10 Withdrawal, Renewal, and C1 Security Evidence
+## 20.6 Phase 12 Withdrawal, Renewal, C1, and C2 Security Evidence
 
-Phase 10 retains all validated maturity-withdrawal, early-withdrawal,
-manual-renewal, and permissionless auto-renew controls and adds C1
-principal-first settlement and deferred-interest claim security controls.
+Phase 12 retains all validated withdrawal, renewal, and C1 controls and adds
+C2 reserve and withdrawal-containment controls.
 
-### 20.6.1 Active-Only Lifecycle Enforcement
+### 20.6.1 Lifecycle and Authorization
 
-Every settlement or renewal path requires:
+Every owner-restricted action uses the direct current NFT owner. Auto-renew
+remains permissionless but cannot redirect the new certificate.
 
-- an existing deposit;
-- status `Active`;
-- the correct timestamp window;
-- the required caller authority where the action is owner-restricted.
+Only an `Active` deposit may reach a terminal state.
 
-A successful action changes the old deposit to one terminal status:
+### 20.6.2 Reserve Creation and Isolation
 
-- `Withdrawn`;
-- `ManualRenewed`;
-- `AutoRenewed`.
+A positive-interest deposit opening creates one aggregate reservation using
+snapshotted principal, APR, and tenor.
 
-The old certificate remains historical, but its terminal deposit cannot be
-processed again.
+Zero-rounded interest creates no reservation.
 
-### 20.6.2 Owner-Restricted and Permissionless Actions
+Later plan updates, plan disabling, and NFT transfers do not change an
+existing deposit's expected-interest reserve.
 
-The direct current certificate owner controls:
+### 20.6.3 Reserve Release, Consumption, and Deferral
 
-- early withdrawal;
-- maturity withdrawal;
-- manual renewal.
+- early withdrawal releases the full unused old-term reserve;
+- funded maturity consumes the reserve;
+- C1 deferral preserves it;
+- successful pending claim consumes it;
+- failed claim restores pending debt and reserve by EVM rollback.
 
-ERC721 approval alone does not grant those rights.
+### 20.6.4 Renewal Replacement
 
-`autoRenew(depositId)` is permissionless.
+Manual and auto-renew atomically:
 
-An unrelated account may trigger it, but the new certificate is minted to the
-current owner of the old certificate.
+1. consume the old positive-interest reserve;
+2. create the new term's positive expected-interest reserve;
+3. obtain funded interest from VaultManager when required;
+4. safely mint the renewed certificate.
 
-The caller cannot choose:
+Any later failure restores the complete old accounting state.
 
-- the recipient;
-- the plan ID;
-- APR;
-- tenor;
-- penalty;
-- principal;
-- payout recipient.
+### 20.6.5 Vault Solvency Reads
 
-### 20.6.3 Exact Boundary Controls
+VaultManager exposes:
 
-The implemented boundaries are:
+- actual token balance;
+- total reserved interest;
+- available liquidity;
+- funding shortfall.
 
-- early withdrawal:
-  `block.timestamp < maturityAt`;
-- maturity withdrawal:
-  `block.timestamp >= maturityAt`;
-- manual renewal:
-  `maturityAt <= block.timestamp < maturityAt + GRACE_PERIOD`;
-- auto-renew:
-  `block.timestamp >= maturityAt + GRACE_PERIOD`.
+Both subtraction directions are saturating.
 
-At one second before grace end, auto-renew reverts with
-`AutoRenewalTooEarly`.
+Before SavingCore authorization, the reserve getter returns zero.
 
-At exact grace end, auto-renew is valid and manual renewal is invalid.
+### 20.6.6 Administrator Withdrawal Protection
 
-### 20.6.4 Snapshot Integrity
+Owner withdrawal is limited to available liquidity.
 
-Auto-renew preserves the old deposit's:
+Validated cases include:
 
-- plan ID;
-- tenor;
-- APR;
-- early-withdrawal penalty.
+- balance greater than reserve;
+- balance equal to reserve;
+- reserve greater than balance;
+- exact available withdrawal;
+- one unit above available;
+- later funding;
+- direct ERC20 transfer.
 
-It does not read or reapply the current plan's:
+### 20.6.7 Invariant and Rollback Protection
 
-- APR;
-- enabled state;
-- minimum;
-- maximum.
+`InsufficientReservedInterest` protects internal aggregate reductions.
 
-Updating or disabling the original plan cannot retroactively change an
-existing deposit's auto-renew terms.
+A test-only harness reaches this otherwise inaccessible defensive branch. The
+harness is excluded from production ABIs and architecture.
 
-### 20.6.5 One-Term-Only Delayed Execution
-
-Time passing does not execute Solidity state changes.
-
-A delayed auto-renew call:
-
-- creates exactly one new deposit;
-- calculates exactly one old term of interest;
-- does not create retroactive catch-up terms;
-- starts the new term at the successful transaction timestamp.
-
-### 20.6.6 Funded Compounding
-
-For positive old-term interest:
-
-- VaultManager transfers the complete interest amount into SavingCore;
-- new principal equals old principal plus funded interest;
-- the user wallet balance remains unchanged;
-- total token supply remains unchanged.
-
-When interest rounds down to zero:
-
-- no vault payout occurs;
-- no `InterestPaid` event is emitted;
-- new principal equals old principal;
-- auto-renew may succeed while only VaultManager is paused.
-
-No renewal path creates unfunded principal.
-
-### 20.6.7 Atomic Rollback
-
-Validated auto-renew failure cases include:
-
-- underfunded VaultManager;
-- paused VaultManager during positive-interest payout;
-- unauthorized SavingCore;
-- current owner unable to receive ERC721 safely.
-
-Every failure restores:
-
-- old deposit status;
-- deposit count;
-- absence of the new deposit;
-- absence of the new NFT;
-- old NFT ownership;
-- SavingCore balance;
-- VaultManager balance;
-- total token supply.
-
-### 20.6.8 Reentrancy Protection
-
-`autoRenew` uses `nonReentrant`.
-
-Validated callback surfaces include:
-
-- ERC20 callback during VaultManager interest transfer;
-- ERC721 receiver callback during safe minting.
-
-Nested auto-renew attempts revert with
-`ReentrancyGuardReentrantCall`, while the original valid transaction may
-complete.
-
-### 20.6.9 Competing Transaction Ordering
-
-After grace, while the old deposit remains `Active`:
-
-- the current owner may withdraw at maturity;
-- any address may trigger auto-renew.
-
-The first successfully mined transaction wins.
-
-The terminal status prevents the second transaction from succeeding.
-
-### 20.6.10 Events and Auditability
-
-Successful auto-renew emits:
-
-`Renewed(oldDepositId, newDepositId, newPrincipal, oldPlanId)`
-
-Positive-interest execution also emits:
-
-- `VaultManager.InterestPaid`;
-- ERC721 `Transfer` for the new mint.
-
-Auto-renew does not emit:
-
-- `DepositOpened`;
-- `Withdrawn`.
-
-### 20.6.11 Principal-First Settlement and Deferred Claims
-
-Phase 10 validates the following controls:
-
-- only the direct current NFT owner may perform maturity settlement;
-- principal is transferred before the optional interest payout result is
-  finalized;
-- only the exact VaultManager `InsufficientVaultBalance` selector activates
-  deferral;
-- the full calculated amount is deferred without partial payout;
-- the current owner is snapshotted as the fixed claimant;
-- post-settlement NFT transfer does not change that claimant;
-- unrelated callers and approved ERC721 operators cannot claim;
-- a successful claim clears the pending amount exactly once;
-- an underfunded or paused claim restores pending debt through rollback;
-- an empty or unexpected VaultManager revert restores the entire maturity
-  settlement;
-- callback reentrancy cannot duplicate the pending-interest claim;
-- manual and auto-renew continue to require fully funded positive interest.
-
-### 20.6.12 Verified Phase 10 Evidence
+### 20.6.8 Verified Phase 12 Evidence
 
 Verified results:
 
-- `173` SavingCore tests pass;
-- `233` tests pass across the complete project;
-- SavingCore achieves 100% statements, branches, functions, and lines;
-- no SavingCore statement, branch, function, or line remains uncovered;
-- complete project coverage reports 98.92% statements, 96.97% branches,
-  96.43% functions, and 96.62% lines;
-- SavingCore deployed bytecode is approximately `11.905 KiB`;
-- SavingCore initcode is approximately `13.149 KiB`;
-- principal-first, later-claim, wrong-claimant, double-claim, pause,
-  underfunding, empty-revert, and callback-reentrancy paths are validated.
+- 185 SavingCore tests;
+- 55 VaultManager tests;
+- 13 MockUSDC tests;
+- 253 tests across the complete project;
+- 100% statements, branches, functions, and lines for SavingCore;
+- 100% statements, functions, and lines for VaultManager;
+- production-contract coverage of 100% statements, 98.40% branches,
+  100% functions, and 100% lines;
+- complete project coverage of 99.11% statements, 97.17% branches,
+  96.97% functions, and 96.98% lines;
+- SavingCore deployed bytecode approximately `12.654 KiB`;
+- SavingCore initcode approximately `13.905 KiB`;
+- VaultManager deployed bytecode approximately `3.483 KiB`;
+- VaultManager initcode approximately `3.897 KiB`.
 
 Residual risks still include:
+
 - compromised administrator ownership;
-- incorrect dependency configuration;
-- insufficient future interest funding;
+- incorrect one-time dependency configuration;
+- insufficient bank funding;
 - unsupported or malicious ERC20 behavior outside tested assumptions;
 - timestamp and transaction-ordering limitations;
 - frontend, RPC, wallet, deployment, and operational failures;
-- C1 and C2 controls that remain unimplemented;
 - absence of an independent professional audit.
 
-Passing tests and full SavingCore coverage reduce identified risk but do not
+Passing tests and full core line coverage reduce identified risk but do not
 constitute an independent audit or a guarantee of security.
 
 ## 21. C1 Security Requirements
 
-C1 is planned for a later phase.
+C1 was implemented and validated in Phase 11.
+
+The implemented controls include:
+
+- current-owner claimant snapshot at deferred maturity settlement;
+- terminal deposit status;
+- full-value pending debt;
+- claimant-only later claim;
+- debt clearing before interaction;
+- EVM rollback after failed payout;
+- double-settlement and double-claim rejection;
+- NFT-transfer isolation after claimant snapshot.
 
 ## 21.1 Claimant Snapshot
 
@@ -1575,7 +1501,60 @@ Tests must cover:
 
 ## 22. C2 Security Requirements
 
-C2 is planned for a later phase.
+C2 was implemented and validated in Phase 12.
+
+### 22.1 Reservation Creation
+
+A new active deposit creates one reservation when expected interest is
+positive. Zero-rounded interest creates none.
+
+### 22.2 Reservation Release
+
+Early withdrawal releases the complete old-term reservation.
+
+### 22.3 Reservation Consumption
+
+Funded maturity payout and successful pending-interest claim consume the
+relevant reservation.
+
+### 22.4 Deferred Interest
+
+C1 deferred interest remains reserved until a successful later claim.
+
+### 22.5 Renewal Transition
+
+Manual and auto-renew atomically consume the old reservation and create the new
+term's reservation.
+
+### 22.6 Available Liquidity and Shortfall
+
+Available liquidity is:
+
+`max(vaultBalance - totalReservedInterest, 0)`
+
+Funding shortfall is:
+
+`max(totalReservedInterest - vaultBalance, 0)`
+
+### 22.7 Administrator Withdrawal
+
+Administrator withdrawal cannot exceed available liquidity.
+
+### 22.8 Validated Tests
+
+Tests cover:
+
+- positive and zero reservation;
+- open rollback;
+- early release;
+- funded maturity consumption;
+- C1 deferral and claim;
+- failed-claim rollback;
+- manual and auto-renew replacement;
+- failed-renew rollback;
+- undercollateralization;
+- exact and excessive withdrawal;
+- reserve-underflow invariant.
 
 ## 22.1 Reservation Creation
 
@@ -2553,7 +2532,7 @@ SafeBank does not attempt to:
 
 ## 42. Security Decision Status
 
-Resolved and implemented through Phase 10:
+Resolved and implemented through Phase 12:
 
 1. Basic `ERC721` is used without `ERC721Enumerable`.
 2. APR, tenor, and penalty validation bounds are fixed.
@@ -2605,6 +2584,16 @@ Resolved and implemented through Phase 10:
     `nonReentrant`.
 39. After grace, maturity withdrawal and auto-renew follow
     first-successfully-mined terminal-action ordering.
+40. SavingCore records one aggregate reserve for positive expected and pending
+    interest liabilities.
+41. Early withdrawal releases the old reservation.
+42. Funded maturity and successful pending claims consume reserve.
+43. C1 deferred interest remains reserved until paid.
+44. Manual and auto-renew atomically replace old and new reserves.
+45. VaultManager reads reserve only from the one-time authorized SavingCore.
+46. Available liquidity and funding shortfall use saturating subtraction.
+47. Owner withdrawal cannot exceed available liquidity.
+48. Reserve reductions are protected by an explicit underflow invariant.
 
 Still unresolved or deferred:
 
@@ -2618,82 +2607,32 @@ Deferred security decisions must be finalized before their related implementatio
 
 ---
 
-## 43. Phase 10 Security Status
+## 43. Phase 12 Security Status
 
 Completed and validated locally:
 
-- security philosophy, assets, actors, trust boundaries, and threat
-  analysis;
-- Ownable2Step access control;
-- dependency address and deployed-bytecode validation;
-- independent SavingCore and VaultManager pause controls;
-- SafeERC20 principal collection and return;
-- plan and deposit validation;
-- immutable deposit-term snapshots;
-- safe ERC721 certificate minting;
-- direct current-owner authorization for owner-restricted actions;
-- approved ERC721 operator rejection;
-- exact maturity and post-grace withdrawal handling;
-- snapshotted simple-interest calculation;
-- historical NFT retention;
-- double-withdraw prevention;
-- underfunded, paused, and unauthorized VaultManager maturity rollback;
-- early withdrawal before maturity;
-- immutable early-penalty snapshots;
-- current fee-receiver resolution;
-- zero and maximum penalty handling;
-- early-withdrawal atomic rollback;
-- maturity and early-withdrawal callback reentrancy protection;
-- manual renewal during the two-day grace period;
-- exact manual-renewal start and end boundaries;
-- selected enabled-plan validation;
-- selected-plan compounded-principal limits;
-- physically funded manual-renewal interest;
-- zero-interest manual renewal without a vault payout;
-- old `Active` to `ManualRenewed` transition;
-- permissionless `autoRenew(depositId)`;
-- `AutoRenewalTooEarly` before the grace-period end;
-- successful auto-renew at the exact grace-period end;
-- unrelated-caller execution without ownership transfer;
-- current-old-owner renewed NFT receipt;
-- transferred-certificate recipient resolution;
-- preservation of old plan ID, tenor, APR, and penalty snapshots;
-- isolation from current plan APR updates and plan disabling;
-- no reapplication of current plan minimum or maximum;
-- one-term-only delayed execution;
-- execution-timestamp start for the new term;
-- no retroactive multi-term catch-up;
-- physically funded positive-interest auto-renew;
-- zero-interest auto-renew without a vault payout;
-- old `Active` to `AutoRenewed` transition;
-- new active deposit creation;
-- old-certificate retention;
-- new-certificate safe minting;
-- first-successfully-mined terminal-action ordering;
-- rejection of repeated renewal and withdrawal after auto-renew;
-- rejection of auto-renew after maturity withdrawal;
-- underfunded auto-renew rollback;
-- unauthorized-vault auto-renew rollback;
-- paused-vault positive-interest auto-renew rollback;
-- failed safe-mint auto-renew rollback;
-- user wallet balance conservation;
-- MockUSDC total-supply conservation;
-- ERC20 renewal-payout callback protection;
-- ERC721 renewal-mint callback protection;
-- exclusion between all terminal lifecycle paths;
-- security mocks and automated tests;
-- principal-first settlement and deferred-interest claim tests;
-- `173` SavingCore tests;
-- `233` full-suite tests;
-- 100% statements, branches, functions, and lines coverage for SavingCore;
-- no uncovered SavingCore statement, branch, function, or line;
-- SavingCore deployed bytecode of approximately `11.905 KiB`;
-- SavingCore initcode of approximately `13.149 KiB`.
+- access control, dependency validation, and independent pause controls;
+- SafeERC20 token movement and callback reentrancy protection;
+- immutable plan and deposit snapshots;
+- exact lifecycle boundaries and terminal-action exclusion;
+- maturity, early withdrawal, manual renewal, and auto-renew;
+- C1 principal-first settlement and claimant-only pending claims;
+- C2 aggregate reserve creation, release, consumption, and renewal
+  replacement;
+- C2 deferred-interest reserve preservation;
+- C2 undercollateralization visibility;
+- C2 available-liquidity withdrawal limits;
+- reserve-underflow protection;
+- atomic rollback across token, vault, and safe-mint failures;
+- 185 SavingCore tests;
+- 55 VaultManager tests;
+- 253 full-suite tests;
+- 100% statements, branches, functions, and lines for SavingCore;
+- 100% statements, functions, and lines for VaultManager;
+- core production contracts at 100% statements, functions, and lines.
 
 Not completed:
 
-- C1 implementation;
-- C2 implementation;
 - deployment verification;
 - frontend security implementation;
 - AI security implementation;
@@ -2713,7 +2652,7 @@ SafeBank is designed around the following security priorities:
 6. restrict administrative actions on-chain;
 7. define exact timestamp boundaries;
 8. return principal before deferring interest after C1;
-9. prevent withdrawal of reserved liquidity after C2;
+9. prevent withdrawal of reserved liquidity under the implemented C2 model;
 10. keep frontend and AI outside the security boundary;
 11. protect secrets and deployment configuration;
 12. validate every claim through code and tests.

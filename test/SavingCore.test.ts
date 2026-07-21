@@ -7701,4 +7701,381 @@ describe("SavingCore", function () {
       );
     });
   });
+
+  describe("C2 reserved-interest lifecycle", function () {
+    it("reserves snapshot interest when opening an undercollateralized deposit", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { token, vault, savingCore, other } = fixture;
+
+      await createDefaultPlan(fixture);
+
+      const principal = amount("1000");
+      const interest = calculateInterest(
+        principal,
+        BigInt(DEFAULT_APR_BPS),
+        BigInt(DEFAULT_TENOR_DAYS),
+      );
+
+      await token.mint(other.address, principal);
+      await token
+        .connect(other)
+        .approve(await savingCore.getAddress(), principal);
+
+      await expect(
+        savingCore.connect(other).openDeposit(1n, principal),
+      )
+        .to.emit(savingCore, "InterestReserved")
+        .withArgs(1n, interest, interest);
+
+      expect(await savingCore.totalReservedInterest()).to.equal(
+        interest,
+      );
+      expect(await vault.totalReservedInterest()).to.equal(interest);
+      expect(await vault.availableLiquidity()).to.equal(0n);
+      expect(await vault.fundingShortfall()).to.equal(interest);
+    });
+
+    it("does not create a phantom reserve when interest rounds to zero", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { token, vault, savingCore, owner, other } = fixture;
+
+      await savingCore.connect(owner).createPlan(
+        1n,
+        1n,
+        0n,
+        0n,
+        0n,
+        true,
+      );
+
+      const principal = 1n;
+
+      await token.mint(other.address, principal);
+      await token
+        .connect(other)
+        .approve(await savingCore.getAddress(), principal);
+      await savingCore.connect(other).openDeposit(1n, principal);
+
+      expect(await savingCore.totalReservedInterest()).to.equal(0n);
+      expect(await vault.totalReservedInterest()).to.equal(0n);
+      expect(await vault.fundingShortfall()).to.equal(0n);
+    });
+
+    it("uses APR snapshots and ignores later disabling and NFT transfer", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        savingCore,
+        owner,
+        other,
+        anotherAccount,
+      } = fixture;
+
+      await createDefaultPlan(fixture);
+
+      const principal = amount("1000");
+      const firstInterest = calculateInterest(
+        principal,
+        BigInt(DEFAULT_APR_BPS),
+        BigInt(DEFAULT_TENOR_DAYS),
+      );
+
+      await token.mint(other.address, principal);
+      await token
+        .connect(other)
+        .approve(await savingCore.getAddress(), principal);
+      await savingCore.connect(other).openDeposit(1n, principal);
+
+      const updatedApr = 400n;
+      await savingCore.connect(owner).updatePlan(1n, updatedApr);
+
+      const secondInterest = calculateInterest(
+        principal,
+        updatedApr,
+        BigInt(DEFAULT_TENOR_DAYS),
+      );
+
+      await token.mint(anotherAccount.address, principal);
+      await token
+        .connect(anotherAccount)
+        .approve(await savingCore.getAddress(), principal);
+      await savingCore
+        .connect(anotherAccount)
+        .openDeposit(1n, principal);
+
+      const expectedReserve = firstInterest + secondInterest;
+
+      expect(await savingCore.totalReservedInterest()).to.equal(
+        expectedReserve,
+      );
+
+      await savingCore.connect(owner).disablePlan(1n);
+      await savingCore
+        .connect(other)
+        .transferFrom(other.address, anotherAccount.address, 1n);
+
+      expect(await savingCore.totalReservedInterest()).to.equal(
+        expectedReserve,
+      );
+    });
+
+    it("rolls back a newly created reserve when deposit opening fails", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { token, savingCore, other } = fixture;
+
+      await createDefaultPlan(fixture);
+
+      const principal = amount("1000");
+      await token.mint(other.address, principal);
+
+      await expect(
+        savingCore.connect(other).openDeposit(1n, principal),
+      ).to.be.reverted;
+
+      expect(await savingCore.totalReservedInterest()).to.equal(0n);
+      expect(await savingCore.depositCount()).to.equal(0n);
+    });
+
+    it("releases the complete reserve on early withdrawal exactly once", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { savingCore, other } = fixture;
+      const { depositId, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      expect(await savingCore.totalReservedInterest()).to.equal(
+        interest,
+      );
+
+      await expect(savingCore.connect(other).earlyWithdraw(depositId))
+        .to.emit(savingCore, "ReservedInterestReleased")
+        .withArgs(depositId, interest, 0n);
+
+      expect(await savingCore.totalReservedInterest()).to.equal(0n);
+
+      await expect(
+        savingCore.connect(other).earlyWithdraw(depositId),
+      ).to.be.revertedWithCustomError(
+        savingCore,
+        "DepositNotActive",
+      );
+
+      expect(await savingCore.totalReservedInterest()).to.equal(0n);
+    });
+
+    it("consumes the reserve after fully funded maturity settlement", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { savingCore, other } = fixture;
+      const { depositId, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await fundVault(fixture, interest);
+      await time.setNextBlockTimestamp(maturityAt);
+
+      await expect(
+        savingCore.connect(other).withdrawAtMaturity(depositId),
+      )
+        .to.emit(savingCore, "ReservedInterestConsumed")
+        .withArgs(depositId, interest, 0n);
+
+      expect(await savingCore.totalReservedInterest()).to.equal(0n);
+      expect(await savingCore.pendingInterest(depositId)).to.equal(0n);
+    });
+
+    it("keeps deferred C1 interest reserved until a successful claim", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { vault, savingCore, other } = fixture;
+      const { depositId, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await time.setNextBlockTimestamp(maturityAt);
+      await savingCore.connect(other).withdrawAtMaturity(depositId);
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(
+        interest,
+      );
+      expect(await savingCore.totalReservedInterest()).to.equal(
+        interest,
+      );
+      expect(await vault.fundingShortfall()).to.equal(interest);
+
+      await fundVault(fixture, interest);
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(depositId),
+      )
+        .to.emit(savingCore, "ReservedInterestConsumed")
+        .withArgs(depositId, interest, 0n);
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(0n);
+      expect(await savingCore.totalReservedInterest()).to.equal(0n);
+      expect(await vault.totalReservedInterest()).to.equal(0n);
+    });
+
+    it("restores pending debt and reserve when a claim remains underfunded", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { vault, savingCore, other } = fixture;
+      const { depositId, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await time.setNextBlockTimestamp(maturityAt);
+      await savingCore.connect(other).withdrawAtMaturity(depositId);
+
+      const available = interest - 1n;
+      await fundVault(fixture, available);
+
+      await expect(
+        savingCore.connect(other).claimPendingInterest(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          vault,
+          "InsufficientVaultBalance",
+        )
+        .withArgs(available, interest);
+
+      expect(await savingCore.pendingInterest(depositId)).to.equal(
+        interest,
+      );
+      expect(await savingCore.totalReservedInterest()).to.equal(
+        interest,
+      );
+    });
+
+    it("atomically replaces the old reserve during manual renewal", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { savingCore, other } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await fundVault(fixture, interest);
+      await time.setNextBlockTimestamp(maturityAt);
+
+      const newPrincipal = principal + interest;
+      const newReserve = calculateInterest(
+        newPrincipal,
+        BigInt(DEFAULT_APR_BPS),
+        BigInt(DEFAULT_TENOR_DAYS),
+      );
+
+      await savingCore.connect(other).manualRenew(depositId, 1n);
+
+      expect(await savingCore.totalReservedInterest()).to.equal(
+        newReserve,
+      );
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        2n,
+      );
+      expect((await savingCore.getDeposit(2n)).principal).to.equal(
+        newPrincipal,
+      );
+    });
+
+    it("atomically replaces the old reserve during auto-renewal", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { savingCore, other } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      await fundVault(fixture, interest);
+
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+      await time.setNextBlockTimestamp(maturityAt + gracePeriod);
+
+      const newPrincipal = principal + interest;
+      const newReserve = calculateInterest(
+        newPrincipal,
+        BigInt(DEFAULT_APR_BPS),
+        BigInt(DEFAULT_TENOR_DAYS),
+      );
+
+      await savingCore.connect(other).autoRenew(depositId);
+
+      expect(await savingCore.totalReservedInterest()).to.equal(
+        newReserve,
+      );
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        3n,
+      );
+      expect((await savingCore.getDeposit(2n)).principal).to.equal(
+        newPrincipal,
+      );
+    });
+
+    it("rolls back both old and new reserves when renewal is underfunded", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { vault, savingCore, other } = fixture;
+      const { depositId, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      const available = interest - 1n;
+      await fundVault(fixture, available);
+      await time.setNextBlockTimestamp(maturityAt);
+
+      await expect(
+        savingCore.connect(other).manualRenew(depositId, 1n),
+      )
+        .to.be.revertedWithCustomError(
+          vault,
+          "InsufficientVaultBalance",
+        )
+        .withArgs(available, interest);
+
+      expect(await savingCore.totalReservedInterest()).to.equal(
+        interest,
+      );
+      expect(await savingCore.depositCount()).to.equal(1n);
+      expect((await savingCore.getDeposit(depositId)).status).to.equal(
+        0n,
+      );
+    });
+
+    it("reverts when an internal reserve reduction exceeds aggregate liabilities", async function () {
+      const { token, vault, owner } = await loadFixture(
+        deploySavingCoreFixture,
+      );
+
+      const Harness = await ethers.getContractFactory(
+        "MockSavingCoreHarness",
+      );
+      const harness = await Harness.deploy(
+        await token.getAddress(),
+        await vault.getAddress(),
+        owner.address,
+      );
+
+      await harness.waitForDeployment();
+
+      await expect(
+        harness.exposeDecreaseReservedInterest(1n),
+      )
+        .to.be.revertedWithCustomError(
+          harness,
+          "InsufficientReservedInterest",
+        )
+        .withArgs(0n, 1n);
+
+      expect(await harness.totalReservedInterest()).to.equal(0n);
+    });
+  });
 });

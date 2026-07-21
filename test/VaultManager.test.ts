@@ -934,4 +934,128 @@ describe("VaultManager", function () {
       expect(await vault.vaultBalance()).to.equal(fundingAmount);
     });
   });
+
+  describe("C2 solvency guard", function () {
+    it("reports zero reserve before SavingCore authorization", async function () {
+      const { vault } = await loadFixture(deployVaultFixture);
+
+      expect(await vault.totalReservedInterest()).to.equal(0n);
+      expect(await vault.availableLiquidity()).to.equal(0n);
+      expect(await vault.fundingShortfall()).to.equal(0n);
+    });
+
+    it("reads aggregate reserve from the authorized SavingCore", async function () {
+      const { vault, savingCore } =
+        await loadFixture(authorizedFundedVaultFixture);
+      const reserved = amount("400");
+
+      await savingCore.setTotalReservedInterest(reserved);
+
+      expect(await vault.totalReservedInterest()).to.equal(reserved);
+    });
+
+    it("calculates available liquidity when balance exceeds reserve", async function () {
+      const { vault, savingCore, fundingAmount } =
+        await loadFixture(authorizedFundedVaultFixture);
+      const reserved = amount("400");
+
+      await savingCore.setTotalReservedInterest(reserved);
+
+      expect(await vault.availableLiquidity()).to.equal(
+        fundingAmount - reserved,
+      );
+      expect(await vault.fundingShortfall()).to.equal(0n);
+    });
+
+    it("returns zero available liquidity when balance equals reserve", async function () {
+      const { vault, savingCore, fundingAmount } =
+        await loadFixture(authorizedFundedVaultFixture);
+
+      await savingCore.setTotalReservedInterest(fundingAmount);
+
+      expect(await vault.availableLiquidity()).to.equal(0n);
+      expect(await vault.fundingShortfall()).to.equal(0n);
+    });
+
+    it("uses saturating subtraction when reserve exceeds balance", async function () {
+      const { vault, savingCore, fundingAmount } =
+        await loadFixture(authorizedFundedVaultFixture);
+      const reserved = fundingAmount + amount("250");
+
+      await savingCore.setTotalReservedInterest(reserved);
+
+      expect(await vault.availableLiquidity()).to.equal(0n);
+      expect(await vault.fundingShortfall()).to.equal(
+        reserved - fundingAmount,
+      );
+    });
+
+    it("allows withdrawing the exact available liquidity", async function () {
+      const { vault, savingCore, owner, fundingAmount } =
+        await loadFixture(authorizedFundedVaultFixture);
+      const reserved = amount("350");
+      const available = fundingAmount - reserved;
+
+      await savingCore.setTotalReservedInterest(reserved);
+
+      await expect(vault.connect(owner).withdrawVault(available))
+        .to.emit(vault, "VaultWithdrawn")
+        .withArgs(owner.address, available);
+
+      expect(await vault.vaultBalance()).to.equal(reserved);
+      expect(await vault.totalReservedInterest()).to.equal(reserved);
+      expect(await vault.availableLiquidity()).to.equal(0n);
+    });
+
+    it("rejects owner withdrawal above available liquidity", async function () {
+      const { vault, savingCore, owner, fundingAmount } =
+        await loadFixture(authorizedFundedVaultFixture);
+      const reserved = amount("600");
+      const available = fundingAmount - reserved;
+      const requested = available + 1n;
+
+      await savingCore.setTotalReservedInterest(reserved);
+
+      await expect(vault.connect(owner).withdrawVault(requested))
+        .to.be.revertedWithCustomError(
+          vault,
+          "InsufficientVaultBalance",
+        )
+        .withArgs(available, requested);
+
+      expect(await vault.vaultBalance()).to.equal(fundingAmount);
+      expect(await vault.totalReservedInterest()).to.equal(reserved);
+    });
+
+    it("funding and direct transfers change balance metrics without changing reserve", async function () {
+      const { token, vault, savingCore, owner, other, fundingAmount } =
+        await loadFixture(authorizedFundedVaultFixture);
+      const reserved = amount("1200");
+      const addedFunding = amount("300");
+      const directTransfer = amount("100");
+
+      await savingCore.setTotalReservedInterest(reserved);
+
+      expect(await vault.fundingShortfall()).to.equal(
+        reserved - fundingAmount,
+      );
+
+      await token.mint(owner.address, addedFunding);
+      await token
+        .connect(owner)
+        .approve(await vault.getAddress(), addedFunding);
+      await vault.connect(owner).fundVault(addedFunding);
+
+      await token.mint(other.address, directTransfer);
+      await token
+        .connect(other)
+        .transfer(await vault.getAddress(), directTransfer);
+
+      expect(await vault.totalReservedInterest()).to.equal(reserved);
+      expect(await vault.fundingShortfall()).to.equal(0n);
+      expect(await vault.availableLiquidity()).to.equal(
+        fundingAmount + addedFunding + directTransfer - reserved,
+      );
+    });
+  });
 });

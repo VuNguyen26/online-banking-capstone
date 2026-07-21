@@ -6,20 +6,25 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | System Architecture |
-| Current phase | Phase 10 — Bonus C1 Principal-First Settlement |
-| Implementation status | Mandatory smart-contract flows through Phase 9 and Bonus C1 in Phase 10 are implemented and validated locally; Bonus C2, frontend, AI, and deployment remain pending |
+| Current phase | Phase 12 — Bonus C2 Solvency Guard |
+| Implementation status | Mandatory smart-contract flows, Bonus C1, and Bonus C2 are implemented and validated locally; frontend, AI, deployment, demo, and final submission remain pending |
 | Smart contract model | Non-upgradeable |
 | Target environments | Hardhat local network and Ethereum Sepolia testnet |
 | Test token | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document records both the implemented architecture and the planned direction for later SafeBank phases.
+This document records the implemented architecture and the planned direction
+for later SafeBank product and deployment phases.
 
-As of Phase 10, MockUSDC, VaultManager, SavingCore plan management, deposit opening, principal custody, financial-term snapshots, ERC721 certificate issuance, maturity withdrawal, early withdrawal with penalty, manual renewal during the grace period, permissionless auto-renewal after grace, and Bonus C1 principal-first settlement with deferred-interest claims are implemented and validated locally.
+As of Phase 12, MockUSDC, VaultManager, SavingCore plan management, deposit
+opening, principal custody, financial snapshots, ERC721 certificates, maturity
+withdrawal, early withdrawal, manual renewal, permissionless auto-renewal,
+Bonus C1 principal-first settlement, deferred-interest claims, aggregate
+reserved-interest accounting, available-liquidity protection, and funding
+shortfall reporting are implemented and validated locally.
 
-Sections covering Bonus C2, frontend, AI, and deployment remain design specifications and must not be treated as implemented, audited, deployed, or production-ready.
-
----
+Frontend, AI, deployment, public testnet verification, and production-readiness
+claims remain outside the current implementation.
 
 ## 2. Project Overview
 
@@ -42,7 +47,7 @@ The bank administrator manages:
 - vault withdrawals;
 - fee receiver configuration;
 - pause and unpause operations;
-- future solvency information and reserve accounting.
+- implemented solvency information and reserve accounting.
 
 The most important architectural rule is:
 
@@ -98,12 +103,14 @@ SafeBank has additionally decided that:
 
 ### 3.3 Bonus Scope
 
-SafeBank selected two bonuses:
+SafeBank selected and implemented two bonuses:
 
-- C1 — Principal-First Settlement, implemented and validated locally in Phase 10;
-- C2 — Solvency Guard, selected but not yet implemented.
+- C1 — Principal-First Settlement, implemented and validated locally in
+  Phase 11;
+- C2 — Solvency Guard, implemented and validated locally in Phase 12.
 
-Bonus C2 remains outside the current implementation scope.
+C2 uses SavingCore as the liability source of truth and VaultManager as the
+liquidity and administrator-withdrawal enforcement point.
 
 ### 3.4 Product and AI Extensions
 
@@ -407,7 +414,7 @@ Planned responsibilities:
 - process permissionless auto-renewal;
 - request interest payouts from `VaultManager`;
 - manage pending interest after C1;
-- coordinate reserved interest after C2;
+- maintain aggregate reserved-interest lifecycle accounting;
 - emit deposit and plan events.
 
 `SavingCore` must not use another user's principal to pay interest.
@@ -424,9 +431,9 @@ Planned responsibilities:
 - store or expose the early-withdrawal fee receiver;
 - allow only the authorized `SavingCore` to request interest payouts;
 - support pause and unpause behavior;
-- track reserved interest after C2;
-- expose available liquidity after C2;
-- prevent withdrawal beyond available liquidity after C2;
+- read aggregate reserved interest from the authorized SavingCore;
+- expose available liquidity and funding shortfall;
+- prevent owner withdrawal beyond available liquidity;
 - emit events for administrative and payout operations.
 
 `VaultManager` does not hold user principal by architectural design.
@@ -475,7 +482,7 @@ It includes:
 
 - MockUSDC funded by the bank;
 - rounding dust remaining after integer division;
-- liquidity reserved for current and future interest liabilities after C2.
+- liquidity economically allocated to active expected interest and unpaid pending interest.
 
 ### 9.3 Early Withdrawal Penalty
 
@@ -697,7 +704,7 @@ The planned open-deposit flow is:
 13. `SavingCore` creates an active deposit.
 14. `SavingCore` mints an NFT certificate to the user.
 15. `SavingCore` emits `DepositOpened`.
-16. After C2, the expected interest liability is reserved.
+16. Reserve the positive expected interest liability in SavingCore.
 
 ~~~mermaid
 sequenceDiagram
@@ -714,7 +721,7 @@ sequenceDiagram
     Core->>Core: create Active deposit
     Core->>Core: mint ERC721 certificate
     Core-->>User: DepositOpened event
-    Core-->>Vault: reserve expected interest after C2
+    Core->>Core: record expected interest reserve
 ~~~
 
 If any required validation or transfer fails, the transaction must revert atomically.
@@ -750,7 +757,7 @@ The function follows checks-effects-interactions.
 
 A zero-rounded interest amount skips `VaultManager.payInterest` because VaultManager rejects zero-value payouts.
 
-For positive interest, Phase 10 distinguishes liquidity shortfall from every
+For positive interest, Phase 11 distinguishes liquidity shortfall from every
 other VaultManager failure:
 
 - if `payInterest` succeeds, principal and interest are paid immediately;
@@ -786,7 +793,7 @@ The implemented Phase 7 flow is:
 8. Mark the deposit as `Withdrawn`.
 9. Transfer the remaining principal to the NFT owner.
 10. Transfer the penalty to the fee receiver.
-11. Release the deposit's reserved interest after C2.
+11. Release the deposit's reserved interest.
 12. Emit `Withdrawn` with `isEarly = true`.
 
 No interest is paid for an early withdrawal.
@@ -824,7 +831,7 @@ The implemented external-call order is:
 
 Because both transfers occur in one EVM transaction, failure of either required transfer reverts all earlier balance and state changes.
 
-The later C2 implementation may add reserved-interest release accounting. That future accounting is not part of the current Phase 9 contract.
+Phase 12 releases the full snapshotted expected-interest reserve before early-withdrawal transfers; EVM rollback restores the reserve if a later transfer fails.
 ---
 
 ## 17. Manual Renewal Flow
@@ -1433,7 +1440,7 @@ Every additional event must have a clear monitoring, accounting, security, or UX
 
 ## 23. Bonus C1 — Principal-First Settlement
 
-C1 is implemented and validated locally as of Phase 10.
+C1 is implemented and validated locally as of Phase 11.
 
 ### 23.1 Problem
 
@@ -1510,7 +1517,7 @@ The implementation ensures that:
 - manual renewal and auto-renew remain fully funded operations without a
   pending-interest fallback.
 
-### 23.6 Phase 10 Validation Evidence
+### 23.6 Phase 11 Validation Evidence
 
 Validated behavior includes:
 
@@ -1537,46 +1544,110 @@ Validated behavior includes:
 ---
 
 ## 24. Bonus C2 — Solvency Guard
-C2 is selected but remains unimplemented as of Phase 10.
+
+C2 is implemented and validated locally as of Phase 12.
 
 ### 24.1 Problem
 
-Without reserve accounting, an administrator may withdraw vault funds that are economically expected to cover active-deposit interest.
+Without liability accounting, an administrator could withdraw vault funds that
+are economically expected to cover active-deposit or pending-interest
+obligations.
 
-### 24.2 Planned Solution
+### 24.2 Implemented Accounting Model
 
-The target architecture tracks:
+`SavingCore` stores:
 
 `totalReservedInterest`
 
-Expected reserve transitions are:
+The aggregate includes:
 
-- opening a deposit increases reserved interest;
-- early withdrawal releases the unused reserve;
-- maturity settlement consumes the old reserve;
-- manual renewal consumes the old reserve and creates a new reserve;
-- auto-renew consumes the old reserve and creates a new reserve.
+- expected positive interest for active deposits;
+- unpaid C1 pending interest.
+
+Reserve calculations use the deposit's snapshotted:
+
+- principal;
+- APR;
+- tenor.
+
+A zero-rounded expected-interest amount creates no reservation.
+
+### 24.3 Implemented Lifecycle Transitions
+
+- deposit opening: reserve one positive expected-interest amount;
+- early withdrawal: release the old term's full unused reserve;
+- funded maturity settlement: consume the old reserve;
+- C1 deferred maturity settlement: keep the unpaid amount reserved;
+- successful pending-interest claim: consume the remaining reserve;
+- manual renewal: consume the old reserve and create the new selected-plan
+  reserve atomically;
+- auto-renew: consume the old reserve and create the new snapshot-based reserve
+  atomically.
+
+Every transition occurs in the same transaction as the related lifecycle
+action. A later revert restores the previous reserve value.
+
+### 24.4 Vault Read and Enforcement Model
+
+After one-time SavingCore authorization, VaultManager reads:
+
+`SavingCore.totalReservedInterest()`
+
+Before authorization, `VaultManager.totalReservedInterest()` returns zero.
 
 Available liquidity is:
 
-`availableLiquidity = max(vaultBalance - totalReservedInterest, 0)`
+`max(vaultBalance - totalReservedInterest, 0)`
 
-The administrator may withdraw no more than available liquidity.
+Funding shortfall is:
 
-### 24.3 Undercollateralization Decision
+`max(totalReservedInterest - vaultBalance, 0)`
 
-SafeBank does not necessarily reject new deposits when the vault is undercollateralized.
+`withdrawVault(amount)` rejects any amount above available liquidity.
 
-The reasons are:
+Vault funding and direct token transfers change vault balance but do not mutate
+liabilities.
 
-- C1 protects principal recovery;
-- the system can expose funding shortfall transparently;
-- the administrator cannot worsen the shortfall by withdrawing reserved funds;
-- the AI Risk Assistant can warn about insolvency risk.
+### 24.5 Undercollateralization Decision
 
-This design accepts the possibility of delayed interest payment while prioritizing principal separation and transparent liabilities.
+Opening a valid deposit is not blocked when current vault liquidity is below
+the new aggregate reserve.
 
----
+This preserves ADR-029:
+
+- principal remains separated in SavingCore;
+- liabilities remain visible;
+- funding shortfall is explicit;
+- administrator withdrawal cannot worsen the shortfall;
+- C1 can return principal and defer interest if the shortfall remains at
+  maturity.
+
+C2 is a solvency-visibility and withdrawal-containment mechanism. It does not
+guarantee that all interest is immediately funded.
+
+### 24.6 Validation Evidence
+
+Phase 12 validates:
+
+- reservation and zero-rounded-interest behavior;
+- APR and tenor snapshot isolation;
+- open-deposit rollback;
+- early release and repeated-action rejection;
+- funded maturity consumption;
+- deferred-interest reserve preservation;
+- successful and failed pending claims;
+- manual and auto-renew reserve replacement;
+- renewal rollback;
+- reserve-underflow invariant protection;
+- balance above, equal to, and below reserve;
+- exact available withdrawal;
+- one-unit-over withdrawal rejection;
+- funding and direct-transfer metric updates;
+- 185 SavingCore tests;
+- 55 VaultManager tests;
+- 253 total tests;
+- 100% statements, branches, functions, and lines for SavingCore;
+- 100% statements, functions, and lines for VaultManager.
 
 ## 25. Contract Dependency Model
 
@@ -1612,15 +1683,19 @@ flowchart TD
 - the authorized `SavingCore` address;
 - the fee receiver address.
 
-The exact authorization handshake remains an open implementation decision.
+VaultManager uses one-time post-deployment SavingCore authorization.
 
-Potential approaches include:
+The authorization:
 
-- constructor-time immutable authorization;
-- one-time post-deployment authorization;
-- controlled replacement using `Ownable2Step`, validation, and events.
+- is owner-only;
+- rejects the zero address;
+- rejects externally owned accounts;
+- requires deployed bytecode;
+- emits `SavingCoreAuthorized`;
+- cannot be replaced in the current non-upgradeable architecture.
 
-The selected approach must minimize configuration risk.
+The same authorized address is used for interest payouts and as the source read
+by VaultManager's solvency getters.
 
 ---
 
@@ -1721,11 +1796,11 @@ After C1, deferred interest can be claimed once by the snapshotted claimant.
 
 ### 28.12 C2 Reserve Invariant
 
-After C2, reserve releases and consumption must not underflow or be applied twice.
+Reserve releases and consumption must not underflow or be applied twice.
 
 ### 28.13 Vault Withdrawal Invariant
 
-After C2, administrator withdrawals cannot exceed available liquidity.
+Administrator withdrawals cannot exceed available liquidity.
 
 ### 28.14 Conservation Invariant
 
@@ -1882,7 +1957,7 @@ The application must remain usable when the AI provider is unavailable.
 
 ## 34. Architectural Decision Status
 
-Resolved and implemented through Phase 10:
+Resolved and implemented through Phase 12:
 
 1. Basic OpenZeppelin `ERC721` is used without `ERC721Enumerable`.
 2. Plan and deposit storage structures are defined in `SavingCore`.
@@ -1944,6 +2019,16 @@ Resolved and implemented through Phase 10:
 47. Failed payout, authorization, pause, or safe-mint interactions revert
     the complete auto-renew transaction.
 48. Auto-renew is protected against ERC20 and ERC721 callback reentrancy.
+49. SavingCore records aggregate positive expected and pending interest.
+50. Zero-rounded expected interest creates no reserve.
+51. Early withdrawal releases the unused old-term reserve.
+52. Funded maturity and successful pending claims consume reserve.
+53. C1 deferred interest remains reserved until paid.
+54. Manual and auto-renew atomically replace old and new reserves.
+55. VaultManager reads reserve from the one-time authorized SavingCore.
+56. Available liquidity and funding shortfall use saturating subtraction.
+57. Owner withdrawal cannot exceed available liquidity.
+58. Undercollateralized deposit opening remains permitted and visible.
 
 Still deferred:
 
@@ -2012,87 +2097,42 @@ Future phases must follow these rules:
 
 ---
 
-## 37. Phase Status
+## 37. Current Architecture Status
 
-Completed:
+Implemented and validated locally through Phase 12:
 
-- Phase 0 project initialization;
-- npm and Hardhat configuration;
-- Git initialization and GitHub synchronization;
-- environment-variable cleanup;
-- architecture, security, UI/UX, and decision documentation.
-
-Implemented and validated locally through Phase 10:
-
-- six-decimal `MockUSDC`;
-- base `VaultManager`;
-- SavingCore foundation and saving-plan management;
-- two-step ownership and independent pause controls;
-- deposit opening and principal custody;
-- immutable APR, tenor, and penalty snapshots;
-- ERC721 deposit certificates;
-- current NFT owner economic rights;
-- maturity withdrawal at exact maturity and later while active;
-- early withdrawal only before maturity;
-- snapshotted maturity interest and early-withdrawal penalties;
-- principal payout from SavingCore;
-- bank-funded interest payout from VaultManager;
-- direct current-owner authorization for restricted actions;
-- approved ERC721 operator rejection;
-- disabled-plan settlement isolation;
-- deterministic floor rounding and token conservation;
-- manual renewal during the two-day grace period;
-- exact manual-renewal boundary semantics;
-- selected enabled-plan validation;
-- selected-plan limit enforcement for manual renewal;
-- selected-plan snapshots for manually renewed deposits;
-- permissionless `autoRenew(depositId)`;
-- exact auto-renew eligibility at
-  `maturityAt + GRACE_PERIOD`;
-- `AutoRenewalTooEarly` before the grace boundary;
-- current-owner-safe renewed NFT receipt;
-- old plan ID, tenor, APR, and penalty snapshot preservation;
-- auto-renew isolation from current plan updates and disabling;
-- no reapplication of current plan deposit limits;
-- one-term-only delayed auto-renew execution;
-- execution-timestamp start for the new term;
-- no retroactive multi-term catch-up;
-- positive-interest funded compounding;
-- zero-rounded-interest VaultManager bypass;
-- old `Active` to `AutoRenewed` transition;
-- one new `Active` deposit and one new ERC721 certificate;
-- old-certificate retention;
-- first-successfully-mined terminal-action ordering;
-- atomic rollback for underfunding, authorization, pause, and safe-mint
-  failures;
-- ERC20 and ERC721 callback reentrancy protection;
-- project-owned ABI export;
-- principal-first settlement and deferred-interest claim validation;
-- `173` SavingCore tests;
-- `233` tests across the complete project;
+- non-upgradeable MockUSDC, SavingCore, and VaultManager architecture;
+- principal and interest custody separation;
+- saving-plan administration and immutable deposit snapshots;
+- ERC721 certificate issuance and current-owner economic rights;
+- maturity withdrawal, early withdrawal, manual renewal, and permissionless
+  auto-renewal;
+- exact timestamp boundaries and first-mined terminal-action ordering;
+- funded renewal compounding;
+- C1 principal-first settlement and deferred-interest claims;
+- C2 aggregate reserve lifecycle accounting;
+- C2 available-liquidity and funding-shortfall calculations;
+- C2 owner-withdrawal protection;
+- atomic rollback and callback reentrancy protection;
+- 185 SavingCore tests, 55 VaultManager tests, and 253 total tests;
 - 100% statements, branches, functions, and lines for SavingCore;
-- no uncovered SavingCore statement, branch, function, or line;
-- complete project coverage of 98.92% statements, 96.97% branches,
-  96.43% functions, and 96.62% lines;
-- SavingCore deployed bytecode of approximately `11.905 KiB`;
-- SavingCore initcode of approximately `13.149 KiB`.
+- 100% statements, functions, and lines for VaultManager;
+- SavingCore deployed bytecode approximately `12.654 KiB`;
+- SavingCore initcode approximately `13.905 KiB`;
+- VaultManager deployed bytecode approximately `3.483 KiB`;
+- VaultManager initcode approximately `3.897 KiB`.
 
 Not implemented:
 
 - rich NFT metadata or custom `tokenURI`;
-- reserved-interest accounting;
-- Bonus C2;
-- deployment scripts;
-- local deployment workflow;
-- Sepolia deployment;
-- Etherscan verification;
-- User Banking App;
-- Admin Portal;
+- deployment scripts and local deployment workflow;
+- Sepolia deployment and Etherscan verification;
+- User Banking App and Admin Portal;
 - AI assistants;
 - demonstration video;
 - final submission audit.
 
-Sections covering C2, deployment, frontend, and AI remain specifications
-until their implementations are validated.
+Sections covering deployment, frontend, and AI remain specifications until
+their implementations are validated.
 
-This document is a living architecture record updated through Phase 10.
+This document is a living architecture record updated through Phase 12.

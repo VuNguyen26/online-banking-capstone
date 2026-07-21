@@ -9,14 +9,21 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
+ * @dev Minimal reserve interface exposed by the authorized SavingCore.
+ */
+interface ISavingCoreReserve {
+    function totalReservedInterest() external view returns (uint256);
+}
+
+/**
  * @title VaultManager
  * @notice Holds bank-funded ERC20 liquidity used to pay deposit interest.
  * @dev
  * - This contract never holds or manages user deposit principal.
  * - Only the one-time authorized SavingCore contract may request interest payouts.
  * - Privileged administration uses OpenZeppelin Ownable2Step.
- * - This is the base implementation and intentionally excludes Bonus C2
- *   reserved-interest and solvency accounting.
+ * - Bonus C2 reads aggregate interest liabilities from the authorized
+ *   SavingCore and protects reserved vault liquidity from owner withdrawal.
  * - The contract is non-upgradeable.
  */
 contract VaultManager is Ownable2Step, Pausable, ReentrancyGuard {
@@ -48,7 +55,7 @@ contract VaultManager is Ownable2Step, Pausable, ReentrancyGuard {
     error UnauthorizedSavingCore(address caller);
 
     /**
-     * @dev The vault does not hold enough tokens for the requested transfer.
+     * @dev The vault has insufficient transferable liquidity.
      */
     error InsufficientVaultBalance(uint256 available, uint256 required);
 
@@ -169,10 +176,8 @@ contract VaultManager is Ownable2Step, Pausable, ReentrancyGuard {
     }
 
     /**
-     * @notice Withdraws base vault liquidity to the current owner.
-     * @dev
-     * This base phase checks only the actual token balance. Bonus C2 will later
-     * restrict withdrawal using reserved-interest accounting.
+     * @notice Withdraws unreserved vault liquidity to the current owner.
+     * @dev The withdrawal cannot exceed current available liquidity.
      * @param amount Token amount withdrawn to the current owner.
      */
     function withdrawVault(
@@ -182,7 +187,7 @@ contract VaultManager is Ownable2Step, Pausable, ReentrancyGuard {
             revert InvalidAmount();
         }
 
-        uint256 available = token.balanceOf(address(this));
+        uint256 available = availableLiquidity();
 
         if (available < amount) {
             revert InsufficientVaultBalance(available, amount);
@@ -258,5 +263,50 @@ contract VaultManager is Ownable2Step, Pausable, ReentrancyGuard {
      */
     function vaultBalance() external view returns (uint256) {
         return token.balanceOf(address(this));
+    }
+
+    /**
+     * @notice Returns aggregate interest liabilities recorded by SavingCore.
+     * @dev Returns zero before a SavingCore contract is authorized.
+     */
+    function totalReservedInterest() public view returns (uint256) {
+        address configuredSavingCore = savingCore;
+
+        if (configuredSavingCore == address(0)) {
+            return 0;
+        }
+
+        return
+            ISavingCoreReserve(configuredSavingCore)
+                .totalReservedInterest();
+    }
+
+    /**
+     * @notice Returns liquidity that the administrator may withdraw.
+     * @dev Uses saturating subtraction when liabilities exceed the balance.
+     */
+    function availableLiquidity() public view returns (uint256) {
+        uint256 balance = token.balanceOf(address(this));
+        uint256 reserved = totalReservedInterest();
+
+        if (balance <= reserved) {
+            return 0;
+        }
+
+        return balance - reserved;
+    }
+
+    /**
+     * @notice Returns liabilities not currently covered by vault tokens.
+     */
+    function fundingShortfall() external view returns (uint256) {
+        uint256 balance = token.balanceOf(address(this));
+        uint256 reserved = totalReservedInterest();
+
+        if (reserved <= balance) {
+            return 0;
+        }
+
+        return reserved - balance;
     }
 }

@@ -15,6 +15,18 @@ interface IVaultManagerPayout {
  */
 contract MockSavingCoreCaller {
     /**
+     * @notice Test-controlled aggregate reserve exposed to VaultManager.
+     */
+    uint256 public totalReservedInterest;
+
+    /**
+     * @notice Updates the test-controlled reserve amount.
+     */
+    function setTotalReservedInterest(uint256 amount) external {
+        totalReservedInterest = amount;
+    }
+
+    /**
      * @notice Requests an interest payout from a VaultManager-compatible contract.
      * @param vault VaultManager contract address.
      * @param recipient Address that receives the interest.

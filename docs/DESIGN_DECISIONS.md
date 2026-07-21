@@ -6,19 +6,18 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Architecture and Product Decision Records |
-| Current project phase | Phase 10 — Bonus C1 Principal-First Settlement |
-| Implementation status | Decisions governing mandatory smart-contract flows through Phase 9 and Bonus C1 in Phase 10 are reflected in the implemented contracts and tests; C2, frontend, AI, and deployment decisions remain pending or deferred |
+| Current project phase | Phase 12 — Bonus C2 Solvency Guard |
+| Implementation status | Decisions governing mandatory smart-contract flows, Bonus C1, and Bonus C2 are reflected in implemented contracts and tests; frontend, AI, deployment, and rich metadata decisions remain pending or deferred |
 | Architecture model | Non-upgradeable |
 | Student ID | 3122560090 |
 | Test token | MockUSDC with 6 decimals |
 
-This document is the living record of accepted, proposed, implemented, and deferred decisions governing SafeBank.
+This document is the living record of accepted, implemented, rejected, and
+deferred SafeBank decisions.
 
-A decision marked accepted or implemented must remain consistent with the actual Solidity code and tests. A proposed or deferred decision is not proof that the related feature has already been implemented.
-
-The Solidity code, tests, frontend, deployment scripts, README, and demonstration must remain consistent with the applicable decisions in this document.
-
----
+A decision marked implemented is backed by the current Solidity code, tests,
+and observed execution results. Accepted or deferred product decisions are not
+proof that frontend, AI, deployment, or metadata features already exist.
 
 ## 2. Decision Categories
 
@@ -129,9 +128,9 @@ Statuses mean:
 | ADR-025 | Renewal requires fully funded interest | Implemented |
 | ADR-026 | Implement C1 Principal-First Settlement | Implemented |
 | ADR-027 | Snapshot pending-interest claimant at settlement | Implemented |
-| ADR-028 | Implement C2 Solvency Guard | Accepted |
-| ADR-029 | Permit undercollateralized deposit opening | Accepted |
-| ADR-030 | Preserve pending-interest liabilities in reserve accounting | Accepted |
+| ADR-028 | Implement C2 Solvency Guard | Implemented |
+| ADR-029 | Permit undercollateralized deposit opening | Implemented |
+| ADR-030 | Preserve pending-interest liabilities in reserve accounting | Implemented |
 | ADR-031 | Frontend approval defaults to exact amount | Accepted |
 | ADR-032 | Frontend route guards are UX only | Accepted |
 | ADR-033 | AI remains read-only and advisory | Accepted |
@@ -1625,9 +1624,9 @@ Trade-offs:
 - pending interest may remain unpaid until VaultManager is funded;
 - C1 does not prevent the administrator from withdrawing liquidity expected
   for other obligations;
-- aggregate reserve protection remains the responsibility of future Bonus C2.
+- aggregate reserve protection is enforced by the implemented Phase 12 C2 model.
 
-### Phase 10 implementation evidence
+### Phase 11 implementation evidence
 
 The implementation validates:
 
@@ -1643,7 +1642,7 @@ The implementation validates:
   failures;
 - no pending-interest fallback for manual or auto-renewal.
 
-ADR-026 is fully implemented and validated as of Phase 10.
+ADR-026 is fully implemented and validated as of Phase 11.
 
 ### Test implication
 
@@ -1759,7 +1758,7 @@ Trade-offs:
 - claims cannot be partially withdrawn;
 - claims cannot be redirected to another recipient.
 
-### Phase 10 implementation evidence
+### Phase 11 implementation evidence
 
 The implementation validates:
 
@@ -1776,7 +1775,7 @@ The implementation validates:
 - pending-interest payout callback reentrancy protection;
 - historical claimant retention after payment.
 
-ADR-027 is fully implemented and validated as of Phase 10.
+ADR-027 is fully implemented and validated as of Phase 11.
 
 ### Test implication
 
@@ -1815,127 +1814,186 @@ an already-snapshotted pending-interest claim.
 
 ## ADR-028 — Bonus C2 Solvency Guard
 
-**Status:** Accepted
+**Status:** Implemented
 
 **Category:** Bonus C2
 
 ### Context
 
-Without liability accounting, the administrator may withdraw vault funds expected to cover active deposits.
+Without liability accounting, the administrator could withdraw vault tokens
+that are economically expected to cover active or pending interest.
 
 ### Decision
 
-C2 will track:
+`SavingCore` is the authoritative liability ledger and stores:
 
 `totalReservedInterest`
+
+`VaultManager` reads that value from the one-time authorized SavingCore.
 
 Available liquidity is:
 
 `max(vaultBalance - totalReservedInterest, 0)`
 
-Administrator withdrawal cannot exceed available liquidity.
+Funding shortfall is:
+
+`max(totalReservedInterest - vaultBalance, 0)`
+
+Owner withdrawal cannot exceed available liquidity.
+
+Before SavingCore authorization, VaultManager reports zero aggregate reserve.
 
 ### Rationale
 
-This prevents the administrator from worsening interest undercollateralization by withdrawing reserved funds.
+Keeping reserve mutations inside SavingCore avoids making deposit opening,
+early withdrawal, and zero-interest lifecycle actions depend on a VaultManager
+authorization call.
+
+VaultManager remains focused on:
+
+- bank-funded token custody;
+- interest payouts;
+- balance reporting;
+- administrator-withdrawal enforcement.
 
 ### Trade-offs
 
-Reserve accounting adds lifecycle complexity.
+- the vault may remain underfunded;
+- correct one-time SavingCore authorization remains critical;
+- reserve lifecycle accounting increases state-machine complexity;
+- VaultManager's reserve getter depends on the authorized SavingCore read.
 
-The vault may still be underfunded if it was never sufficiently funded.
+### Phase 12 implementation evidence
+
+Validated behavior includes:
+
+- zero reserve before authorization;
+- aggregate reserve read after authorization;
+- balance greater than, equal to, and below reserve;
+- saturating available-liquidity and shortfall calculations;
+- exact available withdrawal;
+- rejection one unit above available;
+- balance changes from funding and direct transfers without liability changes;
+- 55 VaultManager tests;
+- 100% VaultManager statements, functions, and lines.
 
 ### Test implication
 
-Test reservation, release, consumption, renewal transitions, undercollateralization, and withdrawal limits.
+Tests must preserve reservation, release, consumption, renewal transitions,
+undercollateralization, withdrawal limits, and rollback invariants.
 
 ### UI implication
 
-Display vault balance, reserved interest, available liquidity, solvency ratio, and funding shortfall.
-
----
+Display vault balance, reserved interest, available liquidity, solvency ratio,
+and funding shortfall. Never present an amount above available liquidity as a
+valid administrator withdrawal.
 
 ## ADR-029 — Permit Undercollateralized Deposit Opening
 
-**Status:** Accepted
+**Status:** Implemented
 
 **Category:** Bonus C2 and business decision
 
 ### Context
 
-The system must decide whether a new deposit should be rejected when VaultManager does not currently hold enough interest for its expected liability.
+The system must decide whether a new deposit should revert when VaultManager
+does not currently hold enough liquidity for the deposit's expected interest.
 
 ### Decision
 
-Opening a valid deposit is not automatically blocked by insufficient vault collateral.
+A valid deposit may open while the vault is undercollateralized.
 
-The expected liability is still recorded after C2.
+The positive expected-interest liability is still added to
+`SavingCore.totalReservedInterest`.
 
-The administrator cannot withdraw reserved liquidity.
-
-C1 protects principal recovery if interest remains underfunded at maturity.
+VaultManager exposes the resulting funding shortfall, and the administrator
+cannot withdraw reserved liquidity.
 
 ### Rationale
 
-This demonstrates liability transparency and the interaction of C1 and C2 without requiring full pre-funding.
+This demonstrates transparent liability accounting and the intended C1/C2
+interaction:
+
+- user principal remains separated in SavingCore;
+- C1 can return principal if interest is unavailable at maturity;
+- C2 prevents administrator withdrawal from worsening the shortfall;
+- funding can be restored later.
 
 ### Trade-offs
 
-Interest may be delayed.
+Interest may be delayed, and the product must not promise immediate payment.
 
-The product cannot truthfully promise immediate interest payment.
+### Phase 12 implementation evidence
+
+Tests open a positive-interest deposit against an empty VaultManager and verify:
+
+- deposit creation succeeds;
+- reserve increases;
+- available liquidity is zero;
+- funding shortfall equals the reserve.
 
 ### Test implication
 
-Open a deposit while undercollateralized and verify reserve and shortfall metrics.
+Continue testing undercollateralized opening, later funding, and settlement.
 
 ### UI implication
 
-Display clear underfunding warnings and do not state that interest is guaranteed immediately.
-
----
+Display clear underfunding warnings and distinguish principal protection from
+immediate interest availability.
 
 ## ADR-030 — Reserve Treatment of Pending Interest
 
-**Status:** Accepted
+**Status:** Implemented
 
 **Category:** Bonus integration decision
 
 ### Context
 
-When C1 defers interest, releasing the old reserve immediately would allow an administrator to withdraw funds later needed for the pending claim.
+When C1 defers interest, releasing the reserve would allow later administrator
+withdrawal of tokens still economically owed to the fixed claimant.
 
 ### Decision
 
-An unpaid C1 interest liability remains included in `totalReservedInterest`.
+Unpaid C1 interest remains included in `totalReservedInterest`.
 
-Reserve behavior is:
+Implemented reserve behavior:
 
-- normal funded maturity payout: consume reserve;
-- C1 deferred settlement: keep the unpaid amount reserved;
-- pending-interest claim: consume the remaining reserve when payment succeeds;
+- funded maturity payout: consume the old reserve;
+- C1 deferred settlement: preserve the unpaid reserve;
+- successful pending-interest claim: consume the remaining reserve;
+- failed pending claim: EVM rollback restores both pending debt and reserve;
 - early withdrawal: release active-term reserve;
-- renewal: consume old reserve and create new-term reserve.
+- manual renewal: consume old reserve and create selected-plan reserve;
+- auto-renew: consume old reserve and create snapshot-based reserve.
 
 ### Rationale
 
-Pending interest remains a real system liability until paid.
+Pending interest remains a real liability until successfully paid.
 
 ### Trade-offs
 
-C1 and C2 integration becomes more complex.
+C1 and C2 lifecycle integration is more complex and must remain atomic.
+
+### Phase 12 implementation evidence
+
+Tests verify reserve values:
+
+- before deferral;
+- after principal-first settlement;
+- after later funding;
+- after successful claim;
+- after a failed underfunded claim;
+- through manual and auto-renew transitions.
 
 ### Test implication
 
-Verify total reserve before deferral, after deferral, and after claim.
+Any future change to maturity, claim, or renewal logic must prove reserve
+conservation and rollback.
 
 ### UI implication
 
-Reserved interest includes both active expected interest and unpaid pending liabilities.
-
-The Admin Portal must explain this definition.
-
----
+Reserved interest includes both expected active-deposit interest and unpaid
+pending-interest debt.
 
 ## ADR-031 — Exact-Amount Approval
 
@@ -2428,7 +2486,7 @@ Reasons:
 
 ## 12. Administrator Can Withdraw Reserved Interest
 
-**Status:** Rejected after C2
+**Status:** Rejected by the implemented C2 design
 
 Reasons:
 
@@ -2649,7 +2707,7 @@ The implementation is expected to include:
 - fee receiver;
 - one-time authorized SavingCore;
 - pause state;
-- total reserved interest after C2.
+- total reserved interest.
 
 Exact variable ordering is not constrained by proxy storage because the contracts are non-upgradeable.
 
@@ -2934,143 +2992,48 @@ The following remain deferred until their relevant phases:
 - frontend deployment provider;
 - event-indexing technology.
 
-The current Solidity storage layout, custom errors, function signatures, and implemented event-indexing parameters are defined by the Phase 10 contracts and exported ABI.
+The current Solidity storage layout, custom errors, function signatures, and implemented event-indexing parameters are defined by the Phase 12 contracts and exported ABIs.
 
 Deferred details must not contradict accepted financial and security behavior.
 
 ---
 
-## 40. Phase Status
+## 40. Current Decision Implementation Status
 
-Implemented and validated through Phase 10:
+Implemented and validated through Phase 12:
 
-- decision documentation;
-- classification of mandatory and SafeBank-specific requirements;
-- personal-variant constants;
-- six-decimal MockUSDC;
-- separation of principal and interest custody;
-- SavingCore and VaultManager ownership and pause controls;
-- saving-plan management;
-- deposit opening and immutable financial snapshots;
-- ERC721 certificate issuance;
-- direct current-NFT-owner economic rights;
-- exact maturity eligibility;
-- maturity withdrawal after grace while the deposit remains active;
-- early withdrawal before maturity;
-- zero-interest early settlement;
-- snapshotted early-withdrawal penalties;
-- current fee-receiver resolution;
-- deterministic floor rounding;
-- zero and maximum penalty boundaries;
-- user-net-first atomic early-withdrawal settlement;
-- disabled-plan settlement isolation;
-- simple interest from snapshotted principal, APR, and tenor;
-- failed-penalty-transfer early-withdrawal rollback;
-- maturity and early-withdrawal reentrancy protection;
-- manual renewal during the two-day grace period;
-- exact half-open manual-renewal interval;
-- pre-maturity `DepositNotMatured` behavior;
-- exact and post-grace `ManualRenewalWindowClosed` behavior;
-- direct current-owner manual-renewal authorization;
-- approved ERC721 operator rejection;
-- transferred-certificate manual-renewal rights;
-- old-deposit snapshot isolation;
-- disabled old-plan manual-renewal rights;
-- selected enabled-plan validation;
-- same-plan manual renewal while enabled;
-- selected-plan limits applied to compounded manual-renewal principal;
-- selected-plan snapshots for the manually renewed term;
-- permissionless `autoRenew(depositId)`;
-- `AutoRenewalTooEarly` before the exact grace-period end;
-- auto-renew eligibility at the exact grace-period end;
-- unrelated-caller auto-renew execution;
-- current-old-owner renewed NFT receipt;
-- transferred-certificate recipient resolution;
-- preservation of old plan ID, tenor, APR, and penalty snapshots;
-- isolation from current plan updates and disabling;
-- no reapplication of current plan minimum or maximum;
-- one-term-only delayed auto-renew execution;
-- no retroactive multi-term catch-up;
-- transaction timestamp as the new auto-renewed term start;
-- positive old-interest transfer from VaultManager into SavingCore;
-- zero-rounded-interest renewal without a vault call;
-- fully funded manual and auto-renew principal;
-- old `Active` to `ManualRenewed` lifecycle transition;
-- old `Active` to `AutoRenewed` lifecycle transition;
-- one new active deposit creation;
-- old historical-certificate retention;
-- new ERC721 certificate issuance;
-- `tokenId == depositId` for renewed deposits;
-- user and transaction-caller wallet balance conservation;
-- MockUSDC total-supply conservation;
-- underfunded-vault renewal rollback;
-- unauthorized-vault renewal rollback;
-- paused-vault positive-interest rollback;
-- failed renewal safe-mint rollback;
-- ERC20 payout-callback reentrancy protection;
-- ERC721 receiver-callback reentrancy protection;
-- first-successfully-mined terminal-action ordering;
-- exclusion between manual renewal, auto-renew, early withdrawal, and
-  maturity withdrawal;
-- C1 principal-first maturity settlement;
-- principal return when VaultManager reports the exact
-  `InsufficientVaultBalance` error;
-- full-value interest deferral without partial payout;
-- terminal `Withdrawn` status after principal-first settlement;
-- immediate-interest semantics for the `Withdrawn` event;
-- `pendingInterest[depositId]` accounting;
-- `interestClaimant[depositId]` claimant snapshots;
-- claimant-only `claimPendingInterest(depositId)`;
-- fixed claim rights after historical NFT transfer;
-- approved-operator and unrelated-caller claim rejection;
-- full-value later claim after VaultManager funding;
-- pending-debt clearing before external interaction;
-- EVM rollback restoring pending debt after failed payout;
-- double-settlement and double-claim rejection;
-- SavingCore and VaultManager pause enforcement for claims;
-- empty-revert and unexpected VaultManager failure rollback;
-- pending-interest payout callback reentrancy protection;
-- historical claimant retention after successful claim;
-- manual and auto-renewal remaining fully funded without a C1 fallback;
-- ADR-006 implemented;
-- ADR-009 implemented;
-- ADR-010 implemented;
-- ADR-011 implemented;
-- ADR-025 implemented;
-- ADR-026 implemented;
-- ADR-027 implemented;
-- `173` SavingCore tests;
-- `233` full-suite tests;
-- 100% statements, branches, functions, and lines coverage for SavingCore;
-- no uncovered SavingCore statement, branch, function, or line;
-- complete project coverage of 98.92% statements, 96.97% branches,
-  96.43% functions, and 96.62% lines;
-- SavingCore deployed bytecode of approximately `11.905 KiB`;
-- SavingCore initcode of approximately `13.149 KiB`.
+- ADR-005, ADR-006, ADR-007, ADR-009, ADR-010, ADR-011, ADR-025,
+  ADR-026, ADR-027, ADR-028, ADR-029, ADR-030, ADR-041, and ADR-042;
+- mandatory deposit, withdrawal, and renewal lifecycle decisions;
+- C1 principal-first settlement and fixed pending claims;
+- C2 aggregate reserve creation, release, consumption, and renewal
+  replacement;
+- undercollateralized opening with explicit shortfall;
+- available-liquidity withdrawal enforcement;
+- atomic rollback and reserve-underflow protection;
+- 185 SavingCore tests;
+- 55 VaultManager tests;
+- 253 full-suite tests;
+- 100% statements, branches, functions, and lines for SavingCore;
+- 100% statements, functions, and lines for VaultManager;
+- complete project coverage of 99.11% statements, 97.17% branches,
+  96.97% functions, and 96.98% lines;
+- SavingCore deployed bytecode approximately `12.654 KiB`;
+- SavingCore initcode approximately `13.905 KiB`;
+- VaultManager deployed bytecode approximately `3.483 KiB`;
+- VaultManager initcode approximately `3.897 KiB`.
 
 Not implemented:
 
-- reserved-interest accounting;
-- `totalReservedInterest`;
-- available-liquidity and solvency calculations;
-- deploy scripts;
-- local deployment;
-- Sepolia deployment;
-- Etherscan verification;
+- rich NFT metadata;
+- deployment scripts and local deployment;
+- Sepolia deployment and verification;
 - frontend;
 - AI assistants;
-- Bonus C2 code.
-
-ADR-006, ADR-009, ADR-010, ADR-011, ADR-025, ADR-026, and ADR-027 are
-fully implemented and validated through Phase 10.
-
-C2, frontend, AI, and deployment decisions remain accepted or deferred until
-their corresponding implementations are completed and validated.
+- demo and final submission audit.
 
 This file records both accepted design decisions and their verified
 implementation status.
-
----
 
 ## 41. Final Decision Position
 

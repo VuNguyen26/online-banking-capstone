@@ -15,9 +15,9 @@ import {VaultManager} from "./VaultManager.sol";
 /**
  * @title SavingCore
  * @notice Central SafeBank contract for saving-plan and deposit management.
- * @dev Implements saving-plan administration, deposit opening, ERC721
- *      certificates, maturity withdrawal, and the Phase 7 early-withdrawal
- *      flow. Renewals, C1, and C2 remain intentionally deferred.
+ * @dev Implements saving-plan administration, deposit lifecycle operations,
+ *      ERC721 certificates, C1 principal-first settlement, and C2 aggregate
+ *      reserved-interest accounting exposed to VaultManager.
  */
 contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -246,6 +246,14 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     );
 
     /**
+     * @dev Aggregate reserved interest is smaller than a required reduction.
+     */
+    error InsufficientReservedInterest(
+        uint256 reserved,
+        uint256 required
+    );
+
+    /**
      * @notice Emitted when a new saving plan is created.
      */
     event PlanCreated(
@@ -311,6 +319,33 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     );
 
     /**
+     * @notice Emitted when a new deposit interest liability is recorded.
+     */
+    event InterestReserved(
+        uint256 indexed depositId,
+        uint256 amount,
+        uint256 totalReservedInterest
+    );
+
+    /**
+     * @notice Emitted when interest is no longer owed after early withdrawal.
+     */
+    event ReservedInterestReleased(
+        uint256 indexed depositId,
+        uint256 amount,
+        uint256 totalReservedInterest
+    );
+
+    /**
+     * @notice Emitted when a reserved liability is paid or compounded.
+     */
+    event ReservedInterestConsumed(
+        uint256 indexed depositId,
+        uint256 amount,
+        uint256 totalReservedInterest
+    );
+
+    /**
      * @notice Emitted after an old deposit is renewed into a new one.
      */
     event Renewed(
@@ -354,6 +389,12 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
      * @notice Claimant snapshotted when a deposit creates deferred interest.
      */
     mapping(uint256 depositId => address claimant) public interestClaimant;
+
+    /**
+     * @notice Aggregate expected and pending interest liabilities.
+     * @dev This value may exceed VaultManager's current token balance.
+     */
+    uint256 public totalReservedInterest;
 
     /**
      * @param token_ MockUSDC-compatible ERC20 contract address.
@@ -535,6 +576,11 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
             status: DepositStatus.Active
         });
 
+        _reserveInterest(
+            depositId,
+            _calculateInterest(amount, plan.aprBps, plan.tenorDays)
+        );
+
         token.safeTransferFrom(msg.sender, address(this), amount);
         _safeMint(msg.sender, depositId);
 
@@ -600,11 +646,19 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
         token.safeTransfer(currentOwner, principal);
 
         if (calculatedInterest != 0) {
+            _decreaseReservedInterest(calculatedInterest);
+
             try vaultManager.payInterest(
                 currentOwner,
                 calculatedInterest
             ) {
                 paidInterest = calculatedInterest;
+
+                emit ReservedInterestConsumed(
+                    depositId,
+                    calculatedInterest,
+                    totalReservedInterest
+                );
             } catch (bytes memory reason) {
                 bytes4 selector;
 
@@ -623,6 +677,7 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
                     }
                 }
 
+                totalReservedInterest += calculatedInterest;
                 pendingInterest[depositId] = calculatedInterest;
                 interestClaimant[depositId] = currentOwner;
 
@@ -672,6 +727,7 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
         }
 
         pendingInterest[depositId] = 0;
+        _consumeReservedInterest(depositId, amount);
 
         vaultManager.payInterest(claimant, amount);
 
@@ -726,9 +782,15 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
             BPS_DENOMINATOR
         );
         uint256 userReceive = principal - penalty;
+        uint256 reservedInterest = _calculateInterest(
+            principal,
+            deposit.aprBpsAtOpen,
+            deposit.tenorDays
+        );
         address feeReceiver = vaultManager.feeReceiver();
 
         deposit.status = DepositStatus.Withdrawn;
+        _releaseReservedInterest(depositId, reservedInterest);
 
         if (userReceive != 0) {
             token.safeTransfer(currentOwner, userReceive);
@@ -817,6 +879,11 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
         );
         uint256 newPrincipal =
             oldDeposit.principal + interest;
+        uint256 newReservedInterest = _calculateInterest(
+            newPrincipal,
+            newPlan.aprBps,
+            newPlan.tenorDays
+        );
 
         if (
             newPlan.minDeposit != 0 &&
@@ -857,6 +924,9 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
                 newPlan.earlyWithdrawPenaltyBps,
             status: DepositStatus.Active
         });
+
+        _consumeReservedInterest(depositId, interest);
+        _reserveInterest(newDepositId, newReservedInterest);
 
         if (interest != 0) {
             vaultManager.payInterest(
@@ -927,6 +997,11 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
             tenorDays
         );
         uint256 newPrincipal = oldPrincipal + interest;
+        uint256 newReservedInterest = _calculateInterest(
+            newPrincipal,
+            aprBpsAtOpen,
+            tenorDays
+        );
         uint256 startedAt = block.timestamp;
         uint256 maturityAt =
             startedAt + tenorDays * 1 days;
@@ -945,6 +1020,9 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
             penaltyBpsAtOpen: penaltyBpsAtOpen,
             status: DepositStatus.Active
         });
+
+        _consumeReservedInterest(depositId, interest);
+        _reserveInterest(newDepositId, newReservedInterest);
 
         if (interest != 0) {
             vaultManager.payInterest(
@@ -986,6 +1064,79 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
      */
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    /**
+     * @dev Records a nonzero interest liability.
+     */
+    function _reserveInterest(
+        uint256 depositId,
+        uint256 amount
+    ) internal {
+        if (amount == 0) {
+            return;
+        }
+
+        totalReservedInterest += amount;
+
+        emit InterestReserved(
+            depositId,
+            amount,
+            totalReservedInterest
+        );
+    }
+
+    /**
+     * @dev Releases a nonzero liability without paying interest.
+     */
+    function _releaseReservedInterest(
+        uint256 depositId,
+        uint256 amount
+    ) internal {
+        if (amount == 0) {
+            return;
+        }
+
+        _decreaseReservedInterest(amount);
+
+        emit ReservedInterestReleased(
+            depositId,
+            amount,
+            totalReservedInterest
+        );
+    }
+
+    /**
+     * @dev Consumes a nonzero liability through payment or compounding.
+     */
+    function _consumeReservedInterest(
+        uint256 depositId,
+        uint256 amount
+    ) internal {
+        if (amount == 0) {
+            return;
+        }
+
+        _decreaseReservedInterest(amount);
+
+        emit ReservedInterestConsumed(
+            depositId,
+            amount,
+            totalReservedInterest
+        );
+    }
+
+    /**
+     * @dev Decreases aggregate liabilities with an explicit invariant check.
+     */
+    function _decreaseReservedInterest(uint256 amount) internal {
+        uint256 reserved = totalReservedInterest;
+
+        if (reserved < amount) {
+            revert InsufficientReservedInterest(reserved, amount);
+        }
+
+        totalReservedInterest = reserved - amount;
     }
 
     /**

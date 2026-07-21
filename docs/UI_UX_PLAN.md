@@ -6,28 +6,31 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | UI/UX Product Plan |
-| Current project phase | Phase 10 — Bonus C1 Principal-First Settlement |
-| Implementation status | Frontend remains planned only; mandatory contract interfaces through Phase 9 and Bonus C1 interfaces in Phase 10 are implemented and validated locally |
+| Current project phase | Phase 12 — Bonus C2 Solvency Guard |
+| Implementation status | Frontend remains planned only; mandatory contract interfaces, Bonus C1, and Bonus C2 interfaces are implemented and validated locally |
 | Target product areas | User Banking App and Admin Portal |
 | Product style | Modern, trustworthy, clear, accessible, and responsive |
 | Branding model | Original SafeBank identity |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document defines the planned SafeBank user experience and is aligned with the implemented contract interfaces through Phase 10. No frontend application has been created yet.
+This document defines the planned SafeBank user experience and is aligned with
+the implemented contract interfaces through Phase 12. No frontend application
+has been created yet.
 
 It does not claim that:
 
 - a frontend framework has been selected;
 - frontend source code exists;
 - wallet integration exists;
-- contract addresses are available;
-- blockchain transactions have been implemented;
+- deployment addresses are available;
 - AI assistants have been implemented;
-- any Sepolia deployment currently exists;
+- any Sepolia deployment exists;
 - the product is production-ready.
 
-The plan, deposit-opening, certificate, maturity-withdrawal, early-withdrawal, manual-renewal, and permissionless auto-renew interfaces are now validated locally. C1, C2, deployment addresses, and frontend implementation remain pending.
+All mandatory contract flows, C1 pending-interest interfaces, and C2 solvency
+interfaces are validated locally. Deployment and frontend implementation remain
+pending.
 
 ## 1.1 SafeBank Personal Variant
 
@@ -45,55 +48,41 @@ UI calculations and input handling must use six-decimal token units.
 
 The interface must not use `parseEther` for MockUSDC.
 
-## 1.2 Phase 10 Contract Integration Baseline
+## 1.2 Phase 12 Contract Integration Baseline
 
-The future frontend may rely on the following implemented and locally
-validated interfaces:
+The future frontend may rely on these implemented and locally validated
+interfaces:
 
-- saving-plan creation, APR updates, enable, disable, and reads;
-- deposit opening with ERC20 principal transfer;
-- ERC721 certificate issuance and current-owner reads;
-- `withdrawAtMaturity(depositId)`;
-- `earlyWithdraw(depositId)`;
-- `manualRenew(depositId, newPlanId)`;
-- `autoRenew(depositId)`;
-- `claimPendingInterest(depositId)`;
-- `pendingInterest(depositId)`;
-- `interestClaimant(depositId)`;
-- the reused `Withdrawn` event;
-- the `Renewed` event;
-- the `InterestDeferred` event;
-- the `PendingInterestClaimed` event;
-- the `NoPendingInterest` custom error;
-- the `NotInterestClaimant` custom error;
-- the `DepositAlreadyMatured` custom error;
-- the `DepositNotMatured` custom error;
-- the `ManualRenewalWindowClosed` custom error;
-- the `AutoRenewalTooEarly` custom error;
-- selected-plan validation during manual renewal;
-- old-deposit snapshot reads;
-- new-deposit snapshot reads after renewal;
-- public `VaultManager.feeReceiver()` reads;
-- independent SavingCore and VaultManager pause reads.
+- saving-plan creation, APR update, enable, disable, and reads;
+- deposit opening and ERC721 certificate issuance;
+- maturity withdrawal and early withdrawal;
+- manual renewal and permissionless auto-renew;
+- C1 `pendingInterest`, `interestClaimant`, and
+  `claimPendingInterest`;
+- C2 `SavingCore.totalReservedInterest`;
+- C2 `VaultManager.totalReservedInterest`;
+- C2 `VaultManager.availableLiquidity`;
+- C2 `VaultManager.fundingShortfall`;
+- owner vault withdrawal constrained by available liquidity;
+- `InterestDeferred` and `PendingInterestClaimed`;
+- `InterestReserved`, `ReservedInterestReleased`, and
+  `ReservedInterestConsumed`;
+- plan, deposit, certificate, ownership, balance, fee receiver, authorization,
+  and independent pause reads;
+- implemented custom errors for lifecycle, C1, C2, access, pause, and
+  liquidity failures.
 
-Manual renewal and permissionless auto-renewal are implemented contract
-capabilities, but no frontend button, route, transaction hook, or wallet
-integration exists yet.
+No frontend route, component, transaction hook, wallet integration, or
+rendered metric exists yet.
 
-The frontend must not present the following as available yet:
+The frontend must not present these as available yet:
 
-- reserved-interest or available-liquidity accounting;
-- C2 solvency protection;
 - Sepolia contract addresses;
-- AI transaction execution.
+- autonomous AI transaction execution;
+- rich NFT metadata.
 
-C1 contract capability is implemented, but no frontend control, transaction
-flow, or rendered pending-interest component exists yet.
-
-Contract state remains authoritative even when a deterministic UI estimate
-is displayed.
-
----
+Contract state remains authoritative even when the UI displays a deterministic
+estimate.
 
 ## 2. Product Vision
 
@@ -267,23 +256,20 @@ SafeBank additionally plans:
 For implemented Bonus C1, the future interface must expose:
 
 - principal-first settlement outcomes;
-- pending-interest amount;
-- snapshotted interest claimant;
-- full-value pending-interest claims;
-- claim eligibility and claim status;
-- VaultManager funding and pause state;
-- `InterestDeferred` and `PendingInterestClaimed` history;
-- a warning that historical NFT transfer does not transfer an already
-  snapshotted pending claim.
+- pending-interest amount and fixed claimant;
+- full-value claims and claim status;
+- warning that historical NFT transfer does not transfer an existing claim.
 
-After Bonus C2 exists, the interface may additionally expose:
+For implemented Bonus C2, the future interface must expose:
 
 - total reserved interest;
 - available liquidity;
-- solvency ratio;
 - funding shortfall;
-- reserve warnings;
-- restricted vault-withdrawal explanations.
+- solvency ratio derived from verified values;
+- undercollateralization warnings;
+- owner-withdrawal maximum;
+- explanations for withdrawal rejection above available liquidity;
+- reserve lifecycle history from C2 events.
 
 ## 4.4 AI Extension Scope
 
@@ -1009,7 +995,7 @@ The action area depends on:
 - implemented C1 pending-interest and claimant state;
 - implemented contract capability.
 
-Phase 10 action rules:
+Phase 11 action rules:
 
 - offer early withdrawal only when the deposit is `Active`;
 - offer early withdrawal only when the connected wallet is the direct
@@ -1144,7 +1130,7 @@ The confirmation must show:
 - transaction contract;
 - network.
 
-For an underfunded Phase 10 maturity settlement, the interface must explain:
+For an underfunded Phase 11 maturity settlement, the interface must explain:
 
 - principal can still be returned;
 - the full calculated interest becomes pending when VaultManager cannot pay
@@ -1583,7 +1569,7 @@ The status must be read from the contract.
 
 ## 27. Pending Interest Page
 
-The Phase 10 contract capabilities required by this page are implemented, but the page itself remains planned and has not been built.
+The Phase 11 contract capabilities required by this page are implemented, but the page itself remains planned and has not been built.
 
 ## 27.1 Summary
 
@@ -1710,8 +1696,8 @@ The interface must explain each metric.
 Example:
 
 - Vault balance: token balance held by VaultManager.
-- Reserved interest: expected interest allocated to active deposits after C2.
-- Available liquidity: amount the administrator may withdraw after C2.
+- Reserved interest: aggregate expected active-deposit interest plus unpaid pending-interest liabilities.
+- Available liquidity: maximum amount the administrator may currently withdraw.
 - Funding shortfall: reserved liabilities exceeding vault balance.
 - Solvency ratio: vault balance divided by reserved interest, subject to defined zero-liability behavior.
 
@@ -1794,8 +1780,8 @@ Display:
 
 - VaultManager address;
 - MockUSDC balance;
-- total reserved interest after C2;
-- available liquidity after C2;
+- total reserved interest;
+- available liquidity;
 - funding shortfall;
 - fee receiver;
 - authorized SavingCore;
@@ -1827,7 +1813,7 @@ Before submission, show:
 - expected remaining liquidity;
 - warning when close to the maximum.
 
-After C2, the input must not present amounts above available liquidity as valid.
+The input must not present amounts above available liquidity as valid.
 
 The contract remains the final enforcement layer.
 
@@ -1919,7 +1905,7 @@ SavingCore and VaultManager have separate pause states and the UI must display t
 
 It must not display a single healthy state when one contract remains paused.
 
-Phase 10 operation-specific behavior:
+Phase 11 operation-specific behavior:
 
 - SavingCore paused: deposit opening, maturity withdrawal, early withdrawal,
   manual renewal, auto-renew, and pending-interest claims are blocked;
@@ -1971,7 +1957,7 @@ The audit page should organize events by category.
 - ownership transfer started;
 - ownership accepted.
 
-## 34.5 C1 and Future C2 Events
+## 34.5 C1 and C2 Events
 
 - InterestDeferred;
 - PendingInterestClaimed;
@@ -1996,7 +1982,7 @@ Events support auditability but do not replace state reads.
 
 ## 35. Admin Risk Page
 
-The risk page becomes especially important after C2.
+The risk page consumes the implemented C2 solvency reads.
 
 ## 35.1 Solvency Summary
 
@@ -2998,7 +2984,7 @@ Help should not replace visible transaction summaries.
 
 ## 73. Frontend Technology Decision
 
-No frontend framework has been selected as of Phase 10.
+No frontend framework has been selected as of Phase 11.
 
 Potential options include:
 
@@ -3189,88 +3175,53 @@ The Admin Portal will not be considered complete until:
 - vault actions exist;
 - pause controls use strong confirmation;
 - audit information is available;
-- C2 metrics are correct after C2 implementation;
+- C2 metrics mirror the implemented contract reads;
 - frontend guards are not presented as real authorization;
 - dangerous actions show consequences.
 
 ---
 
-## 80. Phase 10 UI/UX Planning Status
+## 80. Phase 12 UI/UX Planning Status
 
-At the current Phase 10 contract baseline:
+At the current Phase 12 contract baseline:
 
 Completed as planning:
 
-- product principles;
-- branding constraints;
-- user and admin personas;
-- information architecture;
-- planned routes;
-- dashboard requirements;
-- plans page requirements;
-- open-deposit wizard;
-- deposit detail requirements;
-- maturity-withdrawal UX;
-- early-withdrawal UX;
-- manual-renewal eligibility and confirmation UX;
-- manual-renewal error mapping;
-- permissionless auto-renew eligibility and confirmation UX;
-- distinction between auto-renew caller and NFT recipient;
-- exact grace-period-end UX;
-- `AutoRenewalTooEarly` error mapping;
-- old snapshot preservation presentation;
-- disabled-plan auto-renew explanation;
-- one-term-only delayed auto-renew explanation;
-- positive-interest funding presentation;
-- zero-interest VaultManager bypass presentation;
-- competing maturity-withdrawal and auto-renew transaction explanation;
-- old and renewed certificate presentation;
-- selected-plan manual-renewal filtering;
+- product principles, branding constraints, personas, routes, responsive rules,
+  accessibility rules, transaction lifecycle, and error messaging;
+- deposit, withdrawal, manual-renew, auto-renew, and C1 pending-interest UX;
+- C2 solvency dashboard, funding-shortfall, reserve, and available-liquidity
+  requirements;
+- administrator withdrawal review constrained by the contract maximum;
+- C1 and C2 event presentation;
 - multi-contract pause behavior;
-- pending-interest requirements;
-- Admin Portal requirements;
-- transaction lifecycle;
-- responsive rules;
-- accessibility rules;
-- wallet and network validation plan;
-- AI placement and fallback plan;
-- alignment with the Phase 10 SavingCore ABI.
+- wallet, network, address, and ABI validation;
+- AI placement and deterministic fallback requirements;
+- alignment with the Phase 12 SavingCore and VaultManager ABIs.
 
 Implemented contract interfaces include:
 
-- maturity withdrawal;
-- early withdrawal;
-- manual renewal;
-- permissionless auto-renewal;
+- mandatory deposit lifecycle operations;
 - C1 principal-first maturity settlement;
-- pending-interest and claimant reads;
-- claimant-only pending-interest claims;
-- `InterestDeferred` and `PendingInterestClaimed` events.
+- pending-interest and claimant reads and claims;
+- aggregate reserved interest;
+- available liquidity and funding shortfall;
+- owner-withdrawal solvency enforcement;
+- C1 and C2 events.
 
 Not implemented:
 
-- frontend folder;
-- frontend package;
-- routing;
-- components;
+- frontend folder and package;
+- routes, components, styling, and state management;
 - wallet connection;
-- contract reads;
-- contract writes;
-- transaction handling;
-- maturity-withdrawal frontend controls;
-- early-withdrawal frontend controls;
-- manual-renewal frontend controls;
-- auto-renew frontend controls;
-- principal-first settlement presentation;
-- pending-interest and claimant components;
-- pending-interest claim frontend controls;
-- responsive CSS;
-- accessibility testing;
+- contract reads and writes;
+- transaction lifecycle code;
+- user and admin controls;
+- pending-interest components;
+- solvency and reserve components;
+- responsive and accessibility testing;
 - AI integration;
 - deployed frontend.
-
-C1 pending-interest and C2 solvency interfaces also remain unavailable until
-their corresponding smart-contract phases are implemented.
 
 This remains a planning document. It does not claim that a user interface
 currently exists.
