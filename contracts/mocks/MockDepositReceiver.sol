@@ -17,6 +17,10 @@ interface ISavingCoreDeposit {
         uint256 depositId,
         uint256 newPlanId
     ) external returns (uint256 newDepositId);
+
+    function autoRenew(
+        uint256 depositId
+    ) external returns (uint256 newDepositId);
 }
 
 /**
@@ -38,6 +42,7 @@ contract MockDepositReceiver is IERC721Receiver {
     uint256 public reentryAmount;
 
     bool public reenterManualRenewal;
+    bool public reenterAutoRenewal;
     uint256 public reentryDepositId;
     uint256 public reentryNewPlanId;
 
@@ -77,6 +82,7 @@ contract MockDepositReceiver is IERC721Receiver {
         reentryPlanId = planId;
         reentryAmount = amount;
         reenterManualRenewal = false;
+        reenterAutoRenewal = false;
         reentryDepositId = 0;
         reentryNewPlanId = 0;
         lastReentryErrorSelector = bytes4(0);
@@ -103,6 +109,7 @@ contract MockDepositReceiver is IERC721Receiver {
         reentryAttempted = false;
         reentrySucceeded = false;
         reenterManualRenewal = true;
+        reenterAutoRenewal = false;
         reentryDepositId = depositId;
         reentryNewPlanId = newPlanId;
         lastReentryErrorSelector = bytes4(0);
@@ -111,6 +118,27 @@ contract MockDepositReceiver is IERC721Receiver {
             depositId,
             newPlanId
         );
+    }
+
+    /**
+     * @notice Permissionlessly auto-renews a deposit owned by this receiver.
+     * @param depositId Existing active deposit identifier.
+     * @param attemptReentry Whether the new-NFT callback should try to reenter.
+     */
+    function autoRenew(
+        uint256 depositId,
+        bool attemptReentry
+    ) external returns (uint256 newDepositId) {
+        reentryRequested = attemptReentry;
+        reentryAttempted = false;
+        reentrySucceeded = false;
+        reenterManualRenewal = false;
+        reenterAutoRenewal = true;
+        reentryDepositId = depositId;
+        reentryNewPlanId = 0;
+        lastReentryErrorSelector = bytes4(0);
+
+        newDepositId = savingCore.autoRenew(depositId);
     }
 
     /**
@@ -133,7 +161,16 @@ contract MockDepositReceiver is IERC721Receiver {
         if (shouldAttemptReentry) {
             reentryAttempted = true;
 
-            if (reenterManualRenewal) {
+            if (reenterAutoRenewal) {
+                try savingCore.autoRenew(
+                    reentryDepositId
+                ) returns (uint256) {
+                    reentrySucceeded = true;
+                } catch (bytes memory reason) {
+                    lastReentryErrorSelector =
+                        _errorSelector(reason);
+                }
+            } else if (reenterManualRenewal) {
                 try savingCore.manualRenew(
                     reentryDepositId,
                     reentryNewPlanId
@@ -220,5 +257,14 @@ contract MockNonERC721Receiver {
             depositId,
             newPlanId
         );
+    }
+
+    /**
+     * @notice Attempts to auto-renew a deposit owned by this contract.
+     */
+    function autoRenew(
+        uint256 depositId
+    ) external returns (uint256 newDepositId) {
+        newDepositId = savingCore.autoRenew(depositId);
     }
 }

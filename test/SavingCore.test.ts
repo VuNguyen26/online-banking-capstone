@@ -5466,4 +5466,1551 @@ describe("SavingCore", function () {
     });
   });
 
+  describe("Permissionless auto-renew core flow and boundary", function () {
+    it("compounds one funded term at the exact grace-period end without transferring ownership to the caller", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        vault,
+        savingCore,
+        owner,
+        other,
+      } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      const newDepositId = 2n;
+      const newPrincipal = principal + interest;
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+      const graceEndsAt = maturityAt + gracePeriod;
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await fundVault(fixture, interest);
+
+      const userBalanceBefore = await token.balanceOf(
+        other.address,
+      );
+      const savingCoreBalanceBefore = await token.balanceOf(
+        savingCoreAddress,
+      );
+      const vaultBalanceBefore = await token.balanceOf(
+        vaultAddress,
+      );
+      const totalSupplyBefore = await token.totalSupply();
+
+      await time.setNextBlockTimestamp(graceEndsAt);
+
+      const transaction = await savingCore
+        .connect(owner)
+        .autoRenew(depositId);
+
+      await expect(transaction)
+        .to.emit(savingCore, "Renewed")
+        .withArgs(
+          depositId,
+          newDepositId,
+          newPrincipal,
+          1n,
+        );
+
+      await expect(transaction)
+        .to.emit(vault, "InterestPaid")
+        .withArgs(
+          savingCoreAddress,
+          savingCoreAddress,
+          interest,
+        );
+
+      await expect(transaction)
+        .to.emit(savingCore, "Transfer")
+        .withArgs(
+          ethers.ZeroAddress,
+          other.address,
+          newDepositId,
+        );
+
+      const receipt = await transaction.wait();
+      expect(receipt).to.not.equal(null);
+
+      const transactionBlock = await ethers.provider.getBlock(
+        receipt!.blockNumber,
+      );
+      expect(transactionBlock).to.not.equal(null);
+
+      const renewedAt = BigInt(transactionBlock!.timestamp);
+      const oldDeposit = await savingCore.getDeposit(depositId);
+      const newDeposit = await savingCore.getDeposit(
+        newDepositId,
+      );
+
+      expect(renewedAt).to.equal(graceEndsAt);
+      expect(oldDeposit.status).to.equal(3n);
+      expect(oldDeposit.principal).to.equal(principal);
+      expect(oldDeposit.maturityAt).to.equal(maturityAt);
+
+      expect(newDeposit.planId).to.equal(oldDeposit.planId);
+      expect(newDeposit.principal).to.equal(newPrincipal);
+      expect(newDeposit.startedAt).to.equal(renewedAt);
+      expect(newDeposit.maturityAt).to.equal(
+        renewedAt +
+          oldDeposit.tenorDays * SECONDS_PER_DAY,
+      );
+      expect(newDeposit.tenorDays).to.equal(
+        oldDeposit.tenorDays,
+      );
+      expect(newDeposit.aprBpsAtOpen).to.equal(
+        oldDeposit.aprBpsAtOpen,
+      );
+      expect(newDeposit.penaltyBpsAtOpen).to.equal(
+        oldDeposit.penaltyBpsAtOpen,
+      );
+      expect(newDeposit.status).to.equal(0n);
+
+      expect(await savingCore.depositCount()).to.equal(
+        newDepositId,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.ownerOf(newDepositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(
+        2n,
+      );
+      expect(await savingCore.balanceOf(owner.address)).to.equal(
+        0n,
+      );
+
+      expect(await token.balanceOf(other.address)).to.equal(
+        userBalanceBefore,
+      );
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(
+        savingCoreBalanceBefore + interest,
+      );
+      expect(await token.balanceOf(vaultAddress)).to.equal(
+        vaultBalanceBefore - interest,
+      );
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+
+      const savingCoreEventNames = receipt!.logs
+        .filter(
+          (log) =>
+            log.address.toLowerCase() ===
+            savingCoreAddress.toLowerCase(),
+        )
+        .map((log) => {
+          try {
+            return (
+              savingCore.interface.parseLog(log)?.name ?? null
+            );
+          } catch {
+            return null;
+          }
+        })
+        .filter(
+          (name): name is string => name !== null,
+        );
+
+      expect(savingCoreEventNames).to.include("Renewed");
+      expect(savingCoreEventNames).to.include("Transfer");
+      expect(savingCoreEventNames).to.not.include(
+        "DepositOpened",
+      );
+      expect(savingCoreEventNames).to.not.include("Withdrawn");
+    });
+
+    it("rejects auto-renew one second before the grace-period end without changing state", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const { token, savingCore, anotherAccount, other } =
+        fixture;
+      const { depositId, principal, maturityAt } =
+        await openDefaultMaturityDeposit(fixture);
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+      const graceEndsAt = maturityAt + gracePeriod;
+      const beforeGraceEnd = graceEndsAt - 1n;
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await time.setNextBlockTimestamp(beforeGraceEnd);
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .autoRenew(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "AutoRenewalTooEarly",
+        )
+        .withArgs(
+          depositId,
+          graceEndsAt,
+          beforeGraceEnd,
+        );
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(0n);
+      expect(await savingCore.depositCount()).to.equal(1n);
+
+      await expect(
+        savingCore.getDeposit(2n),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(2n);
+
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(
+        principal,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(
+        1n,
+      );
+    });
+  });
+
+  describe("Permissionless auto-renew validation and pause behavior", function () {
+    it("rejects zero and nonexistent deposit identifiers", async function () {
+      const { savingCore, other } = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+
+      await expect(
+        savingCore.connect(other).autoRenew(0n),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(0n);
+
+      await expect(
+        savingCore.connect(other).autoRenew(1n),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(1n);
+
+      expect(await savingCore.depositCount()).to.equal(0n);
+    });
+
+    it("blocks auto-renew while SavingCore is paused without changing state", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        savingCore,
+        owner,
+        anotherAccount,
+        other,
+      } = fixture;
+      const { depositId, principal, maturityAt } =
+        await openDefaultMaturityDeposit(fixture);
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+      const graceEndsAt = maturityAt + gracePeriod;
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await savingCore.connect(owner).pause();
+      await time.setNextBlockTimestamp(graceEndsAt);
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .autoRenew(depositId),
+      ).to.be.revertedWithCustomError(
+        savingCore,
+        "EnforcedPause",
+      );
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(0n);
+      expect(await savingCore.depositCount()).to.equal(1n);
+
+      await expect(
+        savingCore.getDeposit(2n),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(2n);
+
+      expect(await token.balanceOf(savingCoreAddress)).to.equal(
+        principal,
+      );
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(
+        1n,
+      );
+    });
+  });
+
+  describe("Permissionless auto-renew snapshots and delayed execution", function () {
+    it("uses old deposit snapshots after the original plan APR changes and the plan is disabled", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        savingCore,
+        owner,
+        other,
+        anotherAccount,
+      } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      const oldDepositBefore =
+        await savingCore.getDeposit(depositId);
+
+      await savingCore
+        .connect(owner)
+        .updatePlan(1n, 900n);
+
+      await savingCore
+        .connect(owner)
+        .disablePlan(1n);
+
+      const currentPlan = await savingCore.getPlan(1n);
+
+      expect(currentPlan.aprBps).to.equal(900n);
+      expect(currentPlan.enabled).to.equal(false);
+
+      await fundVault(fixture, interest);
+
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+      await time.setNextBlockTimestamp(
+        maturityAt + gracePeriod,
+      );
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .autoRenew(depositId),
+      )
+        .to.emit(savingCore, "Renewed")
+        .withArgs(
+          depositId,
+          2n,
+          principal + interest,
+          1n,
+        );
+
+      const oldDepositAfter =
+        await savingCore.getDeposit(depositId);
+      const newDeposit = await savingCore.getDeposit(2n);
+
+      expect(oldDepositAfter.status).to.equal(3n);
+
+      expect(newDeposit.planId).to.equal(
+        oldDepositBefore.planId,
+      );
+      expect(newDeposit.principal).to.equal(
+        principal + interest,
+      );
+      expect(newDeposit.tenorDays).to.equal(
+        oldDepositBefore.tenorDays,
+      );
+      expect(newDeposit.aprBpsAtOpen).to.equal(
+        oldDepositBefore.aprBpsAtOpen,
+      );
+      expect(newDeposit.penaltyBpsAtOpen).to.equal(
+        oldDepositBefore.penaltyBpsAtOpen,
+      );
+      expect(newDeposit.status).to.equal(0n);
+
+      expect(newDeposit.aprBpsAtOpen).to.equal(
+        BigInt(DEFAULT_APR_BPS),
+      );
+      expect(newDeposit.aprBpsAtOpen).to.not.equal(
+        currentPlan.aprBps,
+      );
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.ownerOf(2n)).to.equal(
+        other.address,
+      );
+      expect(
+        await savingCore.balanceOf(anotherAccount.address),
+      ).to.equal(0n);
+    });
+
+    it("creates only one new term when auto-renew is triggered several terms late", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        vault,
+        savingCore,
+        other,
+        anotherAccount,
+      } = fixture;
+      const { depositId, principal, maturityAt, interest } =
+        await openDefaultMaturityDeposit(fixture);
+
+      const oldDeposit =
+        await savingCore.getDeposit(depositId);
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+      const tenorSeconds =
+        oldDeposit.tenorDays * SECONDS_PER_DAY;
+
+      const delayedAt =
+        maturityAt +
+        gracePeriod +
+        tenorSeconds * 3n +
+        123n;
+
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await fundVault(fixture, interest);
+
+      const totalSupplyBefore = await token.totalSupply();
+
+      await time.setNextBlockTimestamp(delayedAt);
+
+      const transaction = await savingCore
+        .connect(anotherAccount)
+        .autoRenew(depositId);
+
+      await expect(transaction)
+        .to.emit(savingCore, "Renewed")
+        .withArgs(
+          depositId,
+          2n,
+          principal + interest,
+          oldDeposit.planId,
+        );
+
+      await expect(transaction)
+        .to.emit(vault, "InterestPaid")
+        .withArgs(
+          savingCoreAddress,
+          savingCoreAddress,
+          interest,
+        );
+
+      const receipt = await transaction.wait();
+      expect(receipt).to.not.equal(null);
+
+      const transactionBlock = await ethers.provider.getBlock(
+        receipt!.blockNumber,
+      );
+      expect(transactionBlock).to.not.equal(null);
+
+      const executedAt = BigInt(
+        transactionBlock!.timestamp,
+      );
+      const newDeposit = await savingCore.getDeposit(2n);
+
+      expect(executedAt).to.equal(delayedAt);
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(3n);
+
+      expect(newDeposit.principal).to.equal(
+        principal + interest,
+      );
+      expect(newDeposit.startedAt).to.equal(delayedAt);
+      expect(newDeposit.maturityAt).to.equal(
+        delayedAt + tenorSeconds,
+      );
+      expect(newDeposit.status).to.equal(0n);
+
+      expect(await savingCore.depositCount()).to.equal(2n);
+      expect(await savingCore.ownerOf(2n)).to.equal(
+        other.address,
+      );
+
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(principal + interest);
+      expect(
+        await token.balanceOf(vaultAddress),
+      ).to.equal(0n);
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+    });
+  });
+
+  describe("Permissionless auto-renew deposit limits and zero interest", function () {
+    it("does not reapply the original plan maximum when compounded principal exceeds it", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        vault,
+        savingCore,
+        owner,
+        other,
+        anotherAccount,
+      } = fixture;
+
+      const principal = amount("1000");
+      const savingCoreAddress = await savingCore.getAddress();
+
+      await savingCore.connect(owner).createPlan(
+        DEFAULT_TENOR_DAYS,
+        DEFAULT_APR_BPS,
+        principal,
+        principal,
+        DEFAULT_PENALTY_BPS,
+        true,
+      );
+
+      await token.mint(other.address, principal);
+
+      await token
+        .connect(other)
+        .approve(savingCoreAddress, principal);
+
+      await savingCore
+        .connect(other)
+        .openDeposit(1n, principal);
+
+      const oldDeposit = await savingCore.getDeposit(1n);
+      const interest = calculateInterest(
+        oldDeposit.principal,
+        oldDeposit.aprBpsAtOpen,
+        oldDeposit.tenorDays,
+      );
+      const newPrincipal = principal + interest;
+      const plan = await savingCore.getPlan(1n);
+
+      expect(interest).to.be.greaterThan(0n);
+      expect(newPrincipal).to.be.greaterThan(
+        plan.maxDeposit,
+      );
+
+      await fundVault(fixture, interest);
+
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        oldDeposit.maturityAt + gracePeriod,
+      );
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .autoRenew(1n),
+      )
+        .to.emit(savingCore, "Renewed")
+        .withArgs(
+          1n,
+          2n,
+          newPrincipal,
+          1n,
+        );
+
+      const renewedDeposit = await savingCore.getDeposit(2n);
+
+      expect(
+        (await savingCore.getDeposit(1n)).status,
+      ).to.equal(3n);
+      expect(renewedDeposit.principal).to.equal(
+        newPrincipal,
+      );
+      expect(renewedDeposit.principal).to.be.greaterThan(
+        plan.maxDeposit,
+      );
+      expect(renewedDeposit.status).to.equal(0n);
+
+      expect(await savingCore.depositCount()).to.equal(2n);
+      expect(await savingCore.ownerOf(2n)).to.equal(
+        other.address,
+      );
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(newPrincipal);
+      expect(
+        await token.balanceOf(await vault.getAddress()),
+      ).to.equal(0n);
+    });
+
+    it("skips the vault payout when interest rounds to zero and succeeds while VaultManager is paused", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        vault,
+        savingCore,
+        owner,
+        other,
+        anotherAccount,
+      } = fixture;
+
+      const principal = 1n;
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await savingCore.connect(owner).createPlan(
+        1,
+        1,
+        0n,
+        0n,
+        DEFAULT_PENALTY_BPS,
+        true,
+      );
+
+      await token.mint(other.address, principal);
+
+      await token
+        .connect(other)
+        .approve(savingCoreAddress, principal);
+
+      await savingCore
+        .connect(other)
+        .openDeposit(1n, principal);
+
+      const oldDeposit = await savingCore.getDeposit(1n);
+      const interest = calculateInterest(
+        oldDeposit.principal,
+        oldDeposit.aprBpsAtOpen,
+        oldDeposit.tenorDays,
+      );
+
+      expect(interest).to.equal(0n);
+
+      await vault.connect(owner).pause();
+
+      const totalSupplyBefore = await token.totalSupply();
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        oldDeposit.maturityAt + gracePeriod,
+      );
+
+      const transaction = await savingCore
+        .connect(anotherAccount)
+        .autoRenew(1n);
+
+      await expect(transaction)
+        .to.emit(savingCore, "Renewed")
+        .withArgs(
+          1n,
+          2n,
+          principal,
+          1n,
+        );
+
+      await expect(transaction).to.not.emit(
+        vault,
+        "InterestPaid",
+      );
+
+      const newDeposit = await savingCore.getDeposit(2n);
+
+      expect(
+        (await savingCore.getDeposit(1n)).status,
+      ).to.equal(3n);
+      expect(newDeposit.principal).to.equal(principal);
+      expect(newDeposit.status).to.equal(0n);
+
+      expect(await savingCore.depositCount()).to.equal(2n);
+      expect(await savingCore.ownerOf(1n)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.ownerOf(2n)).to.equal(
+        other.address,
+      );
+
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(principal);
+      expect(
+        await token.balanceOf(vaultAddress),
+      ).to.equal(0n);
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+    });
+  });
+
+  describe("Permissionless auto-renew ownership and terminal lifecycle", function () {
+    it("mints the renewed certificate to the current NFT owner after ownership transfer", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        savingCore,
+        owner,
+        other,
+        anotherAccount,
+      } = fixture;
+      const {
+        depositId,
+        principal,
+        maturityAt,
+        interest,
+      } = await openDefaultMaturityDeposit(fixture);
+
+      await savingCore
+        .connect(other)
+        .transferFrom(
+          other.address,
+          anotherAccount.address,
+          depositId,
+        );
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        anotherAccount.address,
+      );
+
+      await fundVault(fixture, interest);
+
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        maturityAt + gracePeriod,
+      );
+
+      await expect(
+        savingCore
+          .connect(owner)
+          .autoRenew(depositId),
+      )
+        .to.emit(savingCore, "Renewed")
+        .withArgs(
+          depositId,
+          2n,
+          principal + interest,
+          1n,
+        );
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(3n);
+      expect(
+        (await savingCore.getDeposit(2n)).status,
+      ).to.equal(0n);
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        anotherAccount.address,
+      );
+      expect(await savingCore.ownerOf(2n)).to.equal(
+        anotherAccount.address,
+      );
+
+      expect(
+        await savingCore.balanceOf(anotherAccount.address),
+      ).to.equal(2n);
+      expect(await savingCore.balanceOf(other.address)).to.equal(
+        0n,
+      );
+      expect(await savingCore.balanceOf(owner.address)).to.equal(
+        0n,
+      );
+    });
+
+    it("rejects repeated renewal and withdrawals after auto-renew settles the old deposit", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        savingCore,
+        owner,
+        other,
+        anotherAccount,
+      } = fixture;
+      const {
+        depositId,
+        maturityAt,
+        interest,
+      } = await openDefaultMaturityDeposit(fixture);
+
+      await fundVault(fixture, interest);
+
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        maturityAt + gracePeriod,
+      );
+
+      await savingCore
+        .connect(anotherAccount)
+        .autoRenew(depositId);
+
+      await expect(
+        savingCore
+          .connect(owner)
+          .autoRenew(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "DepositNotActive",
+        )
+        .withArgs(depositId, 3n);
+
+      await expect(
+        savingCore
+          .connect(other)
+          .withdrawAtMaturity(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "DepositNotActive",
+        )
+        .withArgs(depositId, 3n);
+
+      await expect(
+        savingCore
+          .connect(other)
+          .earlyWithdraw(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "DepositNotActive",
+        )
+        .withArgs(depositId, 3n);
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(3n);
+      expect(
+        (await savingCore.getDeposit(2n)).status,
+      ).to.equal(0n);
+
+      expect(await savingCore.depositCount()).to.equal(2n);
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.ownerOf(2n)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(
+        2n,
+      );
+    });
+
+    it("rejects auto-renew when maturity withdrawal settles first after the grace period", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        vault,
+        savingCore,
+        other,
+        anotherAccount,
+      } = fixture;
+      const {
+        depositId,
+        principal,
+        maturityAt,
+        interest,
+      } = await openDefaultMaturityDeposit(fixture);
+
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await fundVault(fixture, interest);
+
+      const totalSupplyBefore = await token.totalSupply();
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        maturityAt + gracePeriod,
+      );
+
+      await savingCore
+        .connect(other)
+        .withdrawAtMaturity(depositId);
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .autoRenew(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "DepositNotActive",
+        )
+        .withArgs(depositId, 1n);
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(1n);
+      expect(await savingCore.depositCount()).to.equal(1n);
+
+      await expect(
+        savingCore.getDeposit(2n),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(2n);
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(
+        1n,
+      );
+
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(0n);
+      expect(
+        await token.balanceOf(vaultAddress),
+      ).to.equal(0n);
+      expect(await token.balanceOf(other.address)).to.equal(
+        principal + interest,
+      );
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+    });
+  });
+
+  describe("Permissionless auto-renew VaultManager rollback", function () {
+    it("fully rolls back when the vault is underfunded", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        vault,
+        savingCore,
+        other,
+        anotherAccount,
+      } = fixture;
+      const {
+        depositId,
+        principal,
+        maturityAt,
+        interest,
+      } = await openDefaultMaturityDeposit(fixture);
+
+      const availableInterest = interest - 1n;
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await fundVault(fixture, availableInterest);
+
+      const totalSupplyBefore = await token.totalSupply();
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        maturityAt + gracePeriod,
+      );
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .autoRenew(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          vault,
+          "InsufficientVaultBalance",
+        )
+        .withArgs(availableInterest, interest);
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(0n);
+      expect(await savingCore.depositCount()).to.equal(1n);
+
+      await expect(
+        savingCore.getDeposit(2n),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(2n);
+
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(principal);
+      expect(
+        await token.balanceOf(vaultAddress),
+      ).to.equal(availableInterest);
+      expect(await token.balanceOf(other.address)).to.equal(
+        0n,
+      );
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(
+        1n,
+      );
+    });
+
+    it("fully rolls back positive-interest auto-renew when VaultManager is paused", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        vault,
+        savingCore,
+        owner,
+        other,
+        anotherAccount,
+      } = fixture;
+      const {
+        depositId,
+        principal,
+        maturityAt,
+        interest,
+      } = await openDefaultMaturityDeposit(fixture);
+
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await fundVault(fixture, interest);
+      await vault.connect(owner).pause();
+
+      const totalSupplyBefore = await token.totalSupply();
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        maturityAt + gracePeriod,
+      );
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .autoRenew(depositId),
+      ).to.be.revertedWithCustomError(
+        vault,
+        "EnforcedPause",
+      );
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(0n);
+      expect(await savingCore.depositCount()).to.equal(1n);
+
+      await expect(
+        savingCore.getDeposit(2n),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(2n);
+
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(principal);
+      expect(
+        await token.balanceOf(vaultAddress),
+      ).to.equal(interest);
+      expect(await token.balanceOf(other.address)).to.equal(
+        0n,
+      );
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(
+        1n,
+      );
+    });
+
+    it("fully rolls back when SavingCore is not authorized by VaultManager", async function () {
+      const fixture = await loadFixture(
+        deploySavingCoreFixture,
+      );
+      const {
+        token,
+        vault,
+        savingCore,
+        other,
+        anotherAccount,
+      } = fixture;
+      const {
+        depositId,
+        principal,
+        maturityAt,
+        interest,
+      } = await openDefaultMaturityDeposit(fixture);
+
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await fundVault(fixture, interest);
+
+      const totalSupplyBefore = await token.totalSupply();
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        maturityAt + gracePeriod,
+      );
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .autoRenew(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          vault,
+          "UnauthorizedSavingCore",
+        )
+        .withArgs(savingCoreAddress);
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(0n);
+      expect(await savingCore.depositCount()).to.equal(1n);
+
+      await expect(
+        savingCore.getDeposit(2n),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(2n);
+
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(principal);
+      expect(
+        await token.balanceOf(vaultAddress),
+      ).to.equal(interest);
+      expect(await token.balanceOf(other.address)).to.equal(
+        0n,
+      );
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+      expect(await savingCore.balanceOf(other.address)).to.equal(
+        1n,
+      );
+    });
+  });
+
+  describe("Permissionless auto-renew safe-mint rollback", function () {
+    it("rolls back interest, deposit state, and the new certificate when the current owner cannot receive ERC721", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        vault,
+        savingCore,
+        other,
+        anotherAccount,
+      } = fixture;
+      const {
+        depositId,
+        principal,
+        maturityAt,
+        interest,
+      } = await openDefaultMaturityDeposit(fixture);
+
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      const MockNonERC721Receiver =
+        await ethers.getContractFactory(
+          "MockNonERC721Receiver",
+        );
+
+      const nonReceiver =
+        await MockNonERC721Receiver.deploy(
+          await token.getAddress(),
+          savingCoreAddress,
+        );
+
+      await nonReceiver.waitForDeployment();
+
+      const nonReceiverAddress =
+        await nonReceiver.getAddress();
+
+      await savingCore
+        .connect(other)
+        .transferFrom(
+          other.address,
+          nonReceiverAddress,
+          depositId,
+        );
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        nonReceiverAddress,
+      );
+
+      await fundVault(fixture, interest);
+
+      const totalSupplyBefore = await token.totalSupply();
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        maturityAt + gracePeriod,
+      );
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .autoRenew(depositId),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "ERC721InvalidReceiver",
+        )
+        .withArgs(nonReceiverAddress);
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(0n);
+      expect(await savingCore.depositCount()).to.equal(1n);
+
+      await expect(
+        savingCore.getDeposit(2n),
+      )
+        .to.be.revertedWithCustomError(
+          savingCore,
+          "InvalidDepositId",
+        )
+        .withArgs(2n);
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        nonReceiverAddress,
+      );
+      expect(
+        await savingCore.balanceOf(nonReceiverAddress),
+      ).to.equal(1n);
+
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(principal);
+      expect(
+        await token.balanceOf(vaultAddress),
+      ).to.equal(interest);
+      expect(
+        await token.balanceOf(nonReceiverAddress),
+      ).to.equal(0n);
+      expect(
+        await token.balanceOf(anotherAccount.address),
+      ).to.equal(0n);
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+    });
+  });
+
+  describe("Permissionless auto-renew reentrancy protection", function () {
+    it("blocks token callback reentrancy while completing the original auto-renew", async function () {
+      const [owner, feeReceiver, other, anotherAccount] =
+        await ethers.getSigners();
+
+      const MockReentrantToken =
+        await ethers.getContractFactory(
+          "MockReentrantToken",
+        );
+
+      const token = await MockReentrantToken.deploy();
+      await token.waitForDeployment();
+
+      const VaultManager =
+        await ethers.getContractFactory("VaultManager");
+
+      const vault = await VaultManager.deploy(
+        await token.getAddress(),
+        owner.address,
+        feeReceiver.address,
+      );
+
+      await vault.waitForDeployment();
+
+      const SavingCore =
+        await ethers.getContractFactory("SavingCore");
+
+      const savingCore = await SavingCore.deploy(
+        await token.getAddress(),
+        await vault.getAddress(),
+        owner.address,
+      );
+
+      await savingCore.waitForDeployment();
+
+      const savingCoreAddress =
+        await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      await vault
+        .connect(owner)
+        .authorizeSavingCore(savingCoreAddress);
+
+      await savingCore.connect(owner).createPlan(
+        DEFAULT_TENOR_DAYS,
+        DEFAULT_APR_BPS,
+        DEFAULT_MIN_DEPOSIT,
+        DEFAULT_MAX_DEPOSIT,
+        DEFAULT_PENALTY_BPS,
+        true,
+      );
+
+      const depositId = 1n;
+      const newDepositId = 2n;
+      const principal = amount("1000");
+
+      await token.mint(other.address, principal);
+
+      await token
+        .connect(other)
+        .approve(savingCoreAddress, principal);
+
+      await savingCore
+        .connect(other)
+        .openDeposit(1n, principal);
+
+      const oldDeposit =
+        await savingCore.getDeposit(depositId);
+
+      const interest = calculateInterest(
+        oldDeposit.principal,
+        oldDeposit.aprBpsAtOpen,
+        oldDeposit.tenorDays,
+      );
+
+      await token.mint(owner.address, interest);
+
+      await token
+        .connect(owner)
+        .approve(vaultAddress, interest);
+
+      await vault.connect(owner).fundVault(interest);
+
+      const totalSupplyBefore =
+        await token.totalSupply();
+
+      await token.configureAutoRenewReentry(
+        savingCoreAddress,
+        vaultAddress,
+        depositId,
+        true,
+      );
+
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        oldDeposit.maturityAt + gracePeriod,
+      );
+
+      await expect(
+        savingCore
+          .connect(anotherAccount)
+          .autoRenew(depositId),
+      )
+        .to.emit(savingCore, "Renewed")
+        .withArgs(
+          depositId,
+          newDepositId,
+          principal + interest,
+          1n,
+        );
+
+      expect(await token.reentryAttempted()).to.equal(true);
+      expect(await token.reentrySucceeded()).to.equal(false);
+
+      expect(
+        await token.lastReentryErrorSelector(),
+      ).to.equal(
+        ethers
+          .id("ReentrancyGuardReentrantCall()")
+          .slice(0, 10),
+      );
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(3n);
+
+      expect(
+        (await savingCore.getDeposit(newDepositId)).status,
+      ).to.equal(0n);
+
+      expect(await savingCore.depositCount()).to.equal(2n);
+
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(principal + interest);
+
+      expect(
+        await token.balanceOf(vaultAddress),
+      ).to.equal(0n);
+
+      expect(await token.balanceOf(other.address)).to.equal(
+        0n,
+      );
+
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        other.address,
+      );
+
+      expect(
+        await savingCore.ownerOf(newDepositId),
+      ).to.equal(other.address);
+    });
+
+    it("blocks ERC721 receiver callback reentrancy while minting the renewed certificate", async function () {
+      const fixture = await loadFixture(
+        deployAuthorizedSavingCoreFixture,
+      );
+      const {
+        token,
+        vault,
+        savingCore,
+        other,
+        anotherAccount,
+      } = fixture;
+      const {
+        depositId,
+        principal,
+        maturityAt,
+        interest,
+      } = await openDefaultMaturityDeposit(fixture);
+
+      const savingCoreAddress = await savingCore.getAddress();
+      const vaultAddress = await vault.getAddress();
+
+      const MockDepositReceiver =
+        await ethers.getContractFactory(
+          "MockDepositReceiver",
+        );
+
+      const receiver = await MockDepositReceiver.deploy(
+        await token.getAddress(),
+        savingCoreAddress,
+      );
+
+      await receiver.waitForDeployment();
+
+      const receiverAddress = await receiver.getAddress();
+
+      await savingCore
+        .connect(other)
+        .transferFrom(
+          other.address,
+          receiverAddress,
+          depositId,
+        );
+
+      await fundVault(fixture, interest);
+
+      const totalSupplyBefore = await token.totalSupply();
+      const gracePeriod = await savingCore.GRACE_PERIOD();
+
+      await time.setNextBlockTimestamp(
+        maturityAt + gracePeriod,
+      );
+
+      await expect(
+        receiver.autoRenew(depositId, true),
+      )
+        .to.emit(savingCore, "Renewed")
+        .withArgs(
+          depositId,
+          2n,
+          principal + interest,
+          1n,
+        );
+
+      expect(await receiver.reentryAttempted()).to.equal(true);
+      expect(await receiver.reentrySucceeded()).to.equal(false);
+
+      expect(
+        await receiver.lastReentryErrorSelector(),
+      ).to.equal(
+        ethers
+          .id("ReentrancyGuardReentrantCall()")
+          .slice(0, 10),
+      );
+
+      expect(await receiver.callbackOperator()).to.equal(
+        receiverAddress,
+      );
+
+      expect(await receiver.callbackFrom()).to.equal(
+        ethers.ZeroAddress,
+      );
+
+      expect(await receiver.callbackTokenId()).to.equal(2n);
+      expect(await receiver.callbackData()).to.equal("0x");
+
+      expect(
+        (await savingCore.getDeposit(depositId)).status,
+      ).to.equal(3n);
+
+      expect(
+        (await savingCore.getDeposit(2n)).status,
+      ).to.equal(0n);
+
+      expect(await savingCore.depositCount()).to.equal(2n);
+
+      expect(await savingCore.ownerOf(depositId)).to.equal(
+        receiverAddress,
+      );
+
+      expect(await savingCore.ownerOf(2n)).to.equal(
+        receiverAddress,
+      );
+
+      expect(
+        await savingCore.balanceOf(receiverAddress),
+      ).to.equal(2n);
+
+      expect(
+        await token.balanceOf(savingCoreAddress),
+      ).to.equal(principal + interest);
+
+      expect(
+        await token.balanceOf(vaultAddress),
+      ).to.equal(0n);
+
+      expect(
+        await token.balanceOf(receiverAddress),
+      ).to.equal(0n);
+
+      expect(
+        await token.balanceOf(anotherAccount.address),
+      ).to.equal(0n);
+
+      expect(await token.totalSupply()).to.equal(
+        totalSupplyBefore,
+      );
+    });
+  });
 });

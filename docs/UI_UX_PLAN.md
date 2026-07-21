@@ -6,15 +6,15 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | UI/UX Product Plan |
-| Current project phase | Phase 8 — Manual renewal during the grace period |
-| Implementation status | Frontend remains planned only; contract interfaces through Phase 8 are implemented and validated locally |
+| Current project phase | Phase 9 — Permissionless auto-renewal after the grace period |
+| Implementation status | Frontend remains planned only; mandatory contract interfaces through Phase 9 are implemented and validated locally |
 | Target product areas | User Banking App and Admin Portal |
 | Product style | Modern, trustworthy, clear, accessible, and responsive |
 | Branding model | Original SafeBank identity |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document defines the planned SafeBank user experience and is aligned with the implemented contract interfaces through Phase 8. No frontend application has been created yet.
+This document defines the planned SafeBank user experience and is aligned with the implemented contract interfaces through Phase 9. No frontend application has been created yet.
 
 It does not claim that:
 
@@ -27,7 +27,7 @@ It does not claim that:
 - any Sepolia deployment currently exists;
 - the product is production-ready.
 
-The plan, deposit-opening, certificate, maturity-withdrawal, early-withdrawal, and manual-renewal interfaces are now validated locally. Permissionless auto-renewal, C1, C2, deployment addresses, and frontend implementation remain pending.
+The plan, deposit-opening, certificate, maturity-withdrawal, early-withdrawal, manual-renewal, and permissionless auto-renew interfaces are now validated locally. C1, C2, deployment addresses, and frontend implementation remain pending.
 
 ## 1.1 SafeBank Personal Variant
 
@@ -45,7 +45,7 @@ UI calculations and input handling must use six-decimal token units.
 
 The interface must not use `parseEther` for MockUSDC.
 
-## 1.2 Phase 8 Contract Integration Baseline
+## 1.2 Phase 9 Contract Integration Baseline
 
 The future frontend may rely on the following implemented and locally
 validated interfaces:
@@ -56,23 +56,25 @@ validated interfaces:
 - `withdrawAtMaturity(depositId)`;
 - `earlyWithdraw(depositId)`;
 - `manualRenew(depositId, newPlanId)`;
+- `autoRenew(depositId)`;
 - the reused `Withdrawn` event;
 - the `Renewed` event;
 - the `DepositAlreadyMatured` custom error;
 - the `DepositNotMatured` custom error;
 - the `ManualRenewalWindowClosed` custom error;
+- the `AutoRenewalTooEarly` custom error;
 - selected-plan validation during manual renewal;
 - old-deposit snapshot reads;
 - new-deposit snapshot reads after renewal;
 - public `VaultManager.feeReceiver()` reads;
 - independent SavingCore and VaultManager pause reads.
 
-Manual renewal is now an implemented contract capability, but no frontend
-button, route, transaction hook, or wallet integration exists yet.
+Manual renewal and permissionless auto-renewal are implemented contract
+capabilities, but no frontend button, route, transaction hook, or wallet
+integration exists yet.
 
 The frontend must not present the following as available yet:
 
-- permissionless automatic renewal;
 - pending-interest claims;
 - reserved-interest or available-liquidity accounting;
 - C1 principal-first settlement;
@@ -989,7 +991,7 @@ The action area depends on:
 - pending-interest state after C1;
 - implemented contract capability.
 
-Phase 8 action rules:
+Phase 9 action rules:
 
 - offer early withdrawal only when the deposit is `Active`;
 - offer early withdrawal only when the connected wallet is the direct
@@ -1004,15 +1006,31 @@ Phase 8 action rules:
   `maturityAt <= block.timestamp < maturityAt + GRACE_PERIOD`;
 - do not offer manual renewal before maturity;
 - stop offering manual renewal at the exact grace-period end;
-- include only enabled plans in the renewal-plan selector;
+- offer permissionless auto-renew only while the old deposit remains
+  `Active`;
+- offer auto-renew when
+  `block.timestamp >= maturityAt + GRACE_PERIOD`;
+- allow the connected wallet to trigger auto-renew even when it is not the
+  current certificate owner;
+- display the current old-certificate owner as the new NFT recipient;
+- do not allow the caller to edit the recipient;
+- preserve the old plan ID, tenor, APR, and penalty snapshots in the
+  review;
+- do not require the original plan to remain enabled;
+- do not reapply the original plan minimum or maximum;
+- explain that one delayed transaction creates exactly one new term;
+- explain that the new term begins at the confirmed transaction timestamp;
+- include only enabled plans in the manual-renewal plan selector;
 - allow the same plan when it remains enabled;
 - validate compounded principal against the selected plan limits;
-- disable early withdrawal, maturity withdrawal, and manual renewal while
-  SavingCore is paused;
+- disable early withdrawal, maturity withdrawal, manual renewal, and
+  auto-renew while SavingCore is paused;
 - do not disable early withdrawal solely because VaultManager is paused;
 - explain that VaultManager pause blocks positive-interest maturity
-  withdrawal and positive-interest manual renewal;
-- explain that zero-interest manual renewal may not require a vault payout;
+  withdrawal, positive-interest manual renewal, and positive-interest
+  auto-renew;
+- explain that zero-interest manual renewal or auto-renew may not require a
+  vault payout;
 - keep historical certificate viewing available after settlement or
   renewal;
 - refresh old deposit, new deposit, NFT ownership, balances, and events
@@ -1025,7 +1043,7 @@ Possible actions:
 - early withdraw;
 - withdraw at maturity;
 - manually renew during the grace period;
-- trigger auto-renew after its implementation;
+- trigger permissionless auto-renew after the grace period;
 - claim pending interest after C1;
 - view historical certificates.
 
@@ -1309,25 +1327,204 @@ The UI must refresh authoritative contract state after every revert.
 
 ## 25. Auto-Renew UX
 
-Auto-renew becomes available when:
+The implemented contract action is:
 
-`block.timestamp >= maturityAt + gracePeriod`
+`autoRenew(depositId)`
 
-The UI should explain:
+It becomes available when:
 
-- any address may trigger the transaction;
-- the caller does not gain ownership;
-- the new NFT is minted to the current owner;
-- old tenor is preserved;
-- old APR snapshot is preserved;
-- the final penalty behavior follows the documented project decision;
+`block.timestamp >= maturityAt + GRACE_PERIOD`
+
+The UI must derive eligibility from current contract state and a recent block
+timestamp.
+
+### 25.1 Eligibility
+
+Show Trigger Auto-Renew only when:
+
+- the old deposit exists;
+- the old deposit status is `Active`;
+- the current timestamp is at or after the grace-period end;
+- SavingCore is not paused.
+
+The connected wallet does not need to own the old certificate.
+
+At one second before the grace-period end, the contract reverts with
+`AutoRenewalTooEarly`.
+
+At the exact grace-period end, the action becomes valid.
+
+### 25.2 Permissionless Caller and Recipient
+
+The review must distinguish:
+
+- transaction caller;
+- current owner of the old certificate;
+- recipient of the new certificate.
+
+The caller may be any wallet.
+
+The new NFT recipient must always be the current old-certificate owner.
+
+The UI must not:
+
+- default the recipient to the caller;
+- allow the caller to edit the recipient;
+- imply that triggering creates ownership rights;
+- require ERC721 approval for permissionless triggering.
+
+Refresh `ownerOf(depositId)` immediately before preparing the transaction.
+
+### 25.3 Preserved Terms
+
+The review must display that the new deposit preserves the old deposit's:
+
+- plan ID;
+- tenor snapshot;
+- APR snapshot;
+- early-withdrawal penalty snapshot.
+
+The UI must not substitute the current plan APR or current enabled state.
+
+The original plan may be disabled and auto-renew may still remain valid.
+
+The original plan minimum and maximum are not reapplied to compounded
+principal.
+
+### 25.4 Delayed Execution
+
+The confirmation must explain:
+
+- time passing alone does not renew the deposit;
 - a real transaction is required;
-- time passing alone does not renew the deposit.
+- one transaction creates exactly one new term;
+- only one old term of interest is calculated;
+- no retroactive multi-term catch-up occurs;
+- the new term starts at the successful transaction timestamp.
 
-The user interface may offer a Trigger Auto-Renew button even when the connected wallet is not the owner.
+The UI must not display hypothetical accumulated renewal terms.
 
-Before submission, it should clearly show the recipient owner.
+### 25.5 Interest and Token Movement
 
+For positive interest, explain that:
+
+- interest moves from VaultManager into SavingCore;
+- the user wallet does not receive the interest directly;
+- the funded interest becomes part of the new principal;
+- VaultManager balance decreases;
+- SavingCore balance increases;
+- user wallet balance remains unchanged;
+- total MockUSDC supply remains unchanged.
+
+For zero-rounded interest, explain that:
+
+- no VaultManager payout is requested;
+- no `InterestPaid` event is expected;
+- new principal equals old principal;
+- VaultManager pause alone may not block the action.
+
+### 25.6 Pause and Funding States
+
+When SavingCore is paused:
+
+- auto-renew is blocked.
+
+When VaultManager is paused:
+
+- positive-interest auto-renew is blocked;
+- zero-interest auto-renew may remain valid.
+
+When VaultManager is underfunded or SavingCore is unauthorized:
+
+- no renewed principal is created;
+- no new deposit remains;
+- no new NFT remains;
+- the old deposit remains `Active`;
+- maturity withdrawal may remain available to the owner.
+
+The UI must not present partial success after a revert.
+
+### 25.7 Confirmation
+
+Before wallet submission, show:
+
+- old deposit ID;
+- current old-certificate owner;
+- transaction caller;
+- grace-period end;
+- old principal;
+- old plan ID;
+- old tenor snapshot;
+- old APR snapshot;
+- old penalty snapshot;
+- calculated old-term interest;
+- new principal;
+- expected new term start;
+- expected new maturity;
+- new NFT recipient;
+- old NFT retention;
+- irreversible old status transition to `AutoRenewed`;
+- statement that one new active deposit will be created.
+
+### 25.8 Success State
+
+After confirmation, refresh and display:
+
+- transaction hash;
+- `Renewed` event;
+- old status `AutoRenewed`;
+- new active deposit ID;
+- new principal;
+- preserved snapshots;
+- confirmed `startedAt`;
+- confirmed `maturityAt`;
+- old NFT ownership;
+- new NFT ownership;
+- `InterestPaid` only when interest is positive;
+- ERC721 mint `Transfer`;
+- unchanged caller and owner wallet balances where relevant;
+- unchanged total token supply.
+
+Do not expect auto-renew to emit:
+
+- `DepositOpened`;
+- `Withdrawn`.
+
+### 25.9 Competing Maturity Withdrawal
+
+After grace, the current owner may still submit maturity withdrawal while the
+old deposit remains `Active`.
+
+A permissionless auto-renew transaction may compete with it.
+
+The first successfully mined transaction determines the terminal state.
+
+After either transaction confirms, refresh the deposit before offering another
+action.
+
+### 25.10 Error Mapping
+
+Map failures to clear messages:
+
+- `AutoRenewalTooEarly`:
+  “Auto-renew becomes available after the two-day grace period.”
+- inactive deposit:
+  “This deposit has already completed another lifecycle action.”
+- SavingCore paused:
+  “SafeBank deposit operations are temporarily paused.”
+- VaultManager paused with positive interest:
+  “The interest vault is paused, so this positive-interest renewal cannot
+  complete.”
+- underfunded VaultManager:
+  “The interest vault cannot fully fund this renewal.”
+- unauthorized SavingCore:
+  “The interest vault is not configured for this SavingCore contract.”
+- unsafe current-owner contract:
+  “The current owner contract cannot receive the renewed NFT.”
+- reentrancy or callback failure:
+  show a generic safe transaction failure and refresh authoritative state.
+
+The UI must never infer renewal solely because the grace period has passed.
 ---
 
 ## 26. Withdraw After Grace Period
@@ -1683,14 +1880,16 @@ SavingCore and VaultManager have separate pause states and the UI must display t
 
 It must not display a single healthy state when one contract remains paused.
 
-Phase 8 operation-specific behavior:
+Phase 9 operation-specific behavior:
 
 - SavingCore paused: deposit opening, maturity withdrawal, early withdrawal,
-  and manual renewal are blocked;
+  manual renewal, and auto-renew are blocked;
 - VaultManager paused: positive-interest payout operations are blocked;
 - VaultManager paused by itself does not block early withdrawal;
-- VaultManager paused by itself may not block zero-interest manual renewal;
-- positive-interest manual renewal requires an unpaused VaultManager;
+- VaultManager paused by itself may not block zero-interest manual renewal
+  or zero-interest auto-renew;
+- positive-interest manual renewal and positive-interest auto-renew require
+  an unpaused VaultManager;
 - plan and deposit reads remain available while either contract is paused;
 - certificate and ownership reads remain available;
 - the interface must explain which contract is responsible for the blocked
@@ -2756,7 +2955,7 @@ Help should not replace visible transaction summaries.
 
 ## 73. Frontend Technology Decision
 
-No frontend framework has been selected as of Phase 8.
+No frontend framework has been selected as of Phase 9.
 
 Potential options include:
 
@@ -2953,9 +3152,9 @@ The Admin Portal will not be considered complete until:
 
 ---
 
-## 80. Phase 8 UI/UX Planning Status
+## 80. Phase 9 UI/UX Planning Status
 
-At the current Phase 8 contract baseline:
+At the current Phase 9 contract baseline:
 
 Completed as planning:
 
@@ -2972,10 +3171,18 @@ Completed as planning:
 - early-withdrawal UX;
 - manual-renewal eligibility and confirmation UX;
 - manual-renewal error mapping;
+- permissionless auto-renew eligibility and confirmation UX;
+- distinction between auto-renew caller and NFT recipient;
+- exact grace-period-end UX;
+- `AutoRenewalTooEarly` error mapping;
+- old snapshot preservation presentation;
+- disabled-plan auto-renew explanation;
+- one-term-only delayed auto-renew explanation;
+- positive-interest funding presentation;
+- zero-interest VaultManager bypass presentation;
+- competing maturity-withdrawal and auto-renew transaction explanation;
 - old and renewed certificate presentation;
-- selected-plan renewal filtering;
-- funded-interest explanation;
-- zero-interest renewal explanation;
+- selected-plan manual-renewal filtering;
 - multi-contract pause behavior;
 - pending-interest requirements;
 - Admin Portal requirements;
@@ -2984,9 +3191,14 @@ Completed as planning:
 - accessibility rules;
 - wallet and network validation plan;
 - AI placement and fallback plan;
-- alignment with the Phase 8 SavingCore ABI.
+- alignment with the Phase 9 SavingCore ABI.
 
-Implemented contract interfaces include manual renewal.
+Implemented contract interfaces include:
+
+- maturity withdrawal;
+- early withdrawal;
+- manual renewal;
+- permissionless auto-renewal.
 
 Not implemented:
 
@@ -2998,11 +3210,17 @@ Not implemented:
 - contract reads;
 - contract writes;
 - transaction handling;
+- maturity-withdrawal frontend controls;
+- early-withdrawal frontend controls;
 - manual-renewal frontend controls;
+- auto-renew frontend controls;
 - responsive CSS;
 - accessibility testing;
 - AI integration;
 - deployed frontend.
+
+C1 pending-interest and C2 solvency interfaces also remain unavailable until
+their corresponding smart-contract phases are implemented.
 
 This remains a planning document. It does not claim that a user interface
 currently exists.

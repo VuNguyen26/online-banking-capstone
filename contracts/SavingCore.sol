@@ -223,6 +223,15 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     );
 
     /**
+     * @dev The permissionless auto-renew timestamp has not yet been reached.
+     */
+    error AutoRenewalTooEarly(
+        uint256 depositId,
+        uint256 graceEndsAt,
+        uint256 currentTimestamp
+    );
+
+    /**
      * @notice Emitted when a new saving plan is created.
      */
     event PlanCreated(
@@ -270,7 +279,7 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
     );
 
     /**
-     * @notice Emitted after an old deposit is manually renewed into a new one.
+     * @notice Emitted after an old deposit is renewed into a new one.
      */
     event Renewed(
         uint256 indexed oldDepositId,
@@ -747,6 +756,94 @@ contract SavingCore is ERC721, Ownable2Step, Pausable, ReentrancyGuard {
             newDepositId,
             newPrincipal,
             newPlanId
+        );
+    }
+
+    /**
+     * @notice Permissionlessly renews an active deposit after its grace period.
+     * @dev The new term starts at the execution timestamp and preserves the
+     *      old plan identifier, tenor, APR, and penalty snapshots. Exactly one
+     *      new term is created per successful call. Positive old-term interest
+     *      is funded by VaultManager directly into SavingCore before the new
+     *      ERC721 certificate is safely minted to the current old-NFT owner.
+     *      The caller receives no ownership solely for triggering this function.
+     * @param depositId Existing active deposit identifier.
+     * @return newDepositId Identifier of the newly created active deposit.
+     */
+    function autoRenew(
+        uint256 depositId
+    )
+        external
+        whenNotPaused
+        nonReentrant
+        returns (uint256 newDepositId)
+    {
+        _requireDepositExists(depositId);
+
+        Deposit storage oldDeposit = _deposits[depositId];
+
+        if (oldDeposit.status != DepositStatus.Active) {
+            revert DepositNotActive(depositId, oldDeposit.status);
+        }
+
+        uint256 graceEndsAt =
+            oldDeposit.maturityAt + GRACE_PERIOD;
+
+        if (block.timestamp < graceEndsAt) {
+            revert AutoRenewalTooEarly(
+                depositId,
+                graceEndsAt,
+                block.timestamp
+            );
+        }
+
+        address currentOwner = ownerOf(depositId);
+        uint256 planId = oldDeposit.planId;
+        uint256 oldPrincipal = oldDeposit.principal;
+        uint256 tenorDays = oldDeposit.tenorDays;
+        uint256 aprBpsAtOpen = oldDeposit.aprBpsAtOpen;
+        uint256 penaltyBpsAtOpen =
+            oldDeposit.penaltyBpsAtOpen;
+
+        uint256 interest = _calculateInterest(
+            oldPrincipal,
+            aprBpsAtOpen,
+            tenorDays
+        );
+        uint256 newPrincipal = oldPrincipal + interest;
+        uint256 startedAt = block.timestamp;
+        uint256 maturityAt =
+            startedAt + tenorDays * 1 days;
+
+        newDepositId = ++depositCount;
+
+        oldDeposit.status = DepositStatus.AutoRenewed;
+
+        _deposits[newDepositId] = Deposit({
+            planId: planId,
+            principal: newPrincipal,
+            startedAt: startedAt,
+            maturityAt: maturityAt,
+            tenorDays: tenorDays,
+            aprBpsAtOpen: aprBpsAtOpen,
+            penaltyBpsAtOpen: penaltyBpsAtOpen,
+            status: DepositStatus.Active
+        });
+
+        if (interest != 0) {
+            vaultManager.payInterest(
+                address(this),
+                interest
+            );
+        }
+
+        _safeMint(currentOwner, newDepositId);
+
+        emit Renewed(
+            depositId,
+            newDepositId,
+            newPrincipal,
+            planId
         );
     }
 

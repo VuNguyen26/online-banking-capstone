@@ -15,6 +15,10 @@ interface ISavingCoreWithdrawal {
         uint256 depositId,
         uint256 newPlanId
     ) external returns (uint256 newDepositId);
+
+    function autoRenew(
+        uint256 depositId
+    ) external returns (uint256 newDepositId);
 }
 
 /**
@@ -35,6 +39,7 @@ contract MockReentrantToken is ERC20 {
     bool public reentryEnabled;
     bool public reenterEarlyWithdrawal;
     bool public reenterManualRenewal;
+    bool public reenterAutoRenewal;
     bool public reentryAttempted;
     bool public reentrySucceeded;
 
@@ -68,6 +73,7 @@ contract MockReentrantToken is ERC20 {
         reentryEnabled = enabled;
         reenterEarlyWithdrawal = false;
         reenterManualRenewal = false;
+        reenterAutoRenewal = false;
         reentryAttempted = false;
         reentrySucceeded = false;
         lastReentryErrorSelector = bytes4(0);
@@ -89,6 +95,7 @@ contract MockReentrantToken is ERC20 {
         reentryEnabled = enabled;
         reenterEarlyWithdrawal = true;
         reenterManualRenewal = false;
+        reenterAutoRenewal = false;
         reentryAttempted = false;
         reentrySucceeded = false;
         lastReentryErrorSelector = bytes4(0);
@@ -113,6 +120,31 @@ contract MockReentrantToken is ERC20 {
         reentryEnabled = enabled;
         reenterEarlyWithdrawal = false;
         reenterManualRenewal = true;
+        reenterAutoRenewal = false;
+        reentryAttempted = false;
+        reentrySucceeded = false;
+        lastReentryErrorSelector = bytes4(0);
+    }
+
+    /**
+     * @notice Configures a callback into autoRenew during token transfer.
+     * @dev The trigger is normally VaultManager because it transfers renewal
+     *      interest into SavingCore.
+     */
+    function configureAutoRenewReentry(
+        address savingCore_,
+        address reentryTrigger_,
+        uint256 depositId_,
+        bool enabled
+    ) external {
+        savingCore = savingCore_;
+        reentryTrigger = reentryTrigger_;
+        reentryDepositId = depositId_;
+        reentryNewPlanId = 0;
+        reentryEnabled = enabled;
+        reenterEarlyWithdrawal = false;
+        reenterManualRenewal = false;
+        reenterAutoRenewal = true;
         reentryAttempted = false;
         reentrySucceeded = false;
         lastReentryErrorSelector = bytes4(0);
@@ -157,7 +189,21 @@ contract MockReentrantToken is ERC20 {
             reentryEnabled = false;
             reentryAttempted = true;
 
-            if (reenterManualRenewal) {
+            if (reenterAutoRenewal) {
+                try ISavingCoreWithdrawal(savingCore)
+                    .autoRenew(reentryDepositId)
+                returns (uint256) {
+                    reentrySucceeded = true;
+                } catch (bytes memory reason) {
+                    bytes4 selector;
+
+                    assembly {
+                        selector := mload(add(reason, 32))
+                    }
+
+                    lastReentryErrorSelector = selector;
+                }
+            } else if (reenterManualRenewal) {
                 try ISavingCoreWithdrawal(savingCore)
                     .manualRenew(
                         reentryDepositId,
