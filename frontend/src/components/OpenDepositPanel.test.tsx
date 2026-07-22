@@ -301,6 +301,39 @@ describe('OpenDepositPanel', () => {
       }),
     )
 
+    const depositReviewDialog =
+      screen.getByRole('dialog')
+
+    expect(
+      depositReviewDialog,
+    ).toHaveTextContent('#1')
+    expect(
+      depositReviewDialog,
+    ).toHaveTextContent('500 mUSDC')
+    expect(
+      depositReviewDialog,
+    ).toHaveTextContent('180 ngày')
+    expect(
+      depositReviewDialog,
+    ).toHaveTextContent('2%')
+    expect(
+      depositReviewDialog,
+    ).toHaveTextContent('7.5%')
+
+    expect(
+      openDeposit,
+    ).not.toHaveBeenCalled()
+
+    expect(
+      safeBank.refresh,
+    ).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /tiếp tục đến ví/i,
+      }),
+    )
+
     await waitFor(() => {
       expect(
         screen.getByText(

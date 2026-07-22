@@ -101,6 +101,43 @@ describe('AdminCreatePlanAction', () => {
       }),
     )
 
+    const dialog = screen.getByRole(
+      'dialog',
+      {
+        name:
+          'Confirm saving plan creation',
+      },
+    )
+
+    expect(dialog).toHaveTextContent(
+      '180 days',
+    )
+    expect(dialog).toHaveTextContent('2%')
+    expect(dialog).toHaveTextContent(
+      '100 mUSDC',
+    )
+    expect(dialog).toHaveTextContent(
+      '10000 mUSDC',
+    )
+    expect(dialog).toHaveTextContent(
+      '7.5%',
+    )
+    expect(dialog).toHaveTextContent(
+      'Enabled',
+    )
+
+    expect(
+      createPlan,
+    ).not.toHaveBeenCalled()
+
+    expect(refresh).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Continue to wallet',
+      }),
+    )
+
     expect(
       createPlan,
     ).toHaveBeenCalledWith(

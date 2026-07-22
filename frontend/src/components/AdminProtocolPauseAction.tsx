@@ -1,3 +1,6 @@
+import {
+  useState,
+} from 'react'
 import type {
   JsonRpcSigner,
 } from 'ethers'
@@ -23,7 +26,9 @@ import type {
 import {
   AdminTransactionFeedback,
 } from './AdminTransactionFeedback'
-
+import {
+  ConfirmationDialog,
+} from './ConfirmationDialog'
 type ProtocolTarget =
   | 'saving-core'
   | 'vault-manager'
@@ -72,6 +77,10 @@ export function AdminProtocolPauseAction({
 }: AdminProtocolPauseActionProps) {
   const { t } = useLanguage()
   const transaction = useTransaction()
+  const [
+    pauseConfirmationOpen,
+    setPauseConfirmationOpen,
+  ] = useState(false)
 
   const isSavingCore =
     target === 'saving-core'
@@ -161,6 +170,11 @@ export function AdminProtocolPauseAction({
         }
         disabled={!canSubmit}
         onClick={() => {
+          if (!paused) {
+            setPauseConfirmationOpen(true)
+            return
+          }
+
           void handleToggle()
         }}
       >
@@ -183,6 +197,63 @@ export function AdminProtocolPauseAction({
         )}`}
         state={transaction.state}
       />
+      <ConfirmationDialog
+        open={
+          !paused &&
+          pauseConfirmationOpen
+        }
+        title={t(
+          'adminPauseConfirmationTitle',
+        )}
+        description={
+          isSavingCore
+            ? t(
+                'adminPauseSavingCoreDescription',
+              )
+            : t(
+                'adminPauseVaultManagerDescription',
+              )
+        }
+        confirmLabel={t(
+          'confirmationContinueToWallet',
+        )}
+        cancelLabel={t(
+          'confirmationCancel',
+        )}
+        tone="danger"
+        onCancel={() => {
+          setPauseConfirmationOpen(false)
+        }}
+        onConfirm={() => {
+          setPauseConfirmationOpen(false)
+          void handleToggle()
+        }}
+      >
+        <dl>
+          <div>
+            <dt>{t('confirmationContract')}</dt>
+            <dd>{contractLabel}</dd>
+          </div>
+
+          <div>
+            <dt>
+              {t('confirmationCurrentStatus')}
+            </dt>
+            <dd>
+              {t('adminContractStatusActive')}
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              {t('confirmationNewStatus')}
+            </dt>
+            <dd>
+              {t('adminContractStatusPaused')}
+            </dd>
+          </div>
+        </dl>
+      </ConfirmationDialog>
     </article>
   )
 }

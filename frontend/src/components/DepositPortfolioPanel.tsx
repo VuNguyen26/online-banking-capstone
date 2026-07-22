@@ -30,6 +30,9 @@ import {
 import {
   PendingInterestClaimAction,
 } from './PendingInterestClaimAction'
+import {
+  UiStatePanel,
+} from './UiStatePanel'
 
 type DepositPortfolioPanelProps = {
   wallet: WalletContextValue
@@ -115,9 +118,10 @@ export function DepositPortfolioPanel({
           </div>
         </div>
 
-        <p className="empty-state">
-          {t('portfolioConnect')}
-        </p>
+        <UiStatePanel
+          kind="empty"
+          message={t('portfolioConnect')}
+        />
       </section>
     )
   }
@@ -139,12 +143,10 @@ export function DepositPortfolioPanel({
           </div>
         </div>
 
-        <p
-          className="empty-state"
-          role="status"
-        >
-          {t('portfolioLoading')}
-        </p>
+        <UiStatePanel
+          kind="loading"
+          message={t('portfolioLoading')}
+        />
       </section>
     )
   }
@@ -166,13 +168,17 @@ export function DepositPortfolioPanel({
           </div>
         </div>
 
-        <p
-          className="form-error"
-          role="alert"
-        >
-          {safeBank.error ??
-            t('portfolioLoadError')}
-        </p>
+        <UiStatePanel
+          kind="error"
+          message={
+            safeBank.error ??
+            t('portfolioLoadError')
+          }
+          actionLabel={t('retryPublicReads')}
+          onAction={() => {
+            void safeBank.refresh()
+          }}
+        />
       </section>
     )
   }
@@ -197,12 +203,14 @@ export function DepositPortfolioPanel({
           </div>
         </div>
 
-        <p
-          className="form-error"
-          role="alert"
-        >
-          {t('portfolioUnavailable')}
-        </p>
+        <UiStatePanel
+          kind="error"
+          message={t('portfolioUnavailable')}
+          actionLabel={t('retryPublicReads')}
+          onAction={() => {
+            void safeBank.refresh()
+          }}
+        />
       </section>
     )
   }
@@ -261,9 +269,10 @@ export function DepositPortfolioPanel({
       )}
 
       {ownedDeposits.length === 0 ? (
-        <p className="empty-state">
-          {t('noOwnedCertificates')}
-        </p>
+        <UiStatePanel
+          kind="empty"
+          message={t('noOwnedCertificates')}
+        />
       ) : (
         <div className="deposit-card-grid">
           {ownedDeposits.map(
@@ -447,9 +456,10 @@ export function DepositPortfolioPanel({
 
         {pendingInterestClaims.length ===
         0 ? (
-          <p className="empty-state">
-            {t('noDeferredInterest')}
-          </p>
+          <UiStatePanel
+            kind="empty"
+            message={t('noDeferredInterest')}
+          />
         ) : (
           <div className="claim-list">
             {pendingInterestClaims.map(

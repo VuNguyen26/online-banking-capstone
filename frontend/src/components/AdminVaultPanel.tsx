@@ -201,6 +201,10 @@ export function AdminVaultPanel({
               data.authorization
                 .isVaultManagerOwner
             }
+            vaultManagerOwner={
+              data.configuration
+                .vaultManagerOwner
+            }
             vaultPaused={
               data.configuration
                 .vaultManagerPaused

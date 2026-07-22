@@ -25,6 +25,9 @@ import type {
 import {
   AdminTransactionFeedback,
 } from './AdminTransactionFeedback'
+import {
+  ConfirmationDialog,
+} from './ConfirmationDialog'
 
 export type CreateAdminFeeReceiverContracts = (
   signer: JsonRpcSigner,
@@ -67,6 +70,11 @@ export function AdminFeeReceiverAction({
 
   const [addressInput, setAddressInput] =
     useState(currentFeeReceiver)
+
+  const [
+    feeReceiverConfirmationOpen,
+    setFeeReceiverConfirmationOpen,
+  ] = useState(false)
 
   const transaction = useTransaction()
 
@@ -176,6 +184,9 @@ export function AdminFeeReceiverAction({
             setAddressInput(
               event.target.value,
             )
+            setFeeReceiverConfirmationOpen(
+              false,
+            )
             transaction.reset()
           }}
         />
@@ -202,7 +213,13 @@ export function AdminFeeReceiverAction({
           className="secondary-button"
           disabled={!canSubmit}
           onClick={() => {
-            void handleSubmit()
+            if (!canSubmit) {
+              return
+            }
+
+            setFeeReceiverConfirmationOpen(
+              true,
+            )
           }}
         >
           {transaction.isPending
@@ -215,6 +232,60 @@ export function AdminFeeReceiverAction({
         label={t('adminFeeReceiverTransaction')}
         state={transaction.state}
       />
+
+      {normalizedAddress !== null ? (
+        <ConfirmationDialog
+          open={feeReceiverConfirmationOpen}
+          title={t(
+            'adminFeeReceiverConfirmationTitle',
+          )}
+          description={t(
+            'adminFeeReceiverConfirmationDescription',
+          )}
+          confirmLabel={t(
+            'confirmationContinueToWallet',
+          )}
+          cancelLabel={t(
+            'confirmationCancel',
+          )}
+          tone="danger"
+          onCancel={() => {
+            setFeeReceiverConfirmationOpen(
+              false,
+            )
+          }}
+          onConfirm={() => {
+            setFeeReceiverConfirmationOpen(
+              false,
+            )
+            void handleSubmit()
+          }}
+        >
+          <dl>
+            <div>
+              <dt>
+                {t(
+                  'confirmationCurrentAddress',
+                )}
+              </dt>
+              <dd title={currentFeeReceiver}>
+                {currentFeeReceiver}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t(
+                  'confirmationNewAddress',
+                )}
+              </dt>
+              <dd title={normalizedAddress}>
+                {normalizedAddress}
+              </dd>
+            </div>
+          </dl>
+        </ConfirmationDialog>
+      ) : null}
     </section>
   )
 }

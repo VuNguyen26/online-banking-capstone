@@ -110,6 +110,24 @@ export const translations = {
       'Đang cập nhật plan...',
     adminPlanStatusUpdate:
       'Cập nhật trạng thái saving plan',
+    confirmationCancel:
+      'Hủy',
+    confirmationContinueToWallet:
+      'Tiếp tục đến ví',
+    confirmationPlanId:
+      'Mã gói',
+    confirmationCurrentStatus:
+      'Trạng thái hiện tại',
+    confirmationNewStatus:
+      'Trạng thái sau thay đổi',
+    adminDisablePlanConfirmationTitle:
+      'Xác nhận tắt saving plan',
+    adminDisablePlanConfirmationDescription:
+      'Gói sẽ ngừng nhận khoản gửi mới. Các khoản gửi hiện có không bị thay đổi.',
+    adminPlanStatusEnabled:
+      'Đang bật',
+    adminPlanStatusDisabled:
+      'Đã tắt',
     adminConnectWalletAction:
       'Kết nối ví để thực hiện hành động quản trị.',
     adminSwitchSepoliaAction:
@@ -122,6 +140,14 @@ export const translations = {
       'Cập nhật APR',
     adminAprUpdate:
       'Cập nhật APR saving plan',
+    confirmationCurrentApr:
+      'APR hiện tại',
+    confirmationNewApr:
+      'APR mới',
+    adminAprConfirmationTitle:
+      'Xác nhận cập nhật APR',
+    adminAprConfirmationDescription:
+      'APR mới chỉ áp dụng theo logic của SavingCore sau khi giao dịch được xác nhận. Hãy kiểm tra giá trị trước khi tiếp tục đến ví.',
     adminAprFormatError:
       'Nhập APR hợp lệ với tối đa hai chữ số thập phân.',
     adminAprRangeError:
@@ -150,6 +176,20 @@ export const translations = {
       'Đang tạo plan...',
     adminCreatePlanTransaction:
       'Tạo saving plan',
+    confirmationTenor:
+      'Kỳ hạn',
+    confirmationMinimumDeposit:
+      'Khoản gửi tối thiểu',
+    confirmationMaximumDeposit:
+      'Khoản gửi tối đa',
+    confirmationEarlyPenalty:
+      'Phí rút trước hạn',
+    confirmationInitialStatus:
+      'Trạng thái ban đầu',
+    adminCreatePlanConfirmationTitle:
+      'Xác nhận tạo saving plan',
+    adminCreatePlanConfirmationDescription:
+      'Kiểm tra toàn bộ điều khoản của saving plan mới trước khi tiếp tục đến ví.',
     adminCreatePlanTenorError:
       'Kỳ hạn phải là số nguyên từ 1 đến 3650 ngày.',
     adminCreatePlanAmountError:
@@ -196,6 +236,18 @@ export const translations = {
       'Đang rút thanh khoản...',
     adminVaultWithdrawTransaction:
       'Rút tiền từ VaultManager',
+    confirmationAmount:
+      'Số tiền rút',
+    confirmationAvailableLiquidity:
+      'Thanh khoản khả dụng',
+    confirmationRemainingLiquidity:
+      'Thanh khoản còn lại dự kiến',
+    confirmationRecipient:
+      'Địa chỉ nhận',
+    adminVaultWithdrawConfirmationTitle:
+      'Xác nhận rút thanh khoản',
+    adminVaultWithdrawConfirmationDescription:
+      'Kiểm tra số tiền và địa chỉ nhận trước khi tiếp tục đến ví. Chỉ thanh khoản vượt nghĩa vụ lãi dự trữ mới được rút.',
     adminVaultWithdrawPositive:
       'Số tiền rút phải lớn hơn 0.',
     adminVaultWithdrawExceedsAvailable:
@@ -214,6 +266,14 @@ export const translations = {
       'Đang cập nhật...',
     adminFeeReceiverTransaction:
       'Cập nhật fee receiver',
+    confirmationCurrentAddress:
+      'Địa chỉ hiện tại',
+    confirmationNewAddress:
+      'Địa chỉ mới',
+    adminFeeReceiverConfirmationTitle:
+      'Xác nhận thay đổi fee receiver',
+    adminFeeReceiverConfirmationDescription:
+      'Địa chỉ mới sẽ nhận các khoản phí do VaultManager phân phối. Hãy kiểm tra kỹ trước khi tiếp tục đến ví.',
     adminFeeReceiverInvalid:
       'Nhập địa chỉ Ethereum hợp lệ.',
     adminFeeReceiverZeroError:
@@ -232,6 +292,18 @@ export const translations = {
       'Đang cập nhật trạng thái...',
     adminPauseStateTransaction:
       'cập nhật trạng thái pause',
+    confirmationContract:
+      'Hợp đồng',
+    adminPauseConfirmationTitle:
+      'Xác nhận pause hợp đồng',
+    adminPauseSavingCoreDescription:
+      'Các khoản gửi mới và thao tác tài chính qua SavingCore sẽ tạm thời không khả dụng cho đến khi owner unpause.',
+    adminPauseVaultManagerDescription:
+      'VaultManager sẽ chuyển sang trạng thái paused cho đến khi owner unpause.',
+    adminContractStatusActive:
+      'Đang hoạt động',
+    adminContractStatusPaused:
+      'Đã pause',
     adminDepositInspectionKicker:
       'Tra cứu on-chain',
     adminDepositInspectionHeading:
@@ -374,6 +446,10 @@ export const translations = {
       'Đang mở khoản gửi…',
     openDeposit:
       'Mở khoản gửi',
+    openDepositConfirmationTitle:
+      'Xác nhận mở khoản gửi',
+    openDepositConfirmationDescription:
+      'Kiểm tra điều khoản và số tiền trước khi tiếp tục đến ví. Phê duyệt token và mở khoản gửi vẫn là hai giao dịch riêng biệt.',
     musdcApproval:
       'Phê duyệt mUSDC',
     depositOpening:
@@ -458,6 +534,30 @@ export const translations = {
       'Giao dịch vòng đời thất bại.',
     lifecycleAction:
       'Thao tác vòng đời khoản gửi',
+    confirmationDepositId:
+      'Mã khoản gửi',
+    confirmationPrincipal:
+      'Tiền gốc',
+    confirmationNetPrincipal:
+      'Tiền gốc nhận lại sau phí',
+    earlyWithdrawalConfirmationTitle:
+      'Xác nhận rút trước hạn',
+    earlyWithdrawalConfirmationDescription:
+      'Rút trước hạn sẽ kết thúc khoản gửi, không trả lãi và khấu trừ phí theo điều khoản đã chốt khi mở khoản gửi.',
+    maturityWithdrawalConfirmationTitle:
+      'Xác nhận rút khi đáo hạn',
+    maturityWithdrawalConfirmationDescription:
+      'Khoản gửi sẽ được tất toán. Tiền gốc được trả trước; phần lãi có thể được thanh toán ngay hoặc ghi nhận để nhận sau nếu VaultManager thiếu thanh khoản.',
+    manualRenewalConfirmationTitle:
+      'Xác nhận tái tục thủ công',
+    manualRenewalConfirmationDescription:
+      'Khoản gửi hiện tại sẽ được đánh dấu đã tái tục và một khoản gửi mới sẽ được tạo theo điều khoản của plan đã chọn.',
+    autoRenewalConfirmationTitle:
+      'Xác nhận tái tục tự động',
+    autoRenewalConfirmationDescription:
+      'Đây là thao tác permissionless sau thời gian gia hạn. Hãy kiểm tra đúng khoản gửi trước khi tiếp tục đến ví.',
+    confirmationRenewalPlan:
+      'Plan tái tục',
     renewalPlan:
       'Gói tái tục',
     selectRenewalPlan:
@@ -746,6 +846,24 @@ export const translations = {
       'Updating plan...',
     adminPlanStatusUpdate:
       'Saving plan status update',
+    confirmationCancel:
+      'Cancel',
+    confirmationContinueToWallet:
+      'Continue to wallet',
+    confirmationPlanId:
+      'Plan ID',
+    confirmationCurrentStatus:
+      'Current status',
+    confirmationNewStatus:
+      'Status after change',
+    adminDisablePlanConfirmationTitle:
+      'Confirm plan disable',
+    adminDisablePlanConfirmationDescription:
+      'The plan will stop accepting new deposits. Existing deposits are not changed.',
+    adminPlanStatusEnabled:
+      'Enabled',
+    adminPlanStatusDisabled:
+      'Disabled',
     adminConnectWalletAction:
       'Connect a wallet to perform this admin action.',
     adminSwitchSepoliaAction:
@@ -758,6 +876,14 @@ export const translations = {
       'Update APR',
     adminAprUpdate:
       'Saving plan APR update',
+    confirmationCurrentApr:
+      'Current APR',
+    confirmationNewApr:
+      'New APR',
+    adminAprConfirmationTitle:
+      'Confirm APR update',
+    adminAprConfirmationDescription:
+      'The new APR takes effect according to SavingCore logic after the transaction is confirmed. Review the value before continuing to the wallet.',
     adminAprFormatError:
       'Enter a valid APR with at most two decimal places.',
     adminAprRangeError:
@@ -786,6 +912,20 @@ export const translations = {
       'Creating plan...',
     adminCreatePlanTransaction:
       'Saving plan creation',
+    confirmationTenor:
+      'Tenor',
+    confirmationMinimumDeposit:
+      'Minimum deposit',
+    confirmationMaximumDeposit:
+      'Maximum deposit',
+    confirmationEarlyPenalty:
+      'Early-withdrawal penalty',
+    confirmationInitialStatus:
+      'Initial status',
+    adminCreatePlanConfirmationTitle:
+      'Confirm saving plan creation',
+    adminCreatePlanConfirmationDescription:
+      'Review every term of the new saving plan before continuing to the wallet.',
     adminCreatePlanTenorError:
       'Tenor must be an integer from 1 to 3650 days.',
     adminCreatePlanAmountError:
@@ -832,6 +972,18 @@ export const translations = {
       'Withdrawing liquidity...',
     adminVaultWithdrawTransaction:
       'VaultManager withdrawal',
+    confirmationAmount:
+      'Withdrawal amount',
+    confirmationAvailableLiquidity:
+      'Available liquidity',
+    confirmationRemainingLiquidity:
+      'Expected remaining liquidity',
+    confirmationRecipient:
+      'Recipient',
+    adminVaultWithdrawConfirmationTitle:
+      'Confirm VaultManager withdrawal',
+    adminVaultWithdrawConfirmationDescription:
+      'Review the amount and recipient before continuing to the wallet. Only liquidity exceeding reserved-interest obligations can be withdrawn.',
     adminVaultWithdrawPositive:
       'Withdrawal amount must be greater than zero.',
     adminVaultWithdrawExceedsAvailable:
@@ -850,6 +1002,14 @@ export const translations = {
       'Updating...',
     adminFeeReceiverTransaction:
       'Fee receiver update',
+    confirmationCurrentAddress:
+      'Current address',
+    confirmationNewAddress:
+      'New address',
+    adminFeeReceiverConfirmationTitle:
+      'Confirm fee receiver update',
+    adminFeeReceiverConfirmationDescription:
+      'The new address will receive fees distributed by VaultManager. Review it carefully before continuing to the wallet.',
     adminFeeReceiverInvalid:
       'Enter a valid Ethereum address.',
     adminFeeReceiverZeroError:
@@ -868,6 +1028,18 @@ export const translations = {
       'Updating pause state...',
     adminPauseStateTransaction:
       'pause-state update',
+    confirmationContract:
+      'Contract',
+    adminPauseConfirmationTitle:
+      'Confirm contract pause',
+    adminPauseSavingCoreDescription:
+      'New deposits and financial actions through SavingCore will be temporarily unavailable until the owner unpauses it.',
+    adminPauseVaultManagerDescription:
+      'VaultManager will enter its paused state until the owner unpauses it.',
+    adminContractStatusActive:
+      'Active',
+    adminContractStatusPaused:
+      'Paused',
     adminDepositInspectionKicker:
       'On-chain inspection',
     adminDepositInspectionHeading:
@@ -1010,6 +1182,10 @@ export const translations = {
       'Opening deposit…',
     openDeposit:
       'Open deposit',
+    openDepositConfirmationTitle:
+      'Confirm deposit opening',
+    openDepositConfirmationDescription:
+      'Review the terms and amount before continuing to the wallet. Token approval and deposit opening remain separate transactions.',
     musdcApproval:
       'mUSDC approval',
     depositOpening:
@@ -1094,6 +1270,30 @@ export const translations = {
       'Lifecycle transaction failed.',
     lifecycleAction:
       'Deposit lifecycle action',
+    confirmationDepositId:
+      'Deposit ID',
+    confirmationPrincipal:
+      'Principal',
+    confirmationNetPrincipal:
+      'Principal returned after penalty',
+    earlyWithdrawalConfirmationTitle:
+      'Confirm early withdrawal',
+    earlyWithdrawalConfirmationDescription:
+      'Early withdrawal closes the deposit, pays no interest, and deducts the penalty snapshotted when the deposit was opened.',
+    maturityWithdrawalConfirmationTitle:
+      'Confirm maturity withdrawal',
+    maturityWithdrawalConfirmationDescription:
+      'The deposit will be settled. Principal is returned first; interest may be paid immediately or recorded for later claiming if VaultManager liquidity is insufficient.',
+    manualRenewalConfirmationTitle:
+      'Confirm manual renewal',
+    manualRenewalConfirmationDescription:
+      'The current deposit will be marked as manually renewed and a new deposit will be created using the selected plan terms.',
+    autoRenewalConfirmationTitle:
+      'Confirm auto-renewal',
+    autoRenewalConfirmationDescription:
+      'This is a permissionless action after the grace period. Verify the deposit before continuing to the wallet.',
+    confirmationRenewalPlan:
+      'Renewal plan',
     renewalPlan:
       'Renewal plan',
     selectRenewalPlan:

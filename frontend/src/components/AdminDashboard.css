@@ -453,3 +453,33 @@
     flex-direction: column;
   }
 }
+/* Phase 17 admin mobile polish */
+@media (max-width: 600px) {
+  .admin-plan-action .primary-button,
+  .admin-plan-action .secondary-button,
+  .admin-create-plan-form .primary-button,
+  .admin-vault-funding .primary-button,
+  .admin-vault-withdraw .secondary-button,
+  .admin-fee-receiver-action .secondary-button,
+  .admin-pause-action .danger-button,
+  .admin-pause-action .secondary-button,
+  .admin-deposit-search-form .primary-button {
+    width: 100%;
+  }
+
+  .admin-plan-action,
+  .admin-vault-funding,
+  .admin-vault-withdraw,
+  .admin-fee-receiver-action,
+  .admin-pause-action,
+  .admin-deposit-result {
+    min-width: 0;
+  }
+
+  .admin-detail-list dd,
+  .admin-relationship-list dd,
+  .admin-deposit-result,
+  .admin-transaction-feedback {
+    overflow-wrap: anywhere;
+  }
+}

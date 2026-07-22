@@ -30,6 +30,9 @@ import {
   type ApplicationView,
 } from './ApplicationShell'
 import {
+  UiStatePanel,
+} from './UiStatePanel'
+import {
   localizeProviderError,
 } from '../i18n/providerErrors'
 import {
@@ -267,18 +270,11 @@ function DashboardData({
 
   if (safeBank.status === 'loading') {
     return (
-      <section
-        className="panel state-panel"
-        aria-live="polite"
-      >
-        <span className="loading-indicator" />
-        <div>
-          <h2>{t('loadingState')}</h2>
-          <p>
-            {t('loadingDescription')}
-          </p>
-        </div>
-      </section>
+      <UiStatePanel
+        kind="loading"
+        title={t('loadingState')}
+        message={t('loadingDescription')}
+      />
     )
   }
 
@@ -287,31 +283,20 @@ function DashboardData({
     safeBank.data === null
   ) {
     return (
-      <section
-        className="panel state-panel"
-        role="alert"
-      >
-        <div>
-          <h2>{t('loadErrorTitle')}</h2>
-          <p>
-            {localizeProviderError(
-              safeBank.error,
-              t,
-            ) ??
-              t('publicStateUnavailable')}
-          </p>
-
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => {
-              void safeBank.refresh()
-            }}
-          >
-            {t('retryPublicReads')}
-          </button>
-        </div>
-      </section>
+      <UiStatePanel
+        kind="error"
+        title={t('loadErrorTitle')}
+        message={
+          localizeProviderError(
+            safeBank.error,
+            t,
+          ) ?? t('publicStateUnavailable')
+        }
+        actionLabel={t('retryPublicReads')}
+        onAction={() => {
+          void safeBank.refresh()
+        }}
+      />
     )
   }
 

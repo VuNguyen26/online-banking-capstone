@@ -189,6 +189,41 @@ describe('DepositLifecycleActions', () => {
       }),
     )
 
+    const earlyWithdrawalDialog =
+      screen.getByRole('dialog', {
+        name: 'Xác nhận rút trước hạn',
+      })
+
+    expect(
+      earlyWithdrawalDialog,
+    ).toHaveTextContent('#7')
+    expect(
+      earlyWithdrawalDialog,
+    ).toHaveTextContent('500 mUSDC')
+    expect(
+      earlyWithdrawalDialog,
+    ).toHaveTextContent('7.5%')
+    expect(
+      earlyWithdrawalDialog,
+    ).toHaveTextContent('37.5 mUSDC')
+    expect(
+      earlyWithdrawalDialog,
+    ).toHaveTextContent('462.5 mUSDC')
+
+    expect(
+      earlyWithdraw,
+    ).not.toHaveBeenCalled()
+
+    expect(
+      safeBank.refresh,
+    ).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Tiếp tục đến ví',
+      }),
+    )
+
     await waitFor(() => {
       expect(
         screen.getByText(
@@ -254,6 +289,34 @@ describe('DepositLifecycleActions', () => {
       screen.getByRole('button', {
         name:
           'Rút khoản gửi khi đáo hạn 7',
+      }),
+    )
+
+    const maturityWithdrawalDialog =
+      screen.getByRole('dialog', {
+        name: 'Xác nhận rút khi đáo hạn',
+      })
+
+    expect(
+      maturityWithdrawalDialog,
+    ).toHaveTextContent('#7')
+    expect(
+      maturityWithdrawalDialog,
+    ).toHaveTextContent('500 mUSDC')
+    expect(
+      maturityWithdrawalDialog,
+    ).toHaveTextContent('2%')
+
+    expect(
+      withdrawAtMaturity,
+    ).not.toHaveBeenCalled()
+    expect(
+      safeBank.refresh,
+    ).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Tiếp tục đến ví',
       }),
     )
 
@@ -325,6 +388,41 @@ describe('DepositLifecycleActions', () => {
       }),
     )
 
+    const manualRenewalDialog =
+      screen.getByRole('dialog', {
+        name: 'Xác nhận tái tục thủ công',
+      })
+
+    expect(
+      manualRenewalDialog,
+    ).toHaveTextContent('#7')
+    expect(
+      manualRenewalDialog,
+    ).toHaveTextContent('500 mUSDC')
+    expect(
+      manualRenewalDialog,
+    ).toHaveTextContent('#2')
+    expect(
+      manualRenewalDialog,
+    ).toHaveTextContent('365 ngày')
+    expect(
+      manualRenewalDialog,
+    ).toHaveTextContent('3.5%')
+    expect(
+      manualRenewalDialog,
+    ).toHaveTextContent('5%')
+
+    expect(manualRenew).not.toHaveBeenCalled()
+    expect(
+      safeBank.refresh,
+    ).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Tiếp tục đến ví',
+      }),
+    )
+
     await waitFor(() => {
       expect(
         manualRenew,
@@ -387,6 +485,35 @@ describe('DepositLifecycleActions', () => {
       screen.getByRole('button', {
         name:
           'Tái tục tự động khoản gửi 7',
+      }),
+    )
+
+    const autoRenewalDialog =
+      screen.getByRole('dialog', {
+        name: 'Xác nhận tái tục tự động',
+      })
+
+    expect(
+      autoRenewalDialog,
+    ).toHaveTextContent('#7')
+    expect(
+      autoRenewalDialog,
+    ).toHaveTextContent('500 mUSDC')
+    expect(
+      autoRenewalDialog,
+    ).toHaveTextContent('#1')
+    expect(
+      autoRenewalDialog,
+    ).toHaveTextContent('2%')
+
+    expect(autoRenew).not.toHaveBeenCalled()
+    expect(
+      safeBank.refresh,
+    ).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Tiếp tục đến ví',
       }),
     )
 
@@ -600,6 +727,12 @@ describe('DepositLifecycleActions', () => {
       screen.getByRole('button', {
         name:
           'Tái tục thủ công khoản gửi 7',
+      }),
+    )
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Tiếp tục đến ví',
       }),
     )
 

@@ -1,3 +1,6 @@
+import {
+  useState,
+} from 'react'
 import type {
   JsonRpcSigner,
 } from 'ethers'
@@ -24,6 +27,9 @@ import type {
 import {
   AdminTransactionFeedback,
 } from './AdminTransactionFeedback'
+import {
+  ConfirmationDialog,
+} from './ConfirmationDialog'
 
 export type CreateAdminPlanWriteContracts = (
   signer: JsonRpcSigner,
@@ -63,6 +69,10 @@ export function AdminPlanToggleAction({
 }: AdminPlanToggleActionProps) {
   const { t } = useLanguage()
   const transaction = useTransaction()
+  const [
+    disableConfirmationOpen,
+    setDisableConfirmationOpen,
+  ] = useState(false)
 
   const canSubmit =
     wallet.isConnected &&
@@ -121,6 +131,11 @@ export function AdminPlanToggleAction({
         className="secondary-button"
         disabled={!canSubmit}
         onClick={() => {
+          if (plan.enabled) {
+            setDisableConfirmationOpen(true)
+            return
+          }
+
           void handleToggle()
         }}
       >
@@ -141,6 +156,58 @@ export function AdminPlanToggleAction({
         label={t('adminPlanStatusUpdate')}
         state={transaction.state}
       />
+
+      <ConfirmationDialog
+        open={
+          plan.enabled &&
+          disableConfirmationOpen
+        }
+        title={t(
+          'adminDisablePlanConfirmationTitle',
+        )}
+        description={t(
+          'adminDisablePlanConfirmationDescription',
+        )}
+        confirmLabel={t(
+          'confirmationContinueToWallet',
+        )}
+        cancelLabel={t(
+          'confirmationCancel',
+        )}
+        tone="danger"
+        onCancel={() => {
+          setDisableConfirmationOpen(false)
+        }}
+        onConfirm={() => {
+          setDisableConfirmationOpen(false)
+          void handleToggle()
+        }}
+      >
+        <dl>
+          <div>
+            <dt>{t('confirmationPlanId')}</dt>
+            <dd>#{plan.planId.toString()}</dd>
+          </div>
+
+          <div>
+            <dt>
+              {t('confirmationCurrentStatus')}
+            </dt>
+            <dd>
+              {t('adminPlanStatusEnabled')}
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              {t('confirmationNewStatus')}
+            </dt>
+            <dd>
+              {t('adminPlanStatusDisabled')}
+            </dd>
+          </div>
+        </dl>
+      </ConfirmationDialog>
     </div>
   )
 }

@@ -22,6 +22,9 @@ import {
 import {
   AdminPlanToggleAction,
 } from './AdminPlanToggleAction'
+import {
+  UiStatePanel,
+} from './UiStatePanel'
 
 type AdminPlansPanelProps = {
   data: AdminDashboardData
@@ -70,9 +73,10 @@ export function AdminPlansPanel({
       ) : null}
 
       {plans.length === 0 ? (
-        <p className="empty-copy">
-          {t('noSavingPlans')}
-        </p>
+        <UiStatePanel
+          kind="empty"
+          message={t('noSavingPlans')}
+        />
       ) : (
         <div className="admin-plan-grid">
           {plans.map((plan) => (

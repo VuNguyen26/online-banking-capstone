@@ -35,15 +35,27 @@ import type {
 import type {
   DepositActionAvailability,
 } from '../lib/depositActions'
+import {
+  formatBasisPoints,
+} from '../lib/basisPoints'
+import {
+  calculateEarlyWithdrawalPenalty,
+} from '../lib/finance'
 import type {
   TransactionState,
 } from '../lib/transaction'
+import {
+  formatMusdcAmount,
+} from '../lib/units'
 import type {
   SafeBankDataContextValue,
 } from '../providers/safebank-data-context'
 import type {
   WalletContextValue,
 } from '../providers/wallet-context'
+import {
+  ConfirmationDialog,
+} from './ConfirmationDialog'
 
 export type DepositLifecycleContracts = {
   savingCore: unknown
@@ -164,6 +176,26 @@ export function DepositLifecycleActions({
   )
 
   const [
+    earlyWithdrawalConfirmationOpen,
+    setEarlyWithdrawalConfirmationOpen,
+  ] = useState(false)
+
+  const [
+    maturityWithdrawalConfirmationOpen,
+    setMaturityWithdrawalConfirmationOpen,
+  ] = useState(false)
+
+  const [
+    manualRenewalConfirmationOpen,
+    setManualRenewalConfirmationOpen,
+  ] = useState(false)
+
+  const [
+    autoRenewalConfirmationOpen,
+    setAutoRenewalConfirmationOpen,
+  ] = useState(false)
+
+  const [
     selectedPlanId,
     setSelectedPlanId,
   ] = useState(() =>
@@ -201,6 +233,12 @@ export function DepositLifecycleActions({
         plan.planId.toString() ===
         selectedPlanId,
     ) ?? null
+
+  const earlyWithdrawalPenalty =
+    calculateEarlyWithdrawalPenalty(
+      deposit.principal,
+      deposit.penaltyBpsAtOpen,
+    )
 
   const actionAvailable =
     availability.canEarlyWithdraw ||
@@ -317,6 +355,10 @@ export function DepositLifecycleActions({
                   setSelectedPlanId(
                     event.target.value,
                   )
+                  setManualRenewalConfirmationOpen(
+                    false,
+                  )
+                  transaction.reset()
                 }}
               >
                 {enabledPlans.map(
@@ -359,8 +401,8 @@ export function DepositLifecycleActions({
             }
             aria-label={`${t('earlyWithdrawDeposit')} ${deposit.depositId.toString()}`}
             onClick={() => {
-              void executeLifecycleAction(
-                'early',
+              setEarlyWithdrawalConfirmationOpen(
+                true,
               )
             }}
           >
@@ -382,8 +424,8 @@ export function DepositLifecycleActions({
             }
             aria-label={`${t('maturityWithdrawDeposit')} ${deposit.depositId.toString()}`}
             onClick={() => {
-              void executeLifecycleAction(
-                'maturity',
+              setMaturityWithdrawalConfirmationOpen(
+                true,
               )
             }}
           >
@@ -405,8 +447,8 @@ export function DepositLifecycleActions({
             }
             aria-label={`${t('manualRenewDeposit')} ${deposit.depositId.toString()}`}
             onClick={() => {
-              void executeLifecycleAction(
-                'manual-renew',
+              setManualRenewalConfirmationOpen(
+                true,
               )
             }}
           >
@@ -428,8 +470,8 @@ export function DepositLifecycleActions({
             }
             aria-label={`${t('automaticRenewDeposit')} ${deposit.depositId.toString()}`}
             onClick={() => {
-              void executeLifecycleAction(
-                'auto-renew',
+              setAutoRenewalConfirmationOpen(
+                true,
               )
             }}
           >
@@ -493,6 +535,267 @@ export function DepositLifecycleActions({
           )}
         </div>
       )}
+      <ConfirmationDialog
+        open={autoRenewalConfirmationOpen}
+        title={t(
+          'autoRenewalConfirmationTitle',
+        )}
+        description={t(
+          'autoRenewalConfirmationDescription',
+        )}
+        confirmLabel={t(
+          'confirmationContinueToWallet',
+        )}
+        cancelLabel={t(
+          'confirmationCancel',
+        )}
+        onCancel={() => {
+          setAutoRenewalConfirmationOpen(false)
+        }}
+        onConfirm={() => {
+          setAutoRenewalConfirmationOpen(false)
+          void executeLifecycleAction(
+            'auto-renew',
+          )
+        }}
+      >
+        <dl>
+          <div>
+            <dt>{t('confirmationDepositId')}</dt>
+            <dd>#{deposit.depositId.toString()}</dd>
+          </div>
+
+          <div>
+            <dt>{t('confirmationPrincipal')}</dt>
+            <dd>
+              {formatMusdcAmount(
+                deposit.principal,
+              )}{' '}
+              mUSDC
+            </dd>
+          </div>
+
+          <div>
+            <dt>{t('confirmationPlanId')}</dt>
+            <dd>#{deposit.planId.toString()}</dd>
+          </div>
+
+          <div>
+            <dt>{t('aprAtOpening')}</dt>
+            <dd>
+              {formatBasisPoints(
+                deposit.aprBpsAtOpen,
+              )}
+            </dd>
+          </div>
+        </dl>
+      </ConfirmationDialog>
+
+      {selectedPlan !== null ? (
+        <ConfirmationDialog
+          open={manualRenewalConfirmationOpen}
+          title={t(
+            'manualRenewalConfirmationTitle',
+          )}
+          description={t(
+            'manualRenewalConfirmationDescription',
+          )}
+          confirmLabel={t(
+            'confirmationContinueToWallet',
+          )}
+          cancelLabel={t(
+            'confirmationCancel',
+          )}
+          onCancel={() => {
+            setManualRenewalConfirmationOpen(
+              false,
+            )
+          }}
+          onConfirm={() => {
+            setManualRenewalConfirmationOpen(
+              false,
+            )
+            void executeLifecycleAction(
+              'manual-renew',
+            )
+          }}
+        >
+          <dl>
+            <div>
+              <dt>{t('confirmationDepositId')}</dt>
+              <dd>#{deposit.depositId.toString()}</dd>
+            </div>
+
+            <div>
+              <dt>{t('confirmationPrincipal')}</dt>
+              <dd>
+                {formatMusdcAmount(
+                  deposit.principal,
+                )}{' '}
+                mUSDC
+              </dd>
+            </div>
+
+            <div>
+              <dt>{t('confirmationRenewalPlan')}</dt>
+              <dd>#{selectedPlan.planId.toString()}</dd>
+            </div>
+
+            <div>
+              <dt>{t('confirmationTenor')}</dt>
+              <dd>
+                {selectedPlan.tenorDays.toString()}{' '}
+                {t('days')}
+              </dd>
+            </div>
+
+            <div>
+              <dt>{t('confirmationNewApr')}</dt>
+              <dd>
+                {formatBasisPoints(
+                  selectedPlan.aprBps,
+                )}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t('confirmationEarlyPenalty')}
+              </dt>
+              <dd>
+                {formatBasisPoints(
+                  selectedPlan
+                    .earlyWithdrawPenaltyBps,
+                )}
+              </dd>
+            </div>
+          </dl>
+        </ConfirmationDialog>
+      ) : null}
+
+      <ConfirmationDialog
+        open={maturityWithdrawalConfirmationOpen}
+        title={t(
+          'maturityWithdrawalConfirmationTitle',
+        )}
+        description={t(
+          'maturityWithdrawalConfirmationDescription',
+        )}
+        confirmLabel={t(
+          'confirmationContinueToWallet',
+        )}
+        cancelLabel={t(
+          'confirmationCancel',
+        )}
+        onCancel={() => {
+          setMaturityWithdrawalConfirmationOpen(
+            false,
+          )
+        }}
+        onConfirm={() => {
+          setMaturityWithdrawalConfirmationOpen(
+            false,
+          )
+          void executeLifecycleAction('maturity')
+        }}
+      >
+        <dl>
+          <div>
+            <dt>{t('confirmationDepositId')}</dt>
+            <dd>#{deposit.depositId.toString()}</dd>
+          </div>
+
+          <div>
+            <dt>{t('confirmationPrincipal')}</dt>
+            <dd>
+              {formatMusdcAmount(
+                deposit.principal,
+              )}{' '}
+              mUSDC
+            </dd>
+          </div>
+
+          <div>
+            <dt>{t('aprAtOpening')}</dt>
+            <dd>
+              {formatBasisPoints(
+                deposit.aprBpsAtOpen,
+              )}
+            </dd>
+          </div>
+        </dl>
+      </ConfirmationDialog>
+
+      <ConfirmationDialog
+        open={earlyWithdrawalConfirmationOpen}
+        title={t(
+          'earlyWithdrawalConfirmationTitle',
+        )}
+        description={t(
+          'earlyWithdrawalConfirmationDescription',
+        )}
+        confirmLabel={t(
+          'confirmationContinueToWallet',
+        )}
+        cancelLabel={t(
+          'confirmationCancel',
+        )}
+        tone="danger"
+        onCancel={() => {
+          setEarlyWithdrawalConfirmationOpen(
+            false,
+          )
+        }}
+        onConfirm={() => {
+          setEarlyWithdrawalConfirmationOpen(
+            false,
+          )
+          void executeLifecycleAction('early')
+        }}
+      >
+        <dl>
+          <div>
+            <dt>{t('confirmationDepositId')}</dt>
+            <dd>#{deposit.depositId.toString()}</dd>
+          </div>
+
+          <div>
+            <dt>{t('confirmationPrincipal')}</dt>
+            <dd>
+              {formatMusdcAmount(
+                deposit.principal,
+              )}{' '}
+              mUSDC
+            </dd>
+          </div>
+
+          <div>
+            <dt>{t('confirmationEarlyPenalty')}</dt>
+            <dd>
+              {formatBasisPoints(
+                deposit.penaltyBpsAtOpen,
+              )}{' '}
+              ({formatMusdcAmount(
+                earlyWithdrawalPenalty,
+              )}{' '}
+              mUSDC)
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              {t('confirmationNetPrincipal')}
+            </dt>
+            <dd>
+              {formatMusdcAmount(
+                deposit.principal -
+                  earlyWithdrawalPenalty,
+              )}{' '}
+              mUSDC
+            </dd>
+          </div>
+        </dl>
+      </ConfirmationDialog>
     </div>
   )
 }

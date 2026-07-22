@@ -116,6 +116,33 @@ describe('AdminFeeReceiverAction', () => {
       }),
     )
 
+    const dialog = screen.getByRole(
+      'dialog',
+      {
+        name:
+          'Confirm fee receiver update',
+      },
+    )
+
+    expect(dialog).toHaveTextContent(
+      OWNER,
+    )
+    expect(dialog).toHaveTextContent(
+      NEW_RECEIVER,
+    )
+
+    expect(
+      setFeeReceiver,
+    ).not.toHaveBeenCalled()
+
+    expect(refresh).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Continue to wallet',
+      }),
+    )
+
     expect(
       setFeeReceiver,
     ).toHaveBeenCalledWith(

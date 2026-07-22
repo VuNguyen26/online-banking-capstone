@@ -123,6 +123,33 @@ describe('AdminPlanAprAction', () => {
       }),
     )
 
+    const dialog = screen.getByRole(
+      'dialog',
+      {
+        name: 'Confirm APR update',
+      },
+    )
+
+    expect(dialog).toHaveTextContent('#1')
+    expect(dialog).toHaveTextContent(
+      '2%',
+    )
+    expect(dialog).toHaveTextContent(
+      '7.25%',
+    )
+
+    expect(
+      updatePlan,
+    ).not.toHaveBeenCalled()
+
+    expect(refresh).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Continue to wallet',
+      }),
+    )
+
     expect(
       updatePlan,
     ).toHaveBeenCalledWith(

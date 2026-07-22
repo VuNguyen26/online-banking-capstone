@@ -26,6 +26,9 @@ import {
 import {
   AdminPlansPanel,
 } from './AdminPlansPanel'
+import {
+  UiStatePanel,
+} from './UiStatePanel'
 
 import './AdminDashboard.css'
 
@@ -71,31 +74,24 @@ export function AdminDashboard({
         </div>
 
         {admin.status === 'loading' ? (
-          <p role="status">
-            {t('adminLoading')}
-          </p>
+          <UiStatePanel
+            kind="loading"
+            message={t('adminLoading')}
+          />
         ) : null}
 
         {admin.status === 'error' ? (
-          <div
-            className="error-message"
-            role="alert"
-          >
-            <p>
-              {admin.error ??
-                t('adminLoadError')}
-            </p>
-
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => {
-                void admin.refresh()
-              }}
-            >
-              {t('adminRetry')}
-            </button>
-          </div>
+          <UiStatePanel
+            kind="error"
+            message={
+              admin.error ??
+              t('adminLoadError')
+            }
+            actionLabel={t('adminRetry')}
+            onAction={() => {
+              void admin.refresh()
+            }}
+          />
         ) : null}
 
         {admin.status === 'ready' &&

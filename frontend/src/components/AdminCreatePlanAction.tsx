@@ -22,9 +22,11 @@ import type {
   TranslationKey,
 } from '../i18n/translations'
 import {
+  formatBasisPoints,
   parsePercentageToBasisPoints,
 } from '../lib/basisPoints'
 import {
+  formatMusdcAmount,
   parseMusdcAmount,
 } from '../lib/units'
 import type {
@@ -33,6 +35,9 @@ import type {
 import {
   AdminTransactionFeedback,
 } from './AdminTransactionFeedback'
+import {
+  ConfirmationDialog,
+} from './ConfirmationDialog'
 
 export type CreateAdminPlanContracts = (
   signer: JsonRpcSigner,
@@ -235,6 +240,11 @@ export function AdminCreatePlanAction({
   const [enabled, setEnabled] =
     useState(true)
 
+  const [
+    createPlanConfirmationOpen,
+    setCreatePlanConfirmationOpen,
+  ] = useState(false)
+
   const transaction = useTransaction()
 
   const validation =
@@ -299,6 +309,7 @@ export function AdminCreatePlanAction({
   }
 
   const resetTransaction = () => {
+    setCreatePlanConfirmationOpen(false)
     transaction.reset()
   }
 
@@ -321,7 +332,14 @@ export function AdminCreatePlanAction({
         className="admin-create-plan-form"
         onSubmit={(event) => {
           event.preventDefault()
-          void handleSubmit()
+
+          if (!canSubmit) {
+            return
+          }
+
+          setCreatePlanConfirmationOpen(
+            true,
+          )
         }}
       >
         <label>
@@ -468,6 +486,113 @@ export function AdminCreatePlanAction({
         label={t('adminCreatePlanTransaction')}
         state={transaction.state}
       />
+
+      {validation.input !== null ? (
+        <ConfirmationDialog
+          open={createPlanConfirmationOpen}
+          title={t(
+            'adminCreatePlanConfirmationTitle',
+          )}
+          description={t(
+            'adminCreatePlanConfirmationDescription',
+          )}
+          confirmLabel={t(
+            'confirmationContinueToWallet',
+          )}
+          cancelLabel={t(
+            'confirmationCancel',
+          )}
+          onCancel={() => {
+            setCreatePlanConfirmationOpen(
+              false,
+            )
+          }}
+          onConfirm={() => {
+            setCreatePlanConfirmationOpen(
+              false,
+            )
+            void handleSubmit()
+          }}
+        >
+          <dl>
+            <div>
+              <dt>{t('confirmationTenor')}</dt>
+              <dd>
+                {validation.input.tenorDays.toString()}{' '}
+                {t('days')}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t('confirmationNewApr')}
+              </dt>
+              <dd>
+                {formatBasisPoints(
+                  validation.input.aprBps,
+                )}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t(
+                  'confirmationMinimumDeposit',
+                )}
+              </dt>
+              <dd>
+                {formatMusdcAmount(
+                  validation.input.minDeposit,
+                )}{' '}
+                mUSDC
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t(
+                  'confirmationMaximumDeposit',
+                )}
+              </dt>
+              <dd>
+                {formatMusdcAmount(
+                  validation.input.maxDeposit,
+                )}{' '}
+                mUSDC
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t(
+                  'confirmationEarlyPenalty',
+                )}
+              </dt>
+              <dd>
+                {formatBasisPoints(
+                  validation.input
+                    .earlyWithdrawPenaltyBps,
+                )}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t(
+                  'confirmationInitialStatus',
+                )}
+              </dt>
+              <dd>
+                {validation.input.enabled
+                  ? t('adminPlanStatusEnabled')
+                  : t(
+                      'adminPlanStatusDisabled',
+                    )}
+              </dd>
+            </div>
+          </dl>
+        </ConfirmationDialog>
+      ) : null}
     </section>
   )
 }

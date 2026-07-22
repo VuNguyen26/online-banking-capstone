@@ -31,6 +31,9 @@ import type {
   TranslationKey,
 } from '../i18n/translations'
 import {
+  formatBasisPoints,
+} from '../lib/basisPoints'
+import {
   formatMusdcAmount,
 } from '../lib/units'
 import {
@@ -48,6 +51,9 @@ import type {
 import type {
   WalletContextValue,
 } from '../providers/wallet-context'
+import {
+  ConfirmationDialog,
+} from './ConfirmationDialog'
 
 export type OpenDepositWriteContracts = {
   mockUsdc: unknown
@@ -183,6 +189,10 @@ export function OpenDepositPanel({
     useState('')
   const [selectedPlanId, setSelectedPlanId] =
     useState('')
+  const [
+    depositConfirmationOpen,
+    setDepositConfirmationOpen,
+  ] = useState(false)
 
   const approvalTransaction =
     useTransaction()
@@ -370,6 +380,10 @@ export function OpenDepositPanel({
             setSelectedPlanId(
               event.target.value,
             )
+            setDepositConfirmationOpen(
+              false,
+            )
+            depositTransaction.reset()
           }}
         >
           {enabledPlans.length === 0 && (
@@ -407,6 +421,10 @@ export function OpenDepositPanel({
               setAmountInput(
                 event.target.value,
               )
+              setDepositConfirmationOpen(
+                false,
+              )
+              depositTransaction.reset()
             }}
           />
           <span>mUSDC</span>
@@ -506,7 +524,13 @@ export function OpenDepositPanel({
               type="button"
               disabled={!canSubmit}
               onClick={() => {
-                void handleOpenDeposit()
+                if (!canSubmit) {
+                  return
+                }
+
+                setDepositConfirmationOpen(
+                  true,
+                )
               }}
             >
               {depositTransaction.isPending
@@ -526,6 +550,93 @@ export function OpenDepositPanel({
         label={t('depositOpening')}
         state={depositTransaction.state}
       />
+
+      {selectedPlan !== null &&
+      validation.amount !== null ? (
+        <ConfirmationDialog
+          open={depositConfirmationOpen}
+          title={t(
+            'openDepositConfirmationTitle',
+          )}
+          description={t(
+            'openDepositConfirmationDescription',
+          )}
+          confirmLabel={t(
+            'confirmationContinueToWallet',
+          )}
+          cancelLabel={t(
+            'confirmationCancel',
+          )}
+          onCancel={() => {
+            setDepositConfirmationOpen(false)
+          }}
+          onConfirm={() => {
+            setDepositConfirmationOpen(false)
+            void handleOpenDeposit()
+          }}
+        >
+          <dl>
+            <div>
+              <dt>{t('confirmationPlanId')}</dt>
+              <dd>
+                #{selectedPlan.planId.toString()}
+              </dd>
+            </div>
+
+            <div>
+              <dt>{t('depositAmount')}</dt>
+              <dd>
+                {formatMusdcAmount(
+                  validation.amount,
+                )}{' '}
+                mUSDC
+              </dd>
+            </div>
+
+            <div>
+              <dt>{t('confirmationTenor')}</dt>
+              <dd>
+                {selectedPlan.tenorDays.toString()}{' '}
+                {t('days')}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t('confirmationNewApr')}
+              </dt>
+              <dd>
+                {formatBasisPoints(
+                  selectedPlan.aprBps,
+                )}
+              </dd>
+            </div>
+
+            <div>
+              <dt>{t('estimatedInterest')}</dt>
+              <dd>
+                {validation.estimatedInterest ===
+                null
+                  ? '—'
+                  : `${formatMusdcAmount(
+                      validation
+                        .estimatedInterest,
+                    )} mUSDC`}
+              </dd>
+            </div>
+
+            <div>
+              <dt>{t('earlyPenalty')}</dt>
+              <dd>
+                {formatBasisPoints(
+                  selectedPlan
+                    .earlyWithdrawPenaltyBps,
+                )}
+              </dd>
+            </div>
+          </dl>
+        </ConfirmationDialog>
+      ) : null}
     </section>
   )
 }

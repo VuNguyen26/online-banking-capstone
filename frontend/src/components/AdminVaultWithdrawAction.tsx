@@ -27,6 +27,9 @@ import type {
 import {
   AdminTransactionFeedback,
 } from './AdminTransactionFeedback'
+import {
+  ConfirmationDialog,
+} from './ConfirmationDialog'
 
 export type CreateAdminVaultWithdrawContracts = (
   signer: JsonRpcSigner,
@@ -37,6 +40,7 @@ export type CreateAdminVaultWithdrawContracts = (
 type AdminVaultWithdrawActionProps = {
   wallet: WalletContextValue
   isVaultManagerOwner: boolean
+  vaultManagerOwner: string
   vaultPaused: boolean
   availableLiquidity: bigint
   refresh: () => Promise<void>
@@ -61,6 +65,7 @@ function createDefaultWriteContracts(
 export function AdminVaultWithdrawAction({
   wallet,
   isVaultManagerOwner,
+  vaultManagerOwner,
   vaultPaused,
   availableLiquidity,
   refresh,
@@ -71,6 +76,11 @@ export function AdminVaultWithdrawAction({
 
   const [amountInput, setAmountInput] =
     useState('')
+
+  const [
+    withdrawConfirmationOpen,
+    setWithdrawConfirmationOpen,
+  ] = useState(false)
 
   const transaction = useTransaction()
 
@@ -182,6 +192,7 @@ export function AdminVaultWithdrawAction({
             setAmountInput(
               event.target.value,
             )
+            setWithdrawConfirmationOpen(false)
             transaction.reset()
           }}
         />
@@ -216,7 +227,11 @@ export function AdminVaultWithdrawAction({
           className="secondary-button"
           disabled={!canSubmit}
           onClick={() => {
-            void handleWithdraw()
+            if (!canSubmit) {
+              return
+            }
+
+            setWithdrawConfirmationOpen(true)
           }}
         >
           {transaction.isPending
@@ -229,6 +244,78 @@ export function AdminVaultWithdrawAction({
         label={t('adminVaultWithdrawTransaction')}
         state={transaction.state}
       />
+
+      {amount !== null ? (
+        <ConfirmationDialog
+          open={withdrawConfirmationOpen}
+          title={t(
+            'adminVaultWithdrawConfirmationTitle',
+          )}
+          description={t(
+            'adminVaultWithdrawConfirmationDescription',
+          )}
+          confirmLabel={t(
+            'confirmationContinueToWallet',
+          )}
+          cancelLabel={t(
+            'confirmationCancel',
+          )}
+          tone="danger"
+          onCancel={() => {
+            setWithdrawConfirmationOpen(false)
+          }}
+          onConfirm={() => {
+            setWithdrawConfirmationOpen(false)
+            void handleWithdraw()
+          }}
+        >
+          <dl>
+            <div>
+              <dt>{t('confirmationAmount')}</dt>
+              <dd>
+                {formatMusdcAmount(amount)} mUSDC
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t(
+                  'confirmationAvailableLiquidity',
+                )}
+              </dt>
+              <dd>
+                {formatMusdcAmount(
+                  availableLiquidity,
+                )}{' '}
+                mUSDC
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t(
+                  'confirmationRemainingLiquidity',
+                )}
+              </dt>
+              <dd>
+                {formatMusdcAmount(
+                  availableLiquidity - amount,
+                )}{' '}
+                mUSDC
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t('confirmationRecipient')}
+              </dt>
+              <dd title={vaultManagerOwner}>
+                {vaultManagerOwner}
+              </dd>
+            </div>
+          </dl>
+        </ConfirmationDialog>
+      ) : null}
     </section>
   )
 }

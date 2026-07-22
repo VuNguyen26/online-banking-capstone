@@ -106,6 +106,35 @@ describe('AdminProtocolPauseAction', () => {
       }),
     )
 
+    const dialog = screen.getByRole(
+      'dialog',
+      {
+        name: 'Confirm contract pause',
+      },
+    )
+
+    expect(dialog).toHaveTextContent(
+      'New deposits and financial actions through SavingCore will be temporarily unavailable',
+    )
+    expect(dialog).toHaveTextContent(
+      'SavingCore',
+    )
+    expect(dialog).toHaveTextContent(
+      'Active',
+    )
+    expect(dialog).toHaveTextContent(
+      'Paused',
+    )
+
+    expect(pause).not.toHaveBeenCalled()
+    expect(refresh).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Continue to wallet',
+      }),
+    )
+
     expect(pause).toHaveBeenCalledTimes(1)
     expect(refresh).toHaveBeenCalledTimes(1)
   })

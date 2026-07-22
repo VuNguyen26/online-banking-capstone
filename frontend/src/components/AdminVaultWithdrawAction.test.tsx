@@ -85,6 +85,7 @@ describe('AdminVaultWithdrawAction', () => {
         <AdminVaultWithdrawAction
           wallet={createWallet()}
           isVaultManagerOwner
+          vaultManagerOwner={ACCOUNT}
           vaultPaused={false}
           availableLiquidity={
             500_000_000n
@@ -112,6 +113,39 @@ describe('AdminVaultWithdrawAction', () => {
       }),
     )
 
+    const dialog = screen.getByRole(
+      'dialog',
+      {
+        name:
+          'Confirm VaultManager withdrawal',
+      },
+    )
+
+    expect(dialog).toHaveTextContent(
+      '125 mUSDC',
+    )
+    expect(dialog).toHaveTextContent(
+      '500 mUSDC',
+    )
+    expect(dialog).toHaveTextContent(
+      '375 mUSDC',
+    )
+    expect(dialog).toHaveTextContent(
+      ACCOUNT,
+    )
+
+    expect(
+      withdrawVault,
+    ).not.toHaveBeenCalled()
+
+    expect(refresh).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Continue to wallet',
+      }),
+    )
+
     expect(
       withdrawVault,
     ).toHaveBeenCalledWith(
@@ -129,6 +163,7 @@ describe('AdminVaultWithdrawAction', () => {
         <AdminVaultWithdrawAction
           wallet={createWallet()}
           isVaultManagerOwner
+          vaultManagerOwner={ACCOUNT}
           vaultPaused={false}
           availableLiquidity={
             100_000_000n
@@ -164,6 +199,7 @@ describe('AdminVaultWithdrawAction', () => {
         <AdminVaultWithdrawAction
           wallet={createWallet()}
           isVaultManagerOwner
+          vaultManagerOwner={ACCOUNT}
           vaultPaused
           availableLiquidity={
             500_000_000n

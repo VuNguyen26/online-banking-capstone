@@ -30,6 +30,9 @@ import type {
 import {
   AdminTransactionFeedback,
 } from './AdminTransactionFeedback'
+import {
+  ConfirmationDialog,
+} from './ConfirmationDialog'
 
 export type CreateAdminPlanAprContracts = (
   signer: JsonRpcSigner,
@@ -75,6 +78,11 @@ export function AdminPlanAprAction({
         plan.aprBps,
       ).replace('%', ''),
     )
+
+  const [
+    aprConfirmationOpen,
+    setAprConfirmationOpen,
+  ] = useState(false)
 
   const transaction = useTransaction()
 
@@ -174,6 +182,7 @@ export function AdminPlanAprAction({
             setAprInput(
               event.target.value,
             )
+            setAprConfirmationOpen(false)
             transaction.reset()
           }}
         />
@@ -187,7 +196,11 @@ export function AdminPlanAprAction({
           className="secondary-button"
           disabled={!canSubmit}
           onClick={() => {
-            void handleSubmit()
+            if (!canSubmit) {
+              return
+            }
+
+            setAprConfirmationOpen(true)
           }}
         >
           {transaction.isPending
@@ -217,6 +230,58 @@ export function AdminPlanAprAction({
         label={t('adminAprUpdate')}
         state={transaction.state}
       />
+
+      {parsedApr !== null ? (
+        <ConfirmationDialog
+          open={aprConfirmationOpen}
+          title={t(
+            'adminAprConfirmationTitle',
+          )}
+          description={t(
+            'adminAprConfirmationDescription',
+          )}
+          confirmLabel={t(
+            'confirmationContinueToWallet',
+          )}
+          cancelLabel={t(
+            'confirmationCancel',
+          )}
+          onCancel={() => {
+            setAprConfirmationOpen(false)
+          }}
+          onConfirm={() => {
+            setAprConfirmationOpen(false)
+            void handleSubmit()
+          }}
+        >
+          <dl>
+            <div>
+              <dt>{t('confirmationPlanId')}</dt>
+              <dd>#{plan.planId.toString()}</dd>
+            </div>
+
+            <div>
+              <dt>
+                {t('confirmationCurrentApr')}
+              </dt>
+              <dd>
+                {formatBasisPoints(
+                  plan.aprBps,
+                )}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                {t('confirmationNewApr')}
+              </dt>
+              <dd>
+                {formatBasisPoints(parsedApr)}
+              </dd>
+            </div>
+          </dl>
+        </ConfirmationDialog>
+      ) : null}
     </div>
   )
 }

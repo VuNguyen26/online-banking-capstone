@@ -113,6 +113,39 @@ describe('AdminPlanToggleAction', () => {
       }),
     )
 
+    const dialog = screen.getByRole(
+      'dialog',
+      {
+        name: 'Confirm plan disable',
+      },
+    )
+
+    expect(dialog).toHaveTextContent(
+      'The plan will stop accepting new deposits.',
+    )
+    expect(dialog).toHaveTextContent(
+      'Plan ID',
+    )
+    expect(dialog).toHaveTextContent('#1')
+    expect(dialog).toHaveTextContent(
+      'Enabled',
+    )
+    expect(dialog).toHaveTextContent(
+      'Disabled',
+    )
+
+    expect(
+      disablePlan,
+    ).not.toHaveBeenCalled()
+
+    expect(refresh).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Continue to wallet',
+      }),
+    )
+
     expect(
       disablePlan,
     ).toHaveBeenCalledWith(1n)
