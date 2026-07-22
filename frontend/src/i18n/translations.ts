@@ -43,17 +43,17 @@ export const translations = {
     adminConfigurationHeading:
       'Cấu hình và phân quyền',
     adminConfigurationDescription:
-      'Kiểm tra owner, trạng thái pause và các quan hệ contract đang được lưu trên Sepolia.',
+      'Kiểm tra owner, trạng thái tạm dừng và các liên kết hợp đồng đang được lưu trên Sepolia.',
     adminConfigurationWarning:
-      'Ít nhất một quan hệ contract không khớp với deployment đã đồng bộ.',
+      'Ít nhất một liên kết hợp đồng không khớp với deployment đã đồng bộ.',
     adminOwner:
-      'Owner hiện tại',
+      'Chủ sở hữu hiện tại',
     adminPendingOwner:
-      'Pending owner',
+      'Chủ sở hữu đang chờ',
     adminConnectedWalletRole:
       'Quyền của ví đang kết nối',
     adminOwnerAccess:
-      'Quyền owner',
+      'Quyền chủ sở hữu',
     adminReadOnlyAccess:
       'Chỉ đọc',
     adminFeeReceiver:
@@ -65,7 +65,7 @@ export const translations = {
     adminPaused:
       'Đang tạm dừng',
     adminRelationshipsHeading:
-      'Quan hệ contract',
+      'Liên kết hợp đồng',
     adminRelationshipMatched:
       'Khớp',
     adminRelationshipMismatch:
@@ -93,23 +93,23 @@ export const translations = {
     adminWalletBalance:
       'Số dư mUSDC của ví',
     adminVaultAllowance:
-      'Allowance dành cho VaultManager',
+      'Hạn mức dành cho VaultManager',
     adminWalletDisconnected:
-      'Kết nối ví để xem số dư và allowance.',
+      'Kết nối ví để xem số dư và hạn mức.',
     adminPlansEyebrow:
       'Danh mục sản phẩm',
     adminPlansHeading:
-      'Quản lý saving plan',
+      'Quản lý gói tiết kiệm',
     adminPlansDescription:
       'Theo dõi toàn bộ gói tiết kiệm, bao gồm cả các gói đang tắt. Các thay đổi chỉ có hiệu lực khi được owner của SavingCore ký.',
     adminEnablePlan:
-      'Bật saving plan',
+      'Bật gói tiết kiệm',
     adminDisablePlan:
-      'Tắt saving plan',
+      'Tắt gói tiết kiệm',
     adminPlanUpdating:
       'Đang cập nhật plan...',
     adminPlanStatusUpdate:
-      'Cập nhật trạng thái saving plan',
+      'Cập nhật trạng thái gói tiết kiệm',
     confirmationCancel:
       'Hủy',
     confirmationContinueToWallet:
@@ -133,13 +133,13 @@ export const translations = {
     adminSwitchSepoliaAction:
       'Chuyển ví sang Ethereum Sepolia để tiếp tục.',
     adminSavingCoreOwnerRequired:
-      'Chỉ SavingCore owner mới có thể thực hiện hành động này.',
+      'Chỉ chủ sở hữu SavingCore mới có thể thực hiện hành động này.',
     adminNewApr:
       'APR mới',
     adminUpdateApr:
       'Cập nhật APR',
     adminAprUpdate:
-      'Cập nhật APR saving plan',
+      'Cập nhật APR gói tiết kiệm',
     confirmationCurrentApr:
       'APR hiện tại',
     confirmationNewApr:
@@ -155,7 +155,7 @@ export const translations = {
     adminAprUnchanged:
       'Nhập APR khác với giá trị hiện tại.',
     adminCreatePlanHeading:
-      'Tạo saving plan mới',
+      'Tạo gói tiết kiệm mới',
     adminCreatePlanDescription:
       'Các giá trị được ghi trực tiếp vào SavingCore sau khi owner xác nhận giao dịch.',
     adminPlanTenorDays:
@@ -175,7 +175,7 @@ export const translations = {
     adminCreatingPlan:
       'Đang tạo plan...',
     adminCreatePlanTransaction:
-      'Tạo saving plan',
+      'Tạo gói tiết kiệm',
     confirmationTenor:
       'Kỳ hạn',
     confirmationMinimumDeposit:
@@ -189,7 +189,7 @@ export const translations = {
     adminCreatePlanConfirmationTitle:
       'Xác nhận tạo saving plan',
     adminCreatePlanConfirmationDescription:
-      'Kiểm tra toàn bộ điều khoản của saving plan mới trước khi tiếp tục đến ví.',
+      'Kiểm tra toàn bộ điều khoản của gói tiết kiệm mới trước khi tiếp tục đến ví.',
     adminCreatePlanTenorError:
       'Kỳ hạn phải là số nguyên từ 1 đến 3650 ngày.',
     adminCreatePlanAmountError:
@@ -199,7 +199,7 @@ export const translations = {
     adminCreatePlanPenaltyError:
       'Mức phạt phải nằm trong khoảng 0% đến 100% và có tối đa hai chữ số thập phân.',
     adminVaultManagerOwnerRequired:
-      'Chỉ VaultManager owner mới có thể thực hiện hành động này.',
+      'Chỉ chủ sở hữu VaultManager mới có thể thực hiện hành động này.',
     adminVaultFundingHeading:
       'Nạp quỹ lãi',
     adminVaultFundingDescription:
@@ -227,7 +227,7 @@ export const translations = {
     adminVaultWithdrawHeading:
       'Rút thanh khoản khả dụng',
     adminVaultWithdrawDescription:
-      'Chỉ rút phần vượt ngoài nghĩa vụ lãi đã dự trữ. Tiền được chuyển cho VaultManager owner hiện tại.',
+      'Chỉ rút phần vượt ngoài nghĩa vụ lãi đã dự trữ. Tiền được chuyển cho chủ sở hữu VaultManager hiện tại.',
     adminVaultWithdrawAmount:
       'Số tiền rút (mUSDC)',
     adminWithdrawVault:
@@ -253,53 +253,53 @@ export const translations = {
     adminVaultWithdrawExceedsAvailable:
       'Số tiền rút không được vượt quá thanh khoản khả dụng.',
     adminVaultWithdrawPaused:
-      'Hãy unpause VaultManager trước khi rút thanh khoản.',
+      'Hãy bỏ tạm dừng VaultManager trước khi rút thanh khoản.',
     adminFeeReceiverUpdateHeading:
-      'Cập nhật fee receiver',
+      'Cập nhật địa chỉ nhận phí',
     adminFeeReceiverUpdateDescription:
       'Địa chỉ mới sẽ nhận các khoản phí do VaultManager phân phối.',
     adminNewFeeReceiver:
-      'Fee receiver mới',
+      'Địa chỉ nhận phí mới',
     adminUpdateFeeReceiver:
-      'Cập nhật fee receiver',
+      'Cập nhật địa chỉ nhận phí',
     adminUpdatingFeeReceiver:
       'Đang cập nhật...',
     adminFeeReceiverTransaction:
-      'Cập nhật fee receiver',
+      'Cập nhật địa chỉ nhận phí',
     confirmationCurrentAddress:
       'Địa chỉ hiện tại',
     confirmationNewAddress:
       'Địa chỉ mới',
     adminFeeReceiverConfirmationTitle:
-      'Xác nhận thay đổi fee receiver',
+      'Xác nhận thay đổi địa chỉ nhận phí',
     adminFeeReceiverConfirmationDescription:
       'Địa chỉ mới sẽ nhận các khoản phí do VaultManager phân phối. Hãy kiểm tra kỹ trước khi tiếp tục đến ví.',
     adminFeeReceiverInvalid:
       'Nhập địa chỉ Ethereum hợp lệ.',
     adminFeeReceiverZeroError:
-      'Fee receiver không được là zero address.',
+      'Địa chỉ nhận phí không được là zero address.',
     adminFeeReceiverUnchanged:
-      'Nhập địa chỉ khác fee receiver hiện tại.',
+      'Nhập địa chỉ khác địa chỉ nhận phí hiện tại.',
     adminContractCurrentlyPaused:
-      'Contract hiện đang tạm dừng.',
+      'Hợp đồng hiện đang tạm dừng.',
     adminContractCurrentlyActive:
-      'Contract hiện đang hoạt động.',
+      'Hợp đồng hiện đang hoạt động.',
     adminPauseContract:
-      'Pause contract',
+      'Tạm dừng hợp đồng',
     adminUnpauseContract:
-      'Unpause contract',
+      'Tiếp tục hoạt động',
     adminUpdatingPauseState:
       'Đang cập nhật trạng thái...',
     adminPauseStateTransaction:
-      'cập nhật trạng thái pause',
+      'cập nhật trạng thái tạm dừng',
     confirmationContract:
       'Hợp đồng',
     adminPauseConfirmationTitle:
-      'Xác nhận pause hợp đồng',
+      'Xác nhận tạm dừng hợp đồng',
     adminPauseSavingCoreDescription:
       'Các khoản gửi mới và thao tác tài chính qua SavingCore sẽ tạm thời không khả dụng cho đến khi owner unpause.',
     adminPauseVaultManagerDescription:
-      'VaultManager sẽ chuyển sang trạng thái paused cho đến khi owner unpause.',
+      'VaultManager sẽ chuyển sang trạng thái tạm dừngd cho đến khi owner unpause.',
     adminContractStatusActive:
       'Đang hoạt động',
     adminContractStatusPaused:
@@ -428,6 +428,12 @@ export const translations = {
       'Số tiền gửi',
     depositAmountHelp:
       'Nhập số thập phân có không quá 6 chữ số sau dấu phẩy.',
+    depositAmountPlaceholder:
+      'Ví dụ: 500',
+    enterAmountForInterestEstimate:
+      'Nhập số tiền để xem lãi ước tính.',
+    zeroMusdcBalanceGuidance:
+      'Số dư mUSDC của ví đang bằng 0. Hãy nhận token thử nghiệm trước khi mở khoản gửi.',
     allowedRange:
       'Khoảng cho phép',
     estimatedInterest:
@@ -1164,6 +1170,12 @@ export const translations = {
       'Deposit amount',
     depositAmountHelp:
       'Enter a decimal amount with no more than six fractional digits.',
+    depositAmountPlaceholder:
+      'Example: 500',
+    enterAmountForInterestEstimate:
+      'Enter an amount to view the estimated interest.',
+    zeroMusdcBalanceGuidance:
+      'Your mUSDC balance is zero. Mint test tokens before opening a deposit.',
     allowedRange:
       'Allowed range',
     estimatedInterest:

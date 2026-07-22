@@ -86,7 +86,7 @@
   font-size: 0.9rem;
 }
 
-.dashboard-grid {
+.dashboard-top-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   align-items: start;
@@ -94,9 +94,14 @@
 }
 
 .dashboard-main,
-.dashboard-sidebar {
+.dashboard-sidebar,
+.dashboard-full-width {
   display: grid;
   gap: 20px;
+}
+
+.dashboard-full-width {
+  margin-top: 20px;
 }
 
 .dashboard-sidebar {
@@ -258,7 +263,9 @@
 .primary-button:disabled,
 .secondary-button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.42;
+  filter: saturate(0.35);
+  box-shadow: none;
 }
 
 .warning-message,
@@ -351,7 +358,7 @@
 
 
 @media (max-width: 900px) {
-  .dashboard-grid {
+  .dashboard-top-grid {
     grid-template-columns: 1fr;
   }
 
@@ -698,7 +705,9 @@
 
 .secondary-button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.42;
+  filter: saturate(0.35);
+  box-shadow: none;
 }
 
 .renewal-fields {

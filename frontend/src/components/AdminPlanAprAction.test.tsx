@@ -188,10 +188,8 @@ describe('AdminPlanAprAction', () => {
     expect(button).toBeDisabled()
 
     expect(
-      screen.getByRole('alert'),
-    ).toHaveTextContent(
-      'Enter an APR different from the current value.',
-    )
+      screen.queryByRole('alert'),
+    ).not.toBeInTheDocument()
 
     const input =
       screen.getByLabelText(

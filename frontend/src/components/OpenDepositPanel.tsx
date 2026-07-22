@@ -413,7 +413,7 @@ export function OpenDepositPanel({
             type="text"
             inputMode="decimal"
             autoComplete="off"
-            placeholder="500"
+            placeholder={t('depositAmountPlaceholder')}
             value={amountInput}
             disabled={transactionPending}
             aria-describedby="deposit-help deposit-error"
@@ -458,7 +458,7 @@ export function OpenDepositPanel({
               <dd>
                 {validation.estimatedInterest ===
                 null
-                  ? '—'
+                  ? t('enterAmountForInterestEstimate')
                   : `${formatMusdcAmount(
                       validation
                         .estimatedInterest,
@@ -495,6 +495,13 @@ export function OpenDepositPanel({
             </p>
           )}
 
+        {walletReady &&
+          dashboardData?.tokenAccountState
+            ?.balance === 0n && (
+            <p className="form-guidance">
+              {t('zeroMusdcBalanceGuidance')}
+            </p>
+          )}
         {protocolPaused && (
           <p
             className="form-error"
@@ -617,7 +624,7 @@ export function OpenDepositPanel({
               <dd>
                 {validation.estimatedInterest ===
                 null
-                  ? '—'
+                  ? t('enterAmountForInterestEstimate')
                   : `${formatMusdcAmount(
                       validation
                         .estimatedInterest,

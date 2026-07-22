@@ -174,10 +174,8 @@ describe('AdminFeeReceiverAction', () => {
     expect(button).toBeDisabled()
 
     expect(
-      screen.getByRole('alert'),
-    ).toHaveTextContent(
-      'Enter an address different from the current fee receiver.',
-    )
+      screen.queryByRole('alert'),
+    ).not.toBeInTheDocument()
 
     const input =
       screen.getByLabelText(

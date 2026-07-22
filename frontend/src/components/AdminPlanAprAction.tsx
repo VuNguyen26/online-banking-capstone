@@ -79,6 +79,9 @@ export function AdminPlanAprAction({
       ).replace('%', ''),
     )
 
+  const [aprTouched, setAprTouched] =
+    useState(false)
+
   const [
     aprConfirmationOpen,
     setAprConfirmationOpen,
@@ -182,6 +185,7 @@ export function AdminPlanAprAction({
             setAprInput(
               event.target.value,
             )
+            setAprTouched(true)
             setAprConfirmationOpen(false)
             transaction.reset()
           }}
@@ -216,6 +220,7 @@ export function AdminPlanAprAction({
       ) : null}
 
       {!guidance &&
+      aprTouched &&
       aprInput.length > 0 &&
       validationError ? (
         <p

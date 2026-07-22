@@ -392,4 +392,32 @@ describe('OpenDepositPanel', () => {
       }),
     ).toBeDisabled()
   })
+
+  it('clarifies empty amount and zero-balance states', () => {
+    render(
+      <OpenDepositPanel
+        wallet={createWallet()}
+        safeBank={createSafeBank(0n, 0n)}
+      />,
+    )
+
+    expect(
+      screen.getByLabelText('Số tiền gửi'),
+    ).toHaveAttribute(
+      'placeholder',
+      'Ví dụ: 500',
+    )
+
+    expect(
+      screen.getByText(
+        'Nhập số tiền để xem lãi ước tính.',
+      ),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByText(
+        /Số dư mUSDC của ví đang bằng 0/,
+      ),
+    ).toBeInTheDocument()
+  })
 })

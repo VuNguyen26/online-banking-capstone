@@ -621,21 +621,11 @@ export function UserDashboard({
       activeView={activeView}
       onViewChange={onViewChange}
     >
-      <div className="dashboard-grid">
+      <div className="dashboard-top-grid">
         <div className="dashboard-main">
           <WalletSection wallet={wallet} />
 
           <OpenDepositPanel
-            wallet={wallet}
-            safeBank={safeBank}
-          />
-
-          <DepositPortfolioPanel
-            wallet={wallet}
-            safeBank={safeBank}
-          />
-
-          <DashboardData
             wallet={wallet}
             safeBank={safeBank}
           />
@@ -644,6 +634,18 @@ export function UserDashboard({
         <div className="dashboard-sidebar">
           <ContractLinks />
         </div>
+      </div>
+
+      <div className="dashboard-full-width">
+        <DepositPortfolioPanel
+          wallet={wallet}
+          safeBank={safeBank}
+        />
+
+        <DashboardData
+          wallet={wallet}
+          safeBank={safeBank}
+        />
       </div>
     </ApplicationShell>
   )

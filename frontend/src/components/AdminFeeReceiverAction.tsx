@@ -71,6 +71,9 @@ export function AdminFeeReceiverAction({
   const [addressInput, setAddressInput] =
     useState(currentFeeReceiver)
 
+  const [addressTouched, setAddressTouched] =
+    useState(false)
+
   const [
     feeReceiverConfirmationOpen,
     setFeeReceiverConfirmationOpen,
@@ -184,6 +187,7 @@ export function AdminFeeReceiverAction({
             setAddressInput(
               event.target.value,
             )
+            setAddressTouched(true)
             setFeeReceiverConfirmationOpen(
               false,
             )
@@ -198,6 +202,7 @@ export function AdminFeeReceiverAction({
         ) : null}
 
         {!guidance &&
+        addressTouched &&
         addressInput.length > 0 &&
         validationError ? (
           <p

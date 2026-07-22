@@ -392,7 +392,9 @@
 
 .danger-button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.42;
+  filter: saturate(0.35);
+  box-shadow: none;
 }
 
 @media (max-width: 800px) {
