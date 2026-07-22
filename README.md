@@ -10,7 +10,7 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 16 — Admin Portal implemented and validated; final repository audits and Git checkpoint remain pending**
+**Phase 16 — Admin Portal completed, committed, pushed, and verified**
 
 Phase 14 public deployment:
 
