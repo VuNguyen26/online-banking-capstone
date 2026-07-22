@@ -14,6 +14,260 @@ export const translations = {
       'Tiếng Việt',
     english:
       'English',
+    applicationNavigation:
+      'Điều hướng ứng dụng',
+    userPortal:
+      'Người dùng',
+    adminPortal:
+      'Quản trị',
+    adminHeroTitle:
+      'Bảng điều khiển quản trị SafeBank',
+    adminHeroDescription:
+      'Theo dõi cấu hình, thanh khoản và trạng thái vận hành của SafeBank trực tiếp trên Ethereum Sepolia.',
+    adminOverviewDescription:
+      'Dữ liệu công khai được đọc trực tiếp từ các hợp đồng SavingCore và VaultManager.',
+    adminLoading:
+      'Đang tải dữ liệu quản trị Sepolia',
+    adminLoadError:
+      'Không thể tải dữ liệu quản trị.',
+    adminRetry:
+      'Thử tải lại',
+    adminPlanCount:
+      'Tổng số gói',
+    adminDepositCount:
+      'Tổng số khoản gửi',
+    adminVaultBalance:
+      'Số dư VaultManager',
+    adminConfigurationEyebrow:
+      'Cấu hình on-chain',
+    adminConfigurationHeading:
+      'Cấu hình và phân quyền',
+    adminConfigurationDescription:
+      'Kiểm tra owner, trạng thái pause và các quan hệ contract đang được lưu trên Sepolia.',
+    adminConfigurationWarning:
+      'Ít nhất một quan hệ contract không khớp với deployment đã đồng bộ.',
+    adminOwner:
+      'Owner hiện tại',
+    adminPendingOwner:
+      'Pending owner',
+    adminConnectedWalletRole:
+      'Quyền của ví đang kết nối',
+    adminOwnerAccess:
+      'Quyền owner',
+    adminReadOnlyAccess:
+      'Chỉ đọc',
+    adminFeeReceiver:
+      'Địa chỉ nhận phí',
+    adminNone:
+      'Không có',
+    adminActive:
+      'Đang hoạt động',
+    adminPaused:
+      'Đang tạm dừng',
+    adminRelationshipsHeading:
+      'Quan hệ contract',
+    adminRelationshipMatched:
+      'Khớp',
+    adminRelationshipMismatch:
+      'Không khớp',
+    adminVaultEyebrow:
+      'Thanh khoản C2',
+    adminVaultHeading:
+      'Trạng thái VaultManager',
+    adminVaultDescription:
+      'Theo dõi quỹ lãi, phần dự trữ và thanh khoản có thể rút mà không sử dụng tiền gốc của người gửi.',
+    adminVaultHealthy:
+      'Đủ thanh khoản',
+    adminVaultUnderfunded:
+      'Thiếu thanh khoản',
+    adminVaultUnderfundedWarning:
+      'VaultManager hiện không đủ để bảo đảm toàn bộ phần lãi đã dự trữ.',
+    adminReservedInterest:
+      'Tổng lãi đã dự trữ',
+    adminAvailableLiquidity:
+      'Thanh khoản khả dụng',
+    adminFundingShortfall:
+      'Phần thiếu hụt',
+    adminConnectedWalletLiquidity:
+      'Nguồn tiền của ví đang kết nối',
+    adminWalletBalance:
+      'Số dư mUSDC của ví',
+    adminVaultAllowance:
+      'Allowance dành cho VaultManager',
+    adminWalletDisconnected:
+      'Kết nối ví để xem số dư và allowance.',
+    adminPlansEyebrow:
+      'Danh mục sản phẩm',
+    adminPlansHeading:
+      'Quản lý saving plan',
+    adminPlansDescription:
+      'Theo dõi toàn bộ gói tiết kiệm, bao gồm cả các gói đang tắt. Các thay đổi chỉ có hiệu lực khi được owner của SavingCore ký.',
+    adminEnablePlan:
+      'Bật saving plan',
+    adminDisablePlan:
+      'Tắt saving plan',
+    adminPlanUpdating:
+      'Đang cập nhật plan...',
+    adminPlanStatusUpdate:
+      'Cập nhật trạng thái saving plan',
+    adminConnectWalletAction:
+      'Kết nối ví để thực hiện hành động quản trị.',
+    adminSwitchSepoliaAction:
+      'Chuyển ví sang Ethereum Sepolia để tiếp tục.',
+    adminSavingCoreOwnerRequired:
+      'Chỉ SavingCore owner mới có thể thực hiện hành động này.',
+    adminNewApr:
+      'APR mới',
+    adminUpdateApr:
+      'Cập nhật APR',
+    adminAprUpdate:
+      'Cập nhật APR saving plan',
+    adminAprFormatError:
+      'Nhập APR hợp lệ với tối đa hai chữ số thập phân.',
+    adminAprRangeError:
+      'APR phải nằm trong khoảng 0,01% đến 100%.',
+    adminAprUnchanged:
+      'Nhập APR khác với giá trị hiện tại.',
+    adminCreatePlanHeading:
+      'Tạo saving plan mới',
+    adminCreatePlanDescription:
+      'Các giá trị được ghi trực tiếp vào SavingCore sau khi owner xác nhận giao dịch.',
+    adminPlanTenorDays:
+      'Kỳ hạn (ngày)',
+    adminPlanAprPercent:
+      'APR (%)',
+    adminMinimumDeposit:
+      'Tiền gửi tối thiểu (mUSDC)',
+    adminMaximumDeposit:
+      'Tiền gửi tối đa (mUSDC)',
+    adminEarlyPenaltyPercent:
+      'Phạt rút sớm (%)',
+    adminEnablePlanInitially:
+      'Bật plan ngay sau khi tạo',
+    adminCreatePlan:
+      'Tạo plan',
+    adminCreatingPlan:
+      'Đang tạo plan...',
+    adminCreatePlanTransaction:
+      'Tạo saving plan',
+    adminCreatePlanTenorError:
+      'Kỳ hạn phải là số nguyên từ 1 đến 3650 ngày.',
+    adminCreatePlanAmountError:
+      'Nhập số tiền mUSDC hợp lệ với tối đa 6 chữ số thập phân.',
+    adminCreatePlanDepositRangeError:
+      'Tiền gửi tối đa phải lớn hơn hoặc bằng mức tối thiểu dương.',
+    adminCreatePlanPenaltyError:
+      'Mức phạt phải nằm trong khoảng 0% đến 100% và có tối đa hai chữ số thập phân.',
+    adminVaultManagerOwnerRequired:
+      'Chỉ VaultManager owner mới có thể thực hiện hành động này.',
+    adminVaultFundingHeading:
+      'Nạp quỹ lãi',
+    adminVaultFundingDescription:
+      'Approve đúng số tiền cho VaultManager, sau đó gửi giao dịch fundVault riêng biệt.',
+    adminVaultFundingAmount:
+      'Số tiền nạp (mUSDC)',
+    adminApproveVaultFunding:
+      'Approve đúng số tiền',
+    adminApprovingVaultFunding:
+      'Đang approve...',
+    adminFundVault:
+      'Nạp VaultManager',
+    adminFundingVault:
+      'Đang nạp quỹ...',
+    adminVaultFundingApproval:
+      'Approve mUSDC cho VaultManager',
+    adminVaultFundingTransaction:
+      'Nạp quỹ VaultManager',
+    adminVaultAmountPositive:
+      'Số tiền nạp phải lớn hơn 0.',
+    adminVaultAmountInvalid:
+      'Nhập số tiền mUSDC hợp lệ với tối đa 6 chữ số thập phân.',
+    adminVaultInsufficientBalance:
+      'Ví đang kết nối không có đủ mUSDC.',
+    adminVaultWithdrawHeading:
+      'Rút thanh khoản khả dụng',
+    adminVaultWithdrawDescription:
+      'Chỉ rút phần vượt ngoài nghĩa vụ lãi đã dự trữ. Tiền được chuyển cho VaultManager owner hiện tại.',
+    adminVaultWithdrawAmount:
+      'Số tiền rút (mUSDC)',
+    adminWithdrawVault:
+      'Rút thanh khoản khả dụng',
+    adminWithdrawingVault:
+      'Đang rút thanh khoản...',
+    adminVaultWithdrawTransaction:
+      'Rút tiền từ VaultManager',
+    adminVaultWithdrawPositive:
+      'Số tiền rút phải lớn hơn 0.',
+    adminVaultWithdrawExceedsAvailable:
+      'Số tiền rút không được vượt quá thanh khoản khả dụng.',
+    adminVaultWithdrawPaused:
+      'Hãy unpause VaultManager trước khi rút thanh khoản.',
+    adminFeeReceiverUpdateHeading:
+      'Cập nhật fee receiver',
+    adminFeeReceiverUpdateDescription:
+      'Địa chỉ mới sẽ nhận các khoản phí do VaultManager phân phối.',
+    adminNewFeeReceiver:
+      'Fee receiver mới',
+    adminUpdateFeeReceiver:
+      'Cập nhật fee receiver',
+    adminUpdatingFeeReceiver:
+      'Đang cập nhật...',
+    adminFeeReceiverTransaction:
+      'Cập nhật fee receiver',
+    adminFeeReceiverInvalid:
+      'Nhập địa chỉ Ethereum hợp lệ.',
+    adminFeeReceiverZeroError:
+      'Fee receiver không được là zero address.',
+    adminFeeReceiverUnchanged:
+      'Nhập địa chỉ khác fee receiver hiện tại.',
+    adminContractCurrentlyPaused:
+      'Contract hiện đang tạm dừng.',
+    adminContractCurrentlyActive:
+      'Contract hiện đang hoạt động.',
+    adminPauseContract:
+      'Pause contract',
+    adminUnpauseContract:
+      'Unpause contract',
+    adminUpdatingPauseState:
+      'Đang cập nhật trạng thái...',
+    adminPauseStateTransaction:
+      'cập nhật trạng thái pause',
+    adminDepositInspectionKicker:
+      'Tra cứu on-chain',
+    adminDepositInspectionHeading:
+      'Kiểm tra khoản tiền gửi',
+    adminDepositInspectionDescription:
+      'Nhập deposit ID để đọc snapshot trực tiếp từ SavingCore. Chức năng này hoàn toàn chỉ đọc.',
+    adminDepositId:
+      'Deposit ID',
+    adminDepositSearch:
+      'Tra cứu deposit',
+    adminDepositSearching:
+      'Đang tra cứu...',
+    adminDepositLoading:
+      'Đang đọc dữ liệu deposit từ Sepolia...',
+    adminDepositIdError:
+      'Deposit ID phải là số nguyên dương.',
+    adminDepositReadError:
+      'Không thể đọc deposit. Hãy kiểm tra ID và thử lại.',
+    adminDepositResult:
+      'Deposit',
+    adminDepositPlanId:
+      'Plan ID',
+    adminDepositStartedAt:
+      'Thời điểm bắt đầu',
+    adminDepositMaturityAt:
+      'Thời điểm đáo hạn',
+    adminDepositStatusActive:
+      'Đang hoạt động',
+    adminDepositStatusWithdrawn:
+      'Đã rút',
+    adminDepositStatusManualRenewed:
+      'Đã tái tục thủ công',
+    adminDepositStatusAutoRenewed:
+      'Đã tự động tái tục',
+    adminDepositStatusUnknown:
+      'Không xác định',
     walletEyebrow:
       'Ví trình duyệt',
     walletHeading:
@@ -396,6 +650,260 @@ export const translations = {
       'Vietnamese',
     english:
       'English',
+    applicationNavigation:
+      'Application navigation',
+    userPortal:
+      'User banking',
+    adminPortal:
+      'Administration',
+    adminHeroTitle:
+      'SafeBank administration dashboard',
+    adminHeroDescription:
+      'Monitor SafeBank configuration, liquidity and operational status directly on Ethereum Sepolia.',
+    adminOverviewDescription:
+      'Public data is read directly from the SavingCore and VaultManager contracts.',
+    adminLoading:
+      'Loading Sepolia administration data',
+    adminLoadError:
+      'Unable to load administration data.',
+    adminRetry:
+      'Try again',
+    adminPlanCount:
+      'Total plans',
+    adminDepositCount:
+      'Total deposits',
+    adminVaultBalance:
+      'VaultManager balance',
+    adminConfigurationEyebrow:
+      'On-chain configuration',
+    adminConfigurationHeading:
+      'Configuration and authorization',
+    adminConfigurationDescription:
+      'Inspect contract owners, pause states and stored Sepolia relationships.',
+    adminConfigurationWarning:
+      'At least one contract relationship does not match the synchronized deployment.',
+    adminOwner:
+      'Current owner',
+    adminPendingOwner:
+      'Pending owner',
+    adminConnectedWalletRole:
+      'Connected wallet access',
+    adminOwnerAccess:
+      'Owner access',
+    adminReadOnlyAccess:
+      'Read-only',
+    adminFeeReceiver:
+      'Fee receiver',
+    adminNone:
+      'None',
+    adminActive:
+      'Active',
+    adminPaused:
+      'Paused',
+    adminRelationshipsHeading:
+      'Contract relationships',
+    adminRelationshipMatched:
+      'Matched',
+    adminRelationshipMismatch:
+      'Mismatch',
+    adminVaultEyebrow:
+      'C2 liquidity',
+    adminVaultHeading:
+      'VaultManager status',
+    adminVaultDescription:
+      'Monitor the interest vault, reserved obligations and liquidity withdrawable without using depositor principal.',
+    adminVaultHealthy:
+      'Healthy',
+    adminVaultUnderfunded:
+      'Underfunded',
+    adminVaultUnderfundedWarning:
+      'VaultManager does not fully cover reserved interest obligations.',
+    adminReservedInterest:
+      'Reserved interest',
+    adminAvailableLiquidity:
+      'Available liquidity',
+    adminFundingShortfall:
+      'Funding shortfall',
+    adminConnectedWalletLiquidity:
+      'Connected wallet funding source',
+    adminWalletBalance:
+      'Wallet mUSDC balance',
+    adminVaultAllowance:
+      'VaultManager allowance',
+    adminWalletDisconnected:
+      'Connect a wallet to view balance and allowance.',
+    adminPlansEyebrow:
+      'Product catalogue',
+    adminPlansHeading:
+      'Saving plan management',
+    adminPlansDescription:
+      'Inspect every saving plan, including disabled plans. Changes require a transaction signed by the SavingCore owner.',
+    adminEnablePlan:
+      'Enable plan',
+    adminDisablePlan:
+      'Disable plan',
+    adminPlanUpdating:
+      'Updating plan...',
+    adminPlanStatusUpdate:
+      'Saving plan status update',
+    adminConnectWalletAction:
+      'Connect a wallet to perform this admin action.',
+    adminSwitchSepoliaAction:
+      'Switch the wallet to Ethereum Sepolia to continue.',
+    adminSavingCoreOwnerRequired:
+      'Only the SavingCore owner can perform this action.',
+    adminNewApr:
+      'New APR',
+    adminUpdateApr:
+      'Update APR',
+    adminAprUpdate:
+      'Saving plan APR update',
+    adminAprFormatError:
+      'Enter a valid APR with at most two decimal places.',
+    adminAprRangeError:
+      'APR must be between 0.01% and 100%.',
+    adminAprUnchanged:
+      'Enter an APR different from the current value.',
+    adminCreatePlanHeading:
+      'Create a new saving plan',
+    adminCreatePlanDescription:
+      'Values are written directly to SavingCore after the owner confirms the transaction.',
+    adminPlanTenorDays:
+      'Tenor (days)',
+    adminPlanAprPercent:
+      'APR (%)',
+    adminMinimumDeposit:
+      'Minimum deposit (mUSDC)',
+    adminMaximumDeposit:
+      'Maximum deposit (mUSDC)',
+    adminEarlyPenaltyPercent:
+      'Early withdrawal penalty (%)',
+    adminEnablePlanInitially:
+      'Enable the plan immediately',
+    adminCreatePlan:
+      'Create plan',
+    adminCreatingPlan:
+      'Creating plan...',
+    adminCreatePlanTransaction:
+      'Saving plan creation',
+    adminCreatePlanTenorError:
+      'Tenor must be an integer from 1 to 3650 days.',
+    adminCreatePlanAmountError:
+      'Enter a valid mUSDC amount with at most 6 decimal places.',
+    adminCreatePlanDepositRangeError:
+      'Maximum deposit must be greater than or equal to the positive minimum deposit.',
+    adminCreatePlanPenaltyError:
+      'Penalty must be between 0% and 100% with at most two decimal places.',
+    adminVaultManagerOwnerRequired:
+      'Only the VaultManager owner can perform this action.',
+    adminVaultFundingHeading:
+      'Fund the interest vault',
+    adminVaultFundingDescription:
+      'Approve the exact amount for VaultManager, then submit a separate fundVault transaction.',
+    adminVaultFundingAmount:
+      'Funding amount (mUSDC)',
+    adminApproveVaultFunding:
+      'Approve exact amount',
+    adminApprovingVaultFunding:
+      'Approving...',
+    adminFundVault:
+      'Fund VaultManager',
+    adminFundingVault:
+      'Funding vault...',
+    adminVaultFundingApproval:
+      'VaultManager mUSDC approval',
+    adminVaultFundingTransaction:
+      'VaultManager funding',
+    adminVaultAmountPositive:
+      'Funding amount must be greater than zero.',
+    adminVaultAmountInvalid:
+      'Enter a valid mUSDC amount with at most 6 decimal places.',
+    adminVaultInsufficientBalance:
+      'The connected wallet does not have enough mUSDC.',
+    adminVaultWithdrawHeading:
+      'Withdraw available liquidity',
+    adminVaultWithdrawDescription:
+      'Withdraw only funds exceeding reserved interest obligations. Funds are sent to the current VaultManager owner.',
+    adminVaultWithdrawAmount:
+      'Withdrawal amount (mUSDC)',
+    adminWithdrawVault:
+      'Withdraw available liquidity',
+    adminWithdrawingVault:
+      'Withdrawing liquidity...',
+    adminVaultWithdrawTransaction:
+      'VaultManager withdrawal',
+    adminVaultWithdrawPositive:
+      'Withdrawal amount must be greater than zero.',
+    adminVaultWithdrawExceedsAvailable:
+      'Withdrawal cannot exceed available liquidity.',
+    adminVaultWithdrawPaused:
+      'Unpause VaultManager before withdrawing liquidity.',
+    adminFeeReceiverUpdateHeading:
+      'Update fee receiver',
+    adminFeeReceiverUpdateDescription:
+      'The new address will receive fees distributed by VaultManager.',
+    adminNewFeeReceiver:
+      'New fee receiver',
+    adminUpdateFeeReceiver:
+      'Update fee receiver',
+    adminUpdatingFeeReceiver:
+      'Updating...',
+    adminFeeReceiverTransaction:
+      'Fee receiver update',
+    adminFeeReceiverInvalid:
+      'Enter a valid Ethereum address.',
+    adminFeeReceiverZeroError:
+      'Fee receiver must not be the zero address.',
+    adminFeeReceiverUnchanged:
+      'Enter an address different from the current fee receiver.',
+    adminContractCurrentlyPaused:
+      'The contract is currently paused.',
+    adminContractCurrentlyActive:
+      'The contract is currently active.',
+    adminPauseContract:
+      'Pause contract',
+    adminUnpauseContract:
+      'Unpause contract',
+    adminUpdatingPauseState:
+      'Updating pause state...',
+    adminPauseStateTransaction:
+      'pause-state update',
+    adminDepositInspectionKicker:
+      'On-chain inspection',
+    adminDepositInspectionHeading:
+      'Inspect a deposit',
+    adminDepositInspectionDescription:
+      'Enter a deposit ID to read its snapshot directly from SavingCore. This feature is strictly read-only.',
+    adminDepositId:
+      'Deposit ID',
+    adminDepositSearch:
+      'Search deposit',
+    adminDepositSearching:
+      'Searching...',
+    adminDepositLoading:
+      'Reading deposit data from Sepolia...',
+    adminDepositIdError:
+      'Deposit ID must be a positive whole number.',
+    adminDepositReadError:
+      'Deposit could not be read. Check the ID and try again.',
+    adminDepositResult:
+      'Deposit',
+    adminDepositPlanId:
+      'Plan ID',
+    adminDepositStartedAt:
+      'Started at',
+    adminDepositMaturityAt:
+      'Maturity at',
+    adminDepositStatusActive:
+      'Active',
+    adminDepositStatusWithdrawn:
+      'Withdrawn',
+    adminDepositStatusManualRenewed:
+      'Manually renewed',
+    adminDepositStatusAutoRenewed:
+      'Automatically renewed',
+    adminDepositStatusUnknown:
+      'Unknown',
     walletEyebrow:
       'Browser wallet',
     walletHeading:

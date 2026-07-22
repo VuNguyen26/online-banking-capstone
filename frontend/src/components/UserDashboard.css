@@ -836,3 +836,81 @@
     justify-content: flex-start;
   }
 }
+.application-navigation {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 20px;
+  padding: 4px;
+  background: #e5f3ed;
+  border: 1px solid #c9ddd2;
+  border-radius: 999px;
+}
+
+.application-navigation button {
+  min-height: 38px;
+  padding: 7px 16px;
+  color: #275344;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.application-navigation button[aria-current="page"] {
+  color: #ffffff;
+  background: #17664d;
+  box-shadow: 0 3px 12px rgba(11, 55, 41, 0.18);
+}
+
+.application-navigation button:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.22);
+  outline-offset: 2px;
+}
+
+.admin-overview {
+  display: grid;
+  gap: 20px;
+}
+
+.admin-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-summary-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  background: #f5faf7;
+  border: 1px solid #dce8e1;
+  border-radius: 14px;
+}
+
+.admin-summary-card span {
+  color: #4d7667;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.admin-summary-card output {
+  color: #173e31;
+  font-size: 1.25rem;
+  font-weight: 850;
+}
+
+@media (max-width: 700px) {
+  .application-navigation {
+    display: flex;
+    width: 100%;
+  }
+
+  .application-navigation button {
+    flex: 1;
+  }
+
+  .admin-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

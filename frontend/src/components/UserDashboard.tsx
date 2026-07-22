@@ -8,6 +8,9 @@ import {
   SAFE_BANK_DEPLOYMENT,
 } from '../contracts/generated/contracts'
 import {
+  formatBasisPoints,
+} from '../lib/basisPoints'
+import {
   formatMusdcAmount,
 } from '../lib/units'
 import {
@@ -23,8 +26,9 @@ import {
   TestTokenFaucet,
 } from './TestTokenFaucet'
 import {
-  LanguageSwitcher,
-} from './LanguageSwitcher'
+  ApplicationShell,
+  type ApplicationView,
+} from './ApplicationShell'
 import {
   localizeProviderError,
 } from '../i18n/providerErrors'
@@ -32,30 +36,16 @@ import {
   useLanguage,
 } from '../i18n/useLanguage'
 
-import './UserDashboard.css'
 
 type UserDashboardProps = {
   wallet: WalletContextValue
   safeBank: SafeBankDataContextValue
+  activeView?: ApplicationView
+  onViewChange?: (
+    view: ApplicationView,
+  ) => void
 }
 
-function formatBasisPoints(
-  basisPoints: bigint,
-): string {
-  const whole = basisPoints / 100n
-  const fraction = basisPoints % 100n
-
-  if (fraction === 0n) {
-    return `${whole}%`
-  }
-
-  const fractionText = fraction
-    .toString()
-    .padStart(2, '0')
-    .replace(/0+$/, '')
-
-  return `${whole}.${fractionText}%`
-}
 
 function WalletSection({
   wallet,
@@ -638,55 +628,28 @@ function DashboardData({
 export function UserDashboard({
   wallet,
   safeBank,
+  activeView,
+  onViewChange,
 }: UserDashboardProps) {
-  const { t } = useLanguage()
-
   return (
-    <main className="app-shell">
-      <header className="hero">
-        <div>
-          <p className="brand-mark">
-            SafeBank
-          </p>
-          <h1>{t('heroTitle')}</h1>
-          <p className="hero-copy">
-            {t('heroDescription')}
-          </p>
-        </div>
-
-        <div className="hero-actions">
-          <LanguageSwitcher />
-
-          <div className="network-chip">
-            <span className="network-dot" />
-            Ethereum Sepolia
-          </div>
-        </div>
-      </header>
-
-      <aside
-        className="testnet-notice"
-        aria-label="Testnet notice"
-      >
-        <strong>
-          {t('testnetTitle')}
-        </strong>
-        <span>
-          {t('testnetDescription')}
-        </span>
-      </aside>
-
+    <ApplicationShell
+      activeView={activeView}
+      onViewChange={onViewChange}
+    >
       <div className="dashboard-grid">
         <div className="dashboard-main">
           <WalletSection wallet={wallet} />
+
           <OpenDepositPanel
             wallet={wallet}
             safeBank={safeBank}
           />
+
           <DepositPortfolioPanel
             wallet={wallet}
             safeBank={safeBank}
           />
+
           <DashboardData
             wallet={wallet}
             safeBank={safeBank}
@@ -697,6 +660,6 @@ export function UserDashboard({
           <ContractLinks />
         </div>
       </div>
-    </main>
+    </ApplicationShell>
   )
 }

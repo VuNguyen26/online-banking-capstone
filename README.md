@@ -10,7 +10,7 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 15 — User Banking App implemented and validated; final repository audits and Git checkpoint remain pending**
+**Phase 16 — Admin Portal implemented and validated; final repository audits and Git checkpoint remain pending**
 
 Phase 14 public deployment:
 
@@ -154,14 +154,36 @@ Phase 15 User Banking App validation completed:
 - successful TypeScript validation and Vite production build;
 - successful production preview smoke test with HTTP 200 for the HTML entry point and all five generated assets.
 
+Phase 16 Admin Portal validation completed:
+
+- shared User Banking App and Admin Portal shell with internal view switching;
+- AdminDataProvider mounted only while the Admin Portal is active;
+- public Sepolia reads without requiring wallet connection;
+- separate SavingCore-owner and VaultManager-owner authorization;
+- owner, pending-owner, pause-state, fee-receiver, contract-relationship,
+  deposit-count, saving-plan, and vault-solvency visibility;
+- saving-plan creation, APR updates, and independent enable or disable actions;
+- exact-amount MockUSDC approval followed by separate VaultManager funding;
+- withdrawals restricted in the UI to available VaultManager liquidity;
+- fee-receiver updates with address validation;
+- independent SavingCore and VaultManager pause or unpause actions;
+- strictly read-only deposit inspection by deposit ID;
+- reusable transaction lifecycle feedback with Sepolia Etherscan links;
+- Vietnamese and English interfaces with Vietnamese as the default;
+- no frontend private key, unlimited approval, active-deposit editing, or
+  exposure of the deployment-only SavingCore authorization operation;
+- no smart-contract, deployment, Hardhat-configuration, or dependency changes;
+- complete frontend tests, TypeScript validation, Oxlint, production build,
+  Hardhat compilation, contract tests, and whitespace checks succeeded.
+
 Current limitations and pending work:
 
-- final Phase 15 documentation review, regression, audits, staging, commit,
+- final Phase 16 documentation review, repository audits, staging, commit,
   push, remote verification, checkpoint, and handoff remain pending;
 - rich NFT metadata remains unimplemented;
-- Admin Portal, AI assistants, demo video, and final submission remain pending;
-- the User Banking App currently targets Ethereum Sepolia and is not a
-  production banking service;
+- AI assistants, demo video, and final submission remain pending;
+- the User Banking App and Admin Portal currently target Ethereum Sepolia
+  and are not production banking services;
 - local deterministic addresses remain development-only; the frontend uses
   the tracked and verified public Sepolia deployment addresses.
 
@@ -236,8 +258,9 @@ Not implemented yet:
 - Final submission audit
 
 Mandatory contract flows, Bonus C1, Bonus C2, deterministic local deployment,
-the verified public Sepolia deployment, and the Phase 15 User Banking App are
-implemented and validated. Admin and AI product layers remain pending.
+the verified public Sepolia deployment, the Phase 15 User Banking App, and the
+Phase 16 Admin Portal are implemented and validated. AI assistants remain
+pending.
 
 ## Core Contracts
 
@@ -488,17 +511,24 @@ The Phase 15 User Banking App is implemented with:
 
 ### Admin Portal
 
-Planned capabilities:
+The Phase 16 Admin Portal is implemented in the shared frontend with:
 
-- create and manage plans;
-- fund VaultManager;
-- withdraw available liquidity;
-- update fee receiver;
-- pause and unpause;
-- inspect audit events;
-- review implemented solvency and liability metrics.
+- a dedicated admin view without adding a routing dependency;
+- public Sepolia reads and browser-wallet-authorized writes;
+- separate SavingCore-owner and VaultManager-owner access checks;
+- owner, pending-owner, pause-state, fee-receiver, contract-relationship,
+  plan, deposit-count, and solvency visibility;
+- saving-plan creation, APR updates, and plan enable or disable actions;
+- exact-amount MockUSDC approval and VaultManager funding;
+- withdrawals limited to available VaultManager liquidity;
+- fee-receiver updates;
+- independent SavingCore and VaultManager pause or unpause actions;
+- strictly read-only deposit inspection by deposit ID;
+- transaction lifecycle and Sepolia Etherscan feedback;
+- Vietnamese and English interfaces with Vietnamese as the default.
 
-The Admin Portal is not implemented in Phase 15.
+The portal does not expose private keys, unlimited token approval, active
+deposit editing, or the deployment-only SavingCore authorization operation.
 
 ## Planned AI Assistants
 
@@ -680,7 +710,7 @@ The local deployment-record directories are generated at runtime and ignored:
 - `deployments/hardhat/`;
 - `deployments/localhost/`.
 
-Phase 15 adds the tracked `frontend/` User Banking App, including:
+Phases 15 and 16 provide the tracked `frontend/` application, including:
 
 - React, TypeScript, and Vite configuration;
 - synchronized Sepolia deployment metadata and production ABIs;
@@ -691,6 +721,10 @@ Phase 15 adds the tracked `frontend/` User Banking App, including:
 - Vietnamese and English localization;
 - component, provider, hook, contract-client, and utility tests;
 - frontend development and validation documentation.
+- shared User Banking App and Admin Portal application shell;
+- admin configuration, plan, vault, and deposit-inspection panels;
+- per-contract owner authorization and wallet-network guards;
+- admin transaction lifecycle feedback and focused test coverage;
 
 Generated `frontend/node_modules/` and `frontend/dist/` directories remain
 ignored and are not part of the tracked source structure.
@@ -745,23 +779,23 @@ Current development branch:
 
 The current action is to finalize:
 
-**Phase 15 — User Banking App**
+**Phase 16 — Admin Portal**
 
-Before Phase 15 may be declared complete:
+Before Phase 16 may be declared complete:
 
-1. review the complete frontend source, synchronized contract metadata,
-   localization, tests, and documentation diff;
+1. review the complete Admin Portal source, localization, tests, and
+   documentation diff;
 2. run final secret, generated-file, dependency, scope, and whitespace audits;
-3. run the complete frontend test suite, lint, TypeScript validation,
-   production build, and production-preview smoke test;
-4. stage only approved Phase 15 files;
+3. perform production-preview and browser smoke checks for both User Banking
+   App and Admin Portal views;
+4. stage only approved Phase 16 files;
 5. run cached diff and cached whitespace checks;
-6. commit and push Phase 15;
+6. commit and push Phase 16;
 7. fetch and verify matching local and remote commit hashes;
 8. confirm ahead/behind is `0 0` and the working tree is clean;
-9. produce the Phase 15 checkpoint and MASTER HANDOFF PROMPT;
-10. stop before beginning the next product area.
+9. produce the Phase 16 checkpoint and MASTER HANDOFF PROMPT;
+10. stop before beginning Phase 17 or any AI-assistant work.
 
-After Phase 15 is committed, pushed, and verified, the next planned product
-work is the Admin Portal. No official Phase 16 label has yet been assigned in
-the project documentation, so it must not begin automatically.
+After Phase 16 is committed, pushed, and verified, continue only with the next
+explicitly approved phase. Phase 17 polish and Phase 18 AI work must not begin
+automatically.
