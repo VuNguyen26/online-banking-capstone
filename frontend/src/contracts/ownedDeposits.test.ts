@@ -364,4 +364,74 @@ describe('owned SafeBank deposit discovery', () => {
       provider.getLogs,
     ).not.toHaveBeenCalled()
   })
+
+  it('falls back to depositCount when the RPC rejects log ranges', async () => {
+    const provider = {
+      getBlockNumber: vi.fn(
+        async () =>
+          SAFE_BANK_DEPLOYMENT.contracts
+            .SavingCore.deploymentBlockNumber,
+      ),
+      getLogs: vi.fn(
+        async () => {
+          throw new Error(
+            'RPC block range is too large',
+          )
+        },
+      ),
+    }
+
+    const depositCount = vi.fn(
+      async () => 2n,
+    )
+
+    const ownerOf = vi.fn(
+      async (depositId: bigint) =>
+        depositId === 1n
+          ? ACCOUNT
+          : OTHER_ACCOUNT,
+    )
+
+    const getDeposit = vi.fn(
+      async () => [
+        1n,
+        500_000_000n,
+        1_000n,
+        2_000n,
+        180n,
+        200n,
+        750n,
+        0n,
+      ],
+    )
+
+    await expect(
+      readOwnedDeposits(
+        provider,
+        {
+          depositCount,
+          ownerOf,
+          getDeposit,
+        },
+        ACCOUNT,
+      ),
+    ).resolves.toEqual([
+      {
+        depositId: 1n,
+        planId: 1n,
+        principal: 500_000_000n,
+        startedAt: 1_000n,
+        maturityAt: 2_000n,
+        tenorDays: 180n,
+        aprBpsAtOpen: 200n,
+        penaltyBpsAtOpen: 750n,
+        status: 0n,
+      },
+    ])
+
+    expect(provider.getLogs).toHaveBeenCalledTimes(1)
+    expect(depositCount).toHaveBeenCalledTimes(1)
+    expect(ownerOf).toHaveBeenCalledTimes(2)
+    expect(getDeposit).toHaveBeenCalledWith(1n)
+  })
 })

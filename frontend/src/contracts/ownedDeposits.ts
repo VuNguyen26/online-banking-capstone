@@ -54,6 +54,8 @@ type DepositLogProvider = {
 }
 
 type SavingCoreDepositContract = {
+  depositCount: () => Promise<unknown>
+
   ownerOf: (
     depositId: bigint,
   ) => Promise<string>
@@ -61,6 +63,34 @@ type SavingCoreDepositContract = {
   getDeposit: (
     depositId: bigint,
   ) => Promise<unknown>
+}
+
+async function readSequentialDepositIds(
+  contract: SavingCoreDepositContract,
+): Promise<bigint[]> {
+  const rawDepositCount =
+    await contract.depositCount()
+
+  if (
+    typeof rawDepositCount !== 'bigint' ||
+    rawDepositCount < 0n
+  ) {
+    throw new Error(
+      'depositCount must be a non-negative bigint.',
+    )
+  }
+
+  const depositIds: bigint[] = []
+
+  for (
+    let depositId = 1n;
+    depositId <= rawDepositCount;
+    depositId += 1n
+  ) {
+    depositIds.push(depositId)
+  }
+
+  return depositIds
 }
 
 function requireValidBlockRange(
@@ -195,15 +225,24 @@ export async function readOwnedDeposits(
   const normalizedAccount =
     getAddress(account)
 
-  const candidateIds =
-    await scanIncomingDepositIds(
-      provider,
-      normalizedAccount,
-      blockRange,
-    )
-
   const contract =
     savingCore as SavingCoreDepositContract
+
+  let candidateIds: bigint[]
+
+  try {
+    candidateIds =
+      await scanIncomingDepositIds(
+        provider,
+        normalizedAccount,
+        blockRange,
+      )
+  } catch {
+    candidateIds =
+      await readSequentialDepositIds(
+        contract,
+      )
+  }
 
   const ownedDeposits:
     DepositRecord[] = []

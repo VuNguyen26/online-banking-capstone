@@ -334,4 +334,67 @@ describe('C1 pending-interest discovery', () => {
       provider.getLogs,
     ).not.toHaveBeenCalled()
   })
+
+  it('falls back to depositCount when deferred-interest log scanning fails', async () => {
+    const provider = {
+      getBlockNumber: vi.fn(
+        async () =>
+          SAFE_BANK_DEPLOYMENT.contracts
+            .SavingCore.deploymentBlockNumber,
+      ),
+      getLogs: vi.fn(
+        async () => {
+          throw new Error(
+            'RPC block range is too large',
+          )
+        },
+      ),
+    }
+
+    const depositCount = vi.fn(
+      async () => 3n,
+    )
+
+    const pendingInterest = vi.fn(
+      async (depositId: bigint) => {
+        if (depositId === 2n) {
+          return 0n
+        }
+
+        return depositId === 1n
+          ? 5_000_000n
+          : 7_000_000n
+      },
+    )
+
+    const interestClaimant = vi.fn(
+      async (depositId: bigint) =>
+        depositId === 3n
+          ? OTHER_ACCOUNT
+          : ACCOUNT,
+    )
+
+    await expect(
+      readPendingInterestClaims(
+        provider,
+        {
+          depositCount,
+          pendingInterest,
+          interestClaimant,
+        },
+        ACCOUNT,
+      ),
+    ).resolves.toEqual([
+      {
+        depositId: 1n,
+        amount: 5_000_000n,
+        claimant: ACCOUNT,
+      },
+    ])
+
+    expect(provider.getLogs).toHaveBeenCalledTimes(1)
+    expect(depositCount).toHaveBeenCalledTimes(1)
+    expect(pendingInterest).toHaveBeenCalledTimes(3)
+    expect(interestClaimant).toHaveBeenCalledTimes(3)
+  })
 })

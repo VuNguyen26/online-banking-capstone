@@ -4,6 +4,7 @@ import {
 } from 'ethers'
 
 import {
+  FALLBACK_SEPOLIA_PUBLIC_RPC_URL,
   SEPOLIA_CHAIN_ID,
   SEPOLIA_CHAIN_ID_HEX,
   SEPOLIA_CHAIN_ID_NUMBER,
@@ -25,13 +26,25 @@ describe('Sepolia network configuration', () => {
     )
   })
 
-  it('uses only public frontend-safe URLs', () => {
-    expect(SEPOLIA_PUBLIC_RPC_URL).toBe(
+  it('uses an HTTPS frontend RPC URL with a safe fallback', () => {
+    expect(() =>
+      new URL(SEPOLIA_PUBLIC_RPC_URL),
+    ).not.toThrow()
+
+    expect(
+      new URL(SEPOLIA_PUBLIC_RPC_URL).protocol,
+    ).toBe('https:')
+
+    expect(FALLBACK_SEPOLIA_PUBLIC_RPC_URL).toBe(
       'https://ethereum-sepolia-rpc.publicnode.com',
     )
 
-    expect(SEPOLIA_EXPLORER_URL).toBe(
-      'https://sepolia.etherscan.io',
+    const configuredRpcUrl =
+      import.meta.env.VITE_SEPOLIA_RPC_URL?.trim()
+
+    expect(SEPOLIA_PUBLIC_RPC_URL).toBe(
+      configuredRpcUrl ||
+        FALLBACK_SEPOLIA_PUBLIC_RPC_URL,
     )
 
     expect(SEPOLIA_PUBLIC_RPC_URL).not.toContain(
@@ -40,6 +53,10 @@ describe('Sepolia network configuration', () => {
 
     expect(SEPOLIA_PUBLIC_RPC_URL).not.toContain(
       'ETHERSCAN_API_KEY',
+    )
+
+    expect(SEPOLIA_EXPLORER_URL).toBe(
+      'https://sepolia.etherscan.io',
     )
   })
 

@@ -7,8 +7,15 @@ export const SEPOLIA_CHAIN_ID_HEX = '0xaa36a7'
 export const SEPOLIA_NETWORK_NAME = 'Ethereum Sepolia'
 export const SEPOLIA_CURRENCY_SYMBOL = 'ETH'
 
-export const SEPOLIA_PUBLIC_RPC_URL =
+export const FALLBACK_SEPOLIA_PUBLIC_RPC_URL =
   'https://ethereum-sepolia-rpc.publicnode.com'
+
+const configuredSepoliaRpcUrl =
+  import.meta.env.VITE_SEPOLIA_RPC_URL?.trim()
+
+export const SEPOLIA_PUBLIC_RPC_URL =
+  configuredSepoliaRpcUrl ||
+  FALLBACK_SEPOLIA_PUBLIC_RPC_URL
 
 export const SEPOLIA_EXPLORER_URL =
   'https://sepolia.etherscan.io'

@@ -56,6 +56,8 @@ type PendingInterestLogProvider = {
 }
 
 type PendingInterestReadContract = {
+  depositCount: () => Promise<unknown>
+
   pendingInterest: (
     depositId: bigint,
   ) => Promise<unknown>
@@ -63,6 +65,28 @@ type PendingInterestReadContract = {
   interestClaimant: (
     depositId: bigint,
   ) => Promise<string>
+}
+
+async function readSequentialDepositIds(
+  contract: PendingInterestReadContract,
+): Promise<bigint[]> {
+  const depositCount =
+    requireUnsignedBigInt(
+      await contract.depositCount(),
+      'depositCount',
+    )
+
+  const depositIds: bigint[] = []
+
+  for (
+    let depositId = 1n;
+    depositId <= depositCount;
+    depositId += 1n
+  ) {
+    depositIds.push(depositId)
+  }
+
+  return depositIds
 }
 
 function requireValidBlockRange(
@@ -233,15 +257,24 @@ export async function readPendingInterestClaims(
   const normalizedClaimant =
     getAddress(claimant)
 
-  const candidateIds =
-    await scanDeferredInterestDepositIds(
-      provider,
-      normalizedClaimant,
-      blockRange,
-    )
-
   const contract =
     savingCore as PendingInterestReadContract
+
+  let candidateIds: bigint[]
+
+  try {
+    candidateIds =
+      await scanDeferredInterestDepositIds(
+        provider,
+        normalizedClaimant,
+        blockRange,
+      )
+  } catch {
+    candidateIds =
+      await readSequentialDepositIds(
+        contract,
+      )
+  }
 
   const claims:
     PendingInterestState[] = []
