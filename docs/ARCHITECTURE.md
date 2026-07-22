@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | System Architecture |
-| Current phase | Phase 14 — Sepolia deployment and Etherscan verification |
-| Implementation status | Mandatory contracts, Bonus C1, Bonus C2, deterministic local deployment, and the Sepolia public-deployment baseline are implemented and validated; frontend, AI, demo video, rich metadata, and final submission remain pending |
+| Current phase | Phase 15 — User Banking App |
+| Implementation status | Mandatory contracts, Bonus C1, Bonus C2, deterministic local deployment, the verified Sepolia deployment, and the User Banking App are implemented and validated; the Admin Portal, AI assistants, demo video, rich metadata, and final submission remain pending |
 | Smart contract model | Non-upgradeable |
 | Validated local environments | Ephemeral Hardhat network and persistent localhost, chain ID 31337 |
 | Validated public environment | Ethereum Sepolia, chain ID 11155111 |
@@ -22,9 +22,11 @@ one-time authorization, created canonical plan ID `1`, verified receipts and
 public state, demonstrated idempotent reuse, retained public deployment
 records, created compact metadata, and verified all three sources on Etherscan.
 
-The public deployment contains no demo mint, no vault funding, and no deposit.
-Frontend, AI, rich NFT metadata, demo video, final submission, and
-production-readiness claims remain outside the current implementation.
+The public deployment contains no initial demo mint, vault funding, or deposit.
+The Phase 15 User Banking App consumes the tracked Sepolia deployment without
+changing the contract security model. The Admin Portal, AI assistants, rich
+NFT metadata, demo video, final submission, and production-readiness claims
+remain outside the current implementation.
 
 ## 2. Project Overview
 
@@ -2020,7 +2022,7 @@ The intended architecture has known limitations:
 
 ## 32. Frontend Architectural Relationship
 
-The future frontend will have two visibly separate applications or route groups.
+The frontend product architecture separates the implemented User Banking App from the planned Admin Portal through visibly separate applications or route groups.
 
 ### 32.1 User Banking App
 
@@ -2244,7 +2246,7 @@ Future phases must follow these rules:
 
 ## 37. Current Architecture Status
 
-Implemented and validated through Phase 14:
+Implemented and validated through Phase 15:
 
 - non-upgradeable MockUSDC, SavingCore, and VaultManager architecture;
 - principal and interest custody separation;
@@ -2271,6 +2273,14 @@ Implemented and validated through Phase 14:
 - public receipt and state verification;
 - canonical public plan ID `1`;
 - tracked public deployment records and compact metadata;
+- React, TypeScript, Vite, and ethers v6 User Banking App architecture;
+- read-only public Sepolia access separated from wallet-authorized writes;
+- wallet connection, Sepolia guards, exact-amount approval, deposit opening,
+  certificate portfolio, lifecycle actions, and C1 claims;
+- C2 interest-vault transparency in the user interface;
+- Vietnamese and English localization with Vietnamese as the default;
+- frontend regression, lint, typecheck, production-build, and preview-smoke
+  validation;
 - idempotent public deployment reuse;
 - Etherscan verification for all three production contracts;
 - 5 deployment workflow tests;
@@ -2286,15 +2296,18 @@ Implemented and validated through Phase 14:
 Not implemented:
 
 - rich NFT metadata or custom `tokenURI`;
-- User Banking App and Admin Portal;
+- Admin Portal;
 - AI assistants;
 - demonstration video;
 - final submission audit.
 
+The Phase 15 User Banking App is implemented and validated against the tracked
+public Sepolia deployment.
+
 Local deterministic addresses are development artifacts, not public deployment
 addresses.
 
-Sections covering frontend and AI remain specifications until their
+Sections covering the Admin Portal and AI remain specifications until their
 implementations are validated.
 
-This document is a living architecture record updated through Phase 14.
+This document is a living architecture record updated through Phase 15.

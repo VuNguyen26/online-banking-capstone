@@ -6,17 +6,18 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | UI/UX Product Plan |
-| Current project phase | Phase 14 — Sepolia deployment and Etherscan verification |
-| Implementation status | Frontend remains planned only; mandatory contracts, Bonus C1, Bonus C2, local deployment, Sepolia deployment, public metadata, and explorer verification are implemented and validated |
+| Current project phase | Phase 15 — User Banking App |
+| Implementation status | The User Banking App, mandatory contracts, Bonus C1, Bonus C2, local deployment, verified Sepolia deployment, public metadata, and explorer verification are implemented and validated; the Admin Portal and AI assistants remain planned |
 | Target product areas | User Banking App and Admin Portal |
 | Product style | Modern, trustworthy, clear, accessible, and responsive |
 | Branding model | Original SafeBank identity |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document defines the planned SafeBank user experience and is aligned with
-the implemented contract, local deployment, and public Sepolia interfaces
-through Phase 14. No frontend application has been created yet.
+This document defines the SafeBank product experience and is aligned with the
+implemented contracts, local deployment, public Sepolia interfaces, and
+Phase 15 User Banking App. The Admin Portal and AI assistants remain planned
+and have not yet been implemented.
 
 The public deployment is educational and uses freely mintable MockUSDC with no
 real-world monetary value.
@@ -39,7 +40,7 @@ The interface must not use `parseEther` for MockUSDC.
 
 ## 1.2 Phase 13 Local Integration Baseline
 
-The future frontend may rely on these implemented and locally validated
+Frontend development may rely on these implemented and locally validated
 interfaces:
 
 - saving-plan creation, APR update, enable, disable, and reads;
@@ -66,16 +67,18 @@ Phase 13 also provides:
 - no pre-created deposits.
 
 The standard local addresses are deterministic only under the default Hardhat
-mnemonic. A future frontend must read environment-specific addresses from a
-defined configuration source and must validate:
+mnemonic. Frontend product areas that connect to a local environment must read
+environment-specific addresses from a defined configuration source and
+validate:
 
 - chain ID;
 - address format;
 - deployed bytecode;
 - token, vault, and SavingCore relationships.
 
-No frontend route, component, transaction hook, wallet integration, or
-rendered metric exists yet.
+At the Phase 13 checkpoint, no frontend route, component, transaction hook,
+wallet integration, or rendered metric existed yet. Phase 15 later implemented
+the User Banking App against the tracked public Sepolia deployment.
 
 The frontend must not present these as available yet:
 
@@ -87,7 +90,7 @@ estimate.
 
 ## 1.3 Phase 14 Public Integration Baseline
 
-The future frontend may consume:
+The Phase 15 User Banking App consumes:
 
 - production ABIs for MockUSDC, VaultManager, and SavingCore;
 - `data/deployments/sepolia.json`;
@@ -107,9 +110,9 @@ Validated configuration:
 | Initial deposit count | `0` |
 | Initial vault balance | `0` |
 
-The future frontend must still validate chain ID, address format, bytecode,
-token decimals, contract relationships, owners, fee receiver, and pause state
-at runtime.
+The User Banking App and later frontend product areas must validate the chain,
+addresses, contract interfaces, dependencies, and protocol state required by
+their runtime scope.
 
 The UI must not treat a metadata flag or Etherscan verification as an
 authorization boundary or security audit.
@@ -3214,90 +3217,114 @@ The Admin Portal will not be considered complete until:
 
 ---
 
-## 80. Phase 14 UI/UX Planning Status
+## 80. Phase 15 User Banking App Status
 
-At the current Phase 14 baseline:
+At the current Phase 15 checkpoint, the User Banking App is implemented and
+validated against the tracked Ethereum Sepolia deployment.
 
-Completed as planning:
+Implemented user-facing capabilities:
 
-- product principles, branding constraints, personas, routes, responsive rules,
-  accessibility rules, transaction lifecycle, and error messaging;
-- deposit, withdrawal, manual-renew, auto-renew, and C1 pending-interest UX;
-- C2 solvency dashboard, funding-shortfall, reserve, and available-liquidity
-  requirements;
-- administrator withdrawal review constrained by the contract maximum;
-- C1 and C2 event presentation;
-- multi-contract pause behavior;
-- wallet, network, address, bytecode, and ABI validation;
-- AI placement and deterministic fallback requirements;
-- alignment with the implemented Phase 13 contracts and production ABIs;
-- local environment distinction between ephemeral Hardhat and persistent
-  localhost;
-- deterministic local role and seed documentation;
-- warning that local deterministic addresses are not public deployment
-  addresses;
-- environment-aware public address configuration;
-- actual Sepolia addresses and explorer links;
-- compact public deployment metadata;
-- accurate zero-vault and zero-deposit initial public state;
-- runtime public chain, bytecode, and dependency validation requirements;
-- warning that verified source is not a security audit.
+- explicit EIP-1193 browser-wallet connection;
+- connected-account and chain-state presentation;
+- Ethereum Sepolia detection and network switching;
+- public protocol reads without requiring a connected wallet;
+- protocol, saving-plan, account, and C2 interest-vault metrics;
+- permissionless minting of freely available test mUSDC;
+- deterministic deposit-amount validation and estimated-interest display;
+- exact-amount MockUSDC approval for SavingCore;
+- saving-deposit opening;
+- owned ERC721 deposit-certificate portfolio;
+- lifecycle availability derived from the latest Sepolia block timestamp;
+- early withdrawal;
+- maturity withdrawal;
+- manual renewal during the grace period;
+- permissionless auto-renewal after grace;
+- C1 deferred-interest visibility and claims;
+- Sepolia Etherscan links for contracts and transactions;
+- Vietnamese and English interfaces with Vietnamese as the default;
+- persisted language preference and synchronized HTML language metadata;
+- localized known validation, wallet, provider, and transaction errors;
+- preservation of external RPC messages and contract revert details.
 
-Implemented technical integration assets include:
+Implemented technical UI assets include:
 
-- all mandatory deposit lifecycle operations;
-- C1 principal-first settlement and claims;
-- C2 reserve and solvency reads;
-- local deployment and seed scripts;
-- read-only deployment verification;
-- production-only ABI export;
-- deterministic local accounts and balances;
-- five deployment workflow tests;
-- guarded Sepolia deployment and read-only verifier;
-- public deployment records and compact metadata;
-- Etherscan-verified production contract sources.
+- React 19, TypeScript, Vite, and ethers v6;
+- read-only JsonRpcProvider access separated from BrowserProvider signer writes;
+- synchronized production ABIs and tracked Sepolia deployment metadata;
+- reusable wallet, data-provider, transaction, formatting, and localization
+  layers;
+- focused component, provider, hook, contract-client, and utility tests;
+- 32 passing frontend test files and 146 passing frontend tests;
+- zero Oxlint warnings or errors;
+- successful TypeScript validation;
+- successful Vite production build;
+- successful local production-preview smoke test;
+- HTTP 200 responses for the HTML entry point and all generated production
+  CSS and JavaScript assets.
 
-Not implemented:
+The User Banking App does not:
 
-- frontend folder and package;
-- routes, components, styling, and state management;
-- wallet connection;
-- contract reads and writes in a browser;
-- transaction lifecycle code;
-- user and admin controls;
-- pending-interest components;
-- solvency and reserve components;
-- responsive and accessibility testing;
-- AI integration;
-- deployed frontend.
+- hold or request private keys or seed phrases;
+- include deployment secrets or privileged administrator credentials;
+- treat frontend checks as authorization;
+- replace on-chain contract validation;
+- claim that Etherscan verification is a security audit;
+- represent MockUSDC as having real-world monetary value.
 
-This remains a planning document. It does not claim that a user interface
-currently exists.
+Not implemented in Phase 15:
 
-## 81. Open UI/UX Decisions
+- Admin Portal;
+- AI Banking Assistant;
+- AI Risk Assistant;
+- production frontend hosting;
+- comprehensive manual cross-browser, device, and professional accessibility
+  audit;
+- demonstration video;
+- final submission audit.
 
-The following decisions remain open:
+This document now serves as both the UI/UX specification and the implementation
+record for the Phase 15 User Banking App. Sections describing the Admin Portal
+and AI assistants remain specifications until those product areas are
+implemented and validated.
 
-1. React Vite versus Next.js.
-2. Wallet connection library.
-3. Contract data-query library.
-4. State-management approach.
-5. Styling system.
-6. Component library or custom system.
-7. Final visual identity.
-8. Final design tokens.
-9. Event-indexing approach.
-10. Charting library.
-11. Frontend hosting platform.
-12. Contract-address configuration format.
-13. AI provider.
-14. AI server-side architecture.
-15. Whether User and Admin use one app shell or separate applications.
-16. Final supported wallets.
-17. Final confirmation count.
-18. Final risk-classification thresholds.
+---
 
-These decisions must be made before or during the relevant frontend phases.
+## 81. Phase 15 UI/UX Decisions
+
+The following decisions are implemented for the User Banking App:
+
+1. React 19, TypeScript, and Vite are used instead of Next.js.
+2. ethers v6 provides contract access and browser-wallet integration.
+3. An injected EIP-1193 wallet is connected only after explicit user action.
+4. JsonRpcProvider handles public reads, while BrowserProvider and a signer
+   handle user-authorized writes.
+5. React Context, providers, hooks, and local component state are used without
+   an external state-management library.
+6. Contract data is loaded directly without an external query-cache library.
+7. Custom React components and CSS are used without a component library or CSS
+   framework.
+8. Production ABIs and Sepolia addresses are synchronized from tracked project
+   artifacts.
+9. Vietnamese is the default language, English is optional, and the preference
+   is persisted locally.
+10. Vitest, Testing Library, Oxlint, TypeScript, and Vite provide frontend
+    validation.
+
+The following product decisions remain open for later phases:
+
+1. production frontend hosting;
+2. final visual-identity refinements and design-token expansion;
+3. event-indexing infrastructure;
+4. charting requirements and library selection;
+5. Admin Portal application-shell architecture;
+6. AI provider and server-side AI architecture;
+7. final production wallet-support policy;
+8. production confirmation and transaction-monitoring policy;
+9. final risk-classification thresholds;
+10. comprehensive cross-browser, device, and professional accessibility
+    validation.
+
+These open decisions do not block the validated Phase 15 User Banking App.
 
 ---
 

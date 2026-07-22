@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Security Model and Threat Analysis |
-| Current project phase | Phase 14 — Sepolia deployment and Etherscan verification |
-| Implementation status | Smart-contract controls, Bonus C1, Bonus C2, local deployment protections, and the Sepolia public-deployment baseline are implemented and validated; frontend, AI, and professional-audit controls remain pending |
+| Current project phase | Phase 15 — User Banking App |
+| Implementation status | Smart-contract controls, Bonus C1, Bonus C2, local and public deployment protections, and User Banking App security controls are implemented and validated; Admin Portal, AI, and professional-audit controls remain pending |
 | Security approach | Defense-in-depth and risk reduction |
 | Smart contract model | Non-upgradeable |
 | Validated networks | Local chain ID 31337 and Ethereum Sepolia chain ID 11155111 |
@@ -22,6 +22,14 @@ security model. The public workflow validates network identity, dedicated
 signer identity, fee budget, nonce state, dependencies, ownership,
 authorization, pause state, Personal Variant values, C1/C2 reads, canonical
 plan state, receipts, deployment records, and source verification.
+
+Phase 15 adds a non-privileged User Banking App that separates read-only RPC
+access from user-authorized wallet writes, checks the Ethereum Sepolia
+context, approves only the exact requested token amount, and contains no
+deployment private keys, mnemonics, Etherscan API keys, or administrator
+credentials. Known internal errors may be localized, while external RPC and
+contract revert details remain intact. The frontend is not an authorization
+or security boundary.
 
 It does not claim that the contracts have been independently audited, that the
 system is production-ready, or that source verification proves absence of
@@ -2127,9 +2135,9 @@ establishes source-to-bytecode transparency; it does not replace a professional
 audit.
 
 Residual public-deployment risks include administrator-key compromise,
-insufficient future vault funding, RPC or explorer outage, future frontend
-misconfiguration, non-upgradeable redeployment cost, and absence of multisig
-administration.
+insufficient future vault funding, RPC or explorer outage, frontend or future
+product-layer misconfiguration, non-upgradeable redeployment cost, and absence
+of multisig administration.
 
 ## 31. Event and Audit Security
 

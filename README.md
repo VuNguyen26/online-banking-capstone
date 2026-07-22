@@ -10,7 +10,7 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 14 — Sepolia deployment and Etherscan verification implemented and validated; final repository audits and Git checkpoint remain pending**
+**Phase 15 — User Banking App implemented and validated; final repository audits and Git checkpoint remain pending**
 
 Phase 14 public deployment:
 
@@ -134,14 +134,36 @@ Phase 13 validation completed:
 - exactly three retained production ABI files;
 - local node shutdown and temporary-log cleanup verified.
 
+Phase 15 User Banking App validation completed:
+
+- React 19, TypeScript, Vite, ethers v6, Vitest, Testing Library, and Oxlint;
+- public Sepolia reads through an ethers JsonRpcProvider;
+- wallet-authorized writes through an ethers BrowserProvider and signer;
+- browser-wallet connection, account state, chain detection, and Sepolia switching;
+- public protocol, saving-plan, account, and C2 interest-vault metrics;
+- permissionless Sepolia test-token faucet for MockUSDC;
+- exact-amount MockUSDC approval and saving-deposit opening;
+- owned ERC721 deposit-certificate portfolio;
+- early withdrawal, maturity withdrawal, manual renewal, and permissionless auto-renewal;
+- C1 deferred-interest visibility and claims;
+- Vietnamese and English UI with Vietnamese as the default;
+- persisted language preference and synchronized HTML language metadata;
+- localized deterministic validation and internal provider/transaction errors while preserving external RPC and revert messages;
+- 32 passing frontend test files and 146 passing frontend tests;
+- zero Oxlint warnings or errors;
+- successful TypeScript validation and Vite production build;
+- successful production preview smoke test with HTTP 200 for the HTML entry point and all five generated assets.
+
 Current limitations and pending work:
 
-- final Phase 14 documentation review, regression, audits, staging, commit,
+- final Phase 15 documentation review, regression, audits, staging, commit,
   push, remote verification, checkpoint, and handoff remain pending;
 - rich NFT metadata remains unimplemented;
-- frontend, AI assistants, demo video, and final submission remain pending;
-- local deterministic addresses are development-only and are not public
-  deployment addresses.
+- Admin Portal, AI assistants, demo video, and final submission remain pending;
+- the User Banking App currently targets Ethereum Sepolia and is not a
+  production banking service;
+- local deterministic addresses remain development-only; the frontend uses
+  the tracked and verified public Sepolia deployment addresses.
 
 Previous completed phases:
 
@@ -207,16 +229,15 @@ Completed:
 Not implemented yet:
 
 - Rich NFT metadata or custom `tokenURI`
-- User Banking App
 - Admin Portal
 - AI Banking Assistant
 - AI Risk Assistant
 - Demo video
 - Final submission audit
 
-Mandatory contract flows, Bonus C1, Bonus C2, and the deterministic local
-deployment workflow are implemented and validated. Public testnet and product
-layers remain pending.
+Mandatory contract flows, Bonus C1, Bonus C2, deterministic local deployment,
+the verified public Sepolia deployment, and the Phase 15 User Banking App are
+implemented and validated. Admin and AI product layers remain pending.
 
 ## Core Contracts
 
@@ -441,25 +462,29 @@ These documents describe the planned system.
 
 They are not evidence that the described contracts, security controls, tests, frontend, AI assistants, or deployments already exist.
 
-## Planned User Experience
+## Product Experience
 
-SafeBank will eventually provide two clearly separated product areas.
+SafeBank defines two clearly separated product areas.
 
 ### User Banking App
 
-Planned capabilities:
+The Phase 15 User Banking App is implemented with:
 
-- connect wallet;
-- browse plans;
-- estimate interest;
-- approve exact MockUSDC amount;
-- open a deposit;
-- view owned certificates;
-- withdraw early;
-- withdraw at maturity;
-- manually renew;
-- trigger auto-renew;
-- claim pending interest after C1.
+- explicit EIP-1193 browser-wallet connection;
+- Ethereum Sepolia chain detection and network switching;
+- public protocol reads without requiring wallet connection;
+- saving-plan browsing and estimated-interest display;
+- permissionless test mUSDC minting;
+- exact-amount MockUSDC approval;
+- saving-deposit opening;
+- owned ERC721 deposit-certificate display;
+- early and maturity withdrawal;
+- manual renewal during the grace period;
+- permissionless auto-renewal after grace;
+- C1 deferred-interest visibility and claims;
+- C2 interest-vault transparency metrics;
+- Sepolia Etherscan links;
+- Vietnamese and English interfaces with Vietnamese as the default.
 
 ### Admin Portal
 
@@ -473,7 +498,7 @@ Planned capabilities:
 - inspect audit events;
 - review implemented solvency and liability metrics.
 
-Neither frontend currently exists.
+The Admin Portal is not implemented in Phase 15.
 
 ## Planned AI Assistants
 
@@ -655,7 +680,20 @@ The local deployment-record directories are generated at runtime and ignored:
 - `deployments/hardhat/`;
 - `deployments/localhost/`.
 
-The `frontend/` directory has not been created.
+Phase 15 adds the tracked `frontend/` User Banking App, including:
+
+- React, TypeScript, and Vite configuration;
+- synchronized Sepolia deployment metadata and production ABIs;
+- public read and wallet-authorized write clients;
+- wallet connection and Sepolia network guards;
+- deposit opening, certificate portfolio, lifecycle actions, and C1 claims;
+- C2 interest-vault transparency;
+- Vietnamese and English localization;
+- component, provider, hook, contract-client, and utility tests;
+- frontend development and validation documentation.
+
+Generated `frontend/node_modules/` and `frontend/dist/` directories remain
+ignored and are not part of the tracked source structure.
 
 Generated Hardhat artifacts, cache files, TypeChain output, coverage reports,
 test-mock ABIs, internal-interface ABIs, local deployment records, and
@@ -707,26 +745,23 @@ Current development branch:
 
 The current action is to finalize:
 
-**Phase 14 — Sepolia deployment and Etherscan verification**
+**Phase 15 — User Banking App**
 
-Before Phase 14 may be declared complete:
+Before Phase 15 may be declared complete:
 
-1. review the complete Phase 14 source, deployment records, metadata, and
-   documentation diff;
-2. run final secret, generated-file, `parseEther`, scope, whitespace, and ABI
-   audits;
-3. run final clean compilation, TypeScript validation, focused deployment
-   tests, complete regression suite, coverage assessment, and size report;
-4. stage only approved Phase 14 files;
+1. review the complete frontend source, synchronized contract metadata,
+   localization, tests, and documentation diff;
+2. run final secret, generated-file, dependency, scope, and whitespace audits;
+3. run the complete frontend test suite, lint, TypeScript validation,
+   production build, and production-preview smoke test;
+4. stage only approved Phase 15 files;
 5. run cached diff and cached whitespace checks;
-6. commit and push Phase 14;
+6. commit and push Phase 15;
 7. fetch and verify matching local and remote commit hashes;
 8. confirm ahead/behind is `0 0` and the working tree is clean;
-9. produce the Phase 14 checkpoint and MASTER HANDOFF PROMPT;
-10. stop before Phase 15.
+9. produce the Phase 15 checkpoint and MASTER HANDOFF PROMPT;
+10. stop before beginning the next product area.
 
-After Phase 14 is committed, pushed, and verified, the next planned phase is:
-
-**Phase 15 — User Banking App foundation**
-
-Phase 15 must not begin automatically.
+After Phase 15 is committed, pushed, and verified, the next planned product
+work is the Admin Portal. No official Phase 16 label has yet been assigned in
+the project documentation, so it must not begin automatically.

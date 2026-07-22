@@ -6,8 +6,8 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Architecture and Product Decision Records |
-| Current project phase | Phase 14 — Sepolia deployment and Etherscan verification |
-| Implementation status | Mandatory contract decisions, Bonus C1, Bonus C2, local deployment decisions, and public Sepolia deployment decisions are reflected in implemented code, tests, records, and observed execution; frontend, AI, and rich metadata decisions remain pending or deferred |
+| Current project phase | Phase 15 — User Banking App |
+| Implementation status | Mandatory contract decisions, Bonus C1, Bonus C2, local and public deployment decisions, and User Banking App decisions are reflected in implemented code, tests, records, and observed execution; Admin Portal, AI, and rich metadata decisions remain pending or deferred |
 | Architecture model | Non-upgradeable |
 | Deployment models | Guarded local chain ID 31337 and guarded Sepolia chain ID 11155111 |
 | Student ID | 3122560090 |
@@ -2608,8 +2608,9 @@ three and the absence of mock or internal-interface ABI output.
 
 ### UI implication
 
-The future frontend must use explicit environment-aware address configuration
-and validate bytecode, chain ID, and contract relationships.
+The Phase 15 User Banking App uses explicit environment-aware address
+configuration. Frontend product areas must validate bytecode, chain ID, and
+contract relationships where those checks are required by their runtime scope.
 
 # Phase 14 Public Deployment Decision Records
 
@@ -3360,7 +3361,7 @@ Deferred details must not contradict accepted financial and security behavior.
 
 ## 40. Current Decision Implementation Status
 
-Implemented and validated through Phase 14:
+Implemented and validated through Phase 15:
 
 - ADR-005, ADR-006, ADR-007, ADR-009, ADR-010, ADR-011, ADR-025,
   ADR-026, ADR-027, ADR-028, ADR-029, ADR-030, ADR-041, ADR-042,
@@ -3387,6 +3388,16 @@ Implemented and validated through Phase 14:
 - dedicated public administrative identity and two-confirmation policy;
 - minimal canonical-plan-only public initialization;
 - public state and receipt verification;
+- separation of read-only public RPC access from wallet-authorized writes;
+- explicit wallet connection and Ethereum Sepolia network guards;
+- exact-amount token approval before deposit opening;
+- user access to deposit certificates, lifecycle actions, C1 claims, and C2
+  transparency metrics;
+- Vietnamese-first bilingual presentation with persisted language preference;
+- localization of known internal errors while retaining external RPC and
+  contract revert details;
+- frontend automated tests, lint, typecheck, production build, and preview
+  smoke validation;
 - tracked public deployment records and compact metadata;
 - idempotent public deployment reuse;
 - Etherscan verification for all production contracts;
