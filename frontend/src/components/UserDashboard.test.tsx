@@ -287,6 +287,57 @@ describe('UserDashboard', () => {
     )
   })
 
+  it('renders the Banking Assistant only when verified data is ready', async () => {
+    const user = userEvent.setup()
+
+    const view = render(
+      <UserDashboard
+        wallet={createWallet()}
+        safeBank={createSafeBank()}
+      />,
+    )
+
+    const launcher =
+      screen.getByRole('button', {
+        name: 'Mở trợ lý SafeBank',
+      })
+
+    expect(launcher).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+
+    expect(
+      screen.queryByRole('heading', {
+        name: 'Trợ lý Ngân hàng AI',
+      }),
+    ).not.toBeInTheDocument()
+
+    await user.click(launcher)
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'Trợ lý Ngân hàng AI',
+      }),
+    ).toBeInTheDocument()
+
+    view.rerender(
+      <UserDashboard
+        wallet={createWallet()}
+        safeBank={createSafeBank({
+          status: 'loading',
+          data: null,
+        })}
+      />,
+    )
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Mở trợ lý SafeBank',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
   it('renders empty plans and an underfunded warning', () => {
     render(
       <UserDashboard

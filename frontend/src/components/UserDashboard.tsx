@@ -33,6 +33,9 @@ import {
   UiStatePanel,
 } from './UiStatePanel'
 import {
+  BankingAssistantLauncher,
+} from './BankingAssistantLauncher'
+import {
   localizeProviderError,
 } from '../i18n/providerErrors'
 import {
@@ -641,6 +644,14 @@ export function UserDashboard({
           wallet={wallet}
           safeBank={safeBank}
         />
+
+        {safeBank.status === 'ready' &&
+        safeBank.data !== null ? (
+          <BankingAssistantLauncher
+            data={safeBank.data}
+            account={wallet.account}
+          />
+        ) : null}
 
         <DashboardData
           wallet={wallet}

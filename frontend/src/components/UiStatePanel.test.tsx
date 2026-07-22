@@ -45,6 +45,12 @@ it('renders an error action', async () => {
     screen.getByRole('alert'),
   ).toHaveTextContent('RPC unavailable')
 
+  expect(
+    screen.getByRole('alert'),
+  ).toHaveClass(
+    'ui-state-panel-error',
+  )
+
   await user.click(
     screen.getByRole('button', {
       name: 'Try again',

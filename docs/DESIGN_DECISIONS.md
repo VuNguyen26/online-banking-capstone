@@ -6,9 +6,10 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Architecture and Product Decision Records |
-| Current project phase | Phase 15 — User Banking App |
-| Implementation status | Mandatory contract decisions, Bonus C1, Bonus C2, local and public deployment decisions, and User Banking App decisions are reflected in implemented code, tests, records, and observed execution; Admin Portal, AI, and rich metadata decisions remain pending or deferred |
+| Current project phase | Phase 18 — Deterministic Read-Only SafeBank Assistants |
+| Implementation status | Mandatory contracts, Bonus C1, Bonus C2, local and public deployment, User Banking App, Admin Portal, hardened UI-state, and deterministic assistant decisions are reflected in implemented code, tests, and observed execution; rich metadata and final submission remain pending or deferred |
 | Architecture model | Non-upgradeable |
+| Assistant model | Deterministic local rule engine; no external LLM |
 | Deployment models | Guarded local chain ID 31337 and guarded Sepolia chain ID 11155111 |
 | Student ID | 3122560090 |
 | Test token | MockUSDC with 6 decimals |
@@ -17,8 +18,8 @@ This document remains the living record of accepted, implemented, rejected,
 and deferred SafeBank decisions.
 
 A decision marked implemented is backed by current code and observed evidence.
-Etherscan verification is source-to-bytecode evidence, not a professional
-security audit.
+Etherscan verification and automated tests are not a professional security
+audit.
 
 ## 2. Decision Categories
 
@@ -134,7 +135,7 @@ Statuses mean:
 | ADR-030 | Preserve pending-interest liabilities in reserve accounting | Implemented |
 | ADR-031 | Frontend approval defaults to exact amount | Accepted |
 | ADR-032 | Frontend route guards are UX only | Accepted |
-| ADR-033 | AI remains read-only and advisory | Accepted |
+| ADR-033 | AI remains read-only and advisory | Implemented |
 | ADR-034 | Use contract state as the source of truth | Accepted |
 | ADR-035 | Use a 365-day simple-interest year | Accepted |
 | ADR-036 | Avoid administrator editing of active deposits | Accepted |
@@ -152,6 +153,8 @@ Statuses mean:
 | ADR-048 | Use one dedicated Sepolia deployer as initial owner and fee receiver with two confirmations | Implemented |
 | ADR-049 | Initialize Sepolia with only canonical plan ID 1 and no demo mint, funding, or deposits | Implemented |
 | ADR-050 | Track public deployment records and compact metadata and verify all sources on Etherscan | Implemented |
+| ADR-051 | Use deterministic local assistant engines without an external LLM | Implemented |
+| ADR-052 | Keep the Spline robot isolated as a visual launcher dependency | Implemented |
 
 ---
 
@@ -2074,54 +2077,81 @@ The Admin Portal may state that authorization is enforced on-chain.
 
 ## ADR-033 — AI Is Read-Only and Advisory
 
-**Status:** Accepted
+**Status:** Implemented
 
 **Category:** AI extension
 
 ### Context
 
-Allowing AI to sign or submit financial transactions would create unacceptable key, hallucination, and authorization risks.
+Allowing an assistant to sign or submit financial transactions would create
+key, authorization, and incorrect-action risks.
+
+Phase 18 also needed an assistant implementation that did not expose a
+browser-side provider secret or make core SafeBank behavior depend on an
+external AI service.
 
 ### Decision
 
-AI assistants may:
+SafeBank implements deterministic local explanation engines.
+
+The Banking and Risk Assistants may:
 
 - explain;
 - compare;
 - summarize;
 - calculate from verified deterministic inputs;
 - warn;
-- recommend for human review.
+- recommend a next review step.
 
-AI assistants may not:
+They may not:
 
 - hold keys;
 - request seed phrases;
-- sign;
-- submit transactions;
+- connect a wallet;
+- request a signer;
+- import or use write clients;
+- sign or submit transactions;
 - modify plans;
 - withdraw;
 - fund;
 - pause;
-- fabricate values.
+- fabricate authoritative financial values.
+
+Every response contains fact, explanation, caution, and next-step sections.
 
 ### Rationale
 
-AI remains outside the financial authorization boundary.
+This keeps the assistant outside the financial authorization boundary and
+avoids browser-side AI secrets, paid-provider dependency, and autonomous
+transaction risk.
 
 ### Trade-offs
 
-Users must still perform and confirm every action themselves.
+The assistant supports defined SafeBank intents rather than unrestricted
+general conversation.
+
+Unsupported questions may receive a safe overview rather than a fully
+open-ended answer.
 
 ### Test implication
 
-AI integration tests must verify fallback behavior and absence of autonomous writes.
+Tests cover:
+
+- context serialization;
+- input validation;
+- Vietnamese and English behavior;
+- supported intents and safe fallback;
+- cancellation;
+- plain-text response rendering;
+- absence of signer, transaction, and write-layer access;
+- absence of assistant-engine network calls.
 
 ### UI implication
 
-Label AI output as explanation or recommendation, not authoritative state.
+Assistant output is labeled as read-only explanation.
 
----
+Every user and administrator financial action continues through the existing
+deterministic UI, explicit confirmation, wallet, and on-chain validation.
 
 ## ADR-034 — Contract State Is the Source of Truth
 
@@ -2752,6 +2782,96 @@ bytecode, ignored generated inputs, and secret-related fields.
 
 Consume compact metadata but still validate chain ID, bytecode, and contract
 relationships at runtime.
+
+# Phase 18 Assistant Decision Records
+
+## ADR-051 — Deterministic Local Assistant Engines
+
+**Status:** Implemented
+
+**Category:** Product and AI extension
+
+### Context
+
+The project needed Banking and Risk explanations while preserving a no-secret,
+no-autonomous-transaction architecture.
+
+### Decision
+
+Use local deterministic intent classification and rule-based response builders
+over structured dashboard context.
+
+Do not add an external LLM SDK, backend proxy, AI API key, or paid-provider
+dependency in Phase 18.
+
+### Rationale
+
+This architecture is deterministic, testable, bilingual, offline-capable after
+dashboard data is loaded, and compatible with the existing frontend security
+boundary.
+
+### Trade-offs
+
+It is not a general-purpose LLM chatbot and cannot answer arbitrary questions
+outside supported SafeBank concepts.
+
+### Test implication
+
+Test supported intents, fallback, state-aware wording, bilingual output,
+validation, cancellation, and no-network boundaries.
+
+### UI implication
+
+Describe the feature truthfully as a deterministic read-only SafeBank
+assistant.
+
+---
+
+## ADR-052 — Spline Robot Is a Visual Launcher Only
+
+**Status:** Implemented
+
+**Category:** Product and UI extension
+
+### Context
+
+A permanent assistant panel increased dashboard length. A floating launcher
+provided a clearer entry point and stronger demonstration identity.
+
+### Decision
+
+Embed the selected Spline robot scene in a pointer-disabled iframe and place an
+accessible transparent launcher button over the scene.
+
+The launcher opens the existing assistant panel inside a responsive dialog.
+
+The Spline scene:
+
+- does not receive assistant context;
+- does not receive wallet secrets;
+- does not authorize transactions;
+- may remain externally hosted;
+- may display Spline branding.
+
+### Rationale
+
+This preserves the tested assistant engine and panel while improving discoverability
+without adding a 3D package or changing financial workflows.
+
+### Trade-offs
+
+The animation depends on an external host, adds network cost, and may fail or
+show provider branding.
+
+### Test implication
+
+Test initial closed state, open and close controls, Escape behavior, focus
+restoration, and assistant unmounting.
+
+### UI implication
+
+Provide responsive dimensions, reduced-motion behavior, and a usable launcher
+button independently of the iframe's internal interaction model.
 
 # Rejected Alternatives
 

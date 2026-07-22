@@ -161,6 +161,12 @@ describe('AdminDashboard', () => {
     ).toHaveTextContent(
       'Loading Sepolia administration data',
     )
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Open SafeBank assistant',
+      }),
+    ).not.toBeInTheDocument()
   })
 
   it('renders read failures and retries', async () => {
@@ -226,6 +232,18 @@ describe('AdminDashboard', () => {
     ).toHaveTextContent(
       '1500 mUSDC',
     )
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Open SafeBank assistant',
+      }),
+    )
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'AI Risk Assistant',
+      }),
+    ).toBeInTheDocument()
 
     await user.click(
       screen.getByRole('button', {

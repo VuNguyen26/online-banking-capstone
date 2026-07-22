@@ -29,6 +29,9 @@ import {
 import {
   UiStatePanel,
 } from './UiStatePanel'
+import {
+  RiskAssistantLauncher,
+} from './RiskAssistantLauncher'
 
 import './AdminDashboard.css'
 
@@ -138,6 +141,10 @@ export function AdminDashboard({
                 </output>
               </article>
             </div>
+
+            <RiskAssistantLauncher
+              data={admin.data}
+            />
 
             <AdminConfigurationPanel
               data={admin.data}

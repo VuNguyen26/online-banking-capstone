@@ -6,27 +6,25 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | System Architecture |
-| Current phase | Phase 15 — User Banking App |
-| Implementation status | Mandatory contracts, Bonus C1, Bonus C2, deterministic local deployment, the verified Sepolia deployment, and the User Banking App are implemented and validated; the Admin Portal, AI assistants, demo video, rich metadata, and final submission remain pending |
+| Current phase | Phase 18 — Deterministic Read-Only SafeBank Assistants |
+| Implementation status | Mandatory contracts, Bonus C1, Bonus C2, deterministic local deployment, verified Sepolia deployment, User Banking App, Admin Portal, UI-state hardening, and deterministic read-only assistants are implemented and locally validated; documentation and Git finalization remain in progress |
 | Smart contract model | Non-upgradeable |
 | Validated local environments | Ephemeral Hardhat network and persistent localhost, chain ID 31337 |
 | Validated public environment | Ethereum Sepolia, chain ID 11155111 |
+| Assistant model | Deterministic local rule engine; no external LLM |
 | Test token | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document records the implemented architecture and the planned direction
-for later SafeBank product phases.
+This document records the implemented SafeBank architecture through Phase 18.
 
-Phase 14 deployed MockUSDC, VaultManager, and SavingCore to Sepolia, completed
-one-time authorization, created canonical plan ID `1`, verified receipts and
-public state, demonstrated idempotent reuse, retained public deployment
-records, created compact metadata, and verified all three sources on Etherscan.
+The Banking and Risk Assistants operate only on serializable context created
+from dashboard data that the frontend has already read. They do not create a
+provider, connect a wallet, obtain a signer, import transaction clients, or
+submit state-changing operations.
 
-The public deployment contains no initial demo mint, vault funding, or deposit.
-The Phase 15 User Banking App consumes the tracked Sepolia deployment without
-changing the contract security model. The Admin Portal, AI assistants, rich
-NFT metadata, demo video, final submission, and production-readiness claims
-remain outside the current implementation.
+The external Spline scene is used only to render the floating robot launcher.
+It is not an authoritative data source and is not part of the assistant
+reasoning or financial authorization boundary.
 
 ## 2. Project Overview
 
@@ -255,7 +253,7 @@ The frontend is not a security boundary and cannot replace Solidity authorizatio
 
 ### 5.6 AI Assistant
 
-The planned AI assistants may:
+The implemented deterministic assistants may:
 
 - explain plans;
 - summarize risks;
@@ -327,7 +325,7 @@ External dependencies include:
 - RPC providers;
 - block explorers;
 - browser environments;
-- optional AI providers.
+- the external Spline scene host used only for the visual launcher.
 
 These components may be unavailable, delayed, compromised, misconfigured, or display stale data.
 
@@ -2311,3 +2309,88 @@ Sections covering the Admin Portal and AI remain specifications until their
 implementations are validated.
 
 This document is a living architecture record updated through Phase 15.
+
+## 38. Phase 18 Deterministic Assistant Architecture
+
+Phase 18 adds an off-chain explanation layer without modifying contracts,
+deployment records, ABIs, transaction clients, or on-chain authorization.
+
+### 38.1 Layered Design
+
+The implemented layers are:
+
+1. `ai/safety.ts`
+   - normalizes input;
+   - enforces the 500-character maximum;
+   - rejects empty input, control characters, and external URLs.
+
+2. `ai/context.ts`
+   - converts verified dashboard state into serializable Banking and Risk
+     contexts;
+   - formats bigint financial values deterministically;
+   - excludes providers, signers, contract objects, and transaction clients.
+
+3. `ai/bankingAssistant.ts`
+   - classifies supported banking questions;
+   - explains plans, APR, deposits, maturity, renewal, pending interest, and
+     vault state.
+
+4. `ai/riskAssistant.ts`
+   - classifies supported administrator-risk questions;
+   - explains vault accounting, funding shortfall, pause state, ownership,
+     contract relationships, and plans.
+
+5. `AssistantPanel`
+   - provides validation, loading, cancellation, safe failure fallback, and
+     plain-text answer rendering.
+
+6. Banking and Risk wrappers
+   - build the appropriate structured context from the active dashboard.
+
+7. `AssistantLauncher`
+   - embeds the external Spline robot scene;
+   - opens a responsive dialog containing the relevant assistant;
+   - does not add financial authority.
+
+### 38.2 Data Flow
+
+The data flow is:
+
+`contract reads -> dashboard data -> deterministic context -> rule engine -> plain-text explanation`
+
+There is no browser-to-LLM request and no external assistant API.
+
+### 38.3 Authorization Boundary
+
+The assistant layer cannot:
+
+- connect a wallet;
+- request a signer;
+- sign or send a transaction;
+- access write clients;
+- approve MockUSDC;
+- open, withdraw, renew, claim, fund, pause, or reconfigure SafeBank.
+
+The existing wallet and transaction layers remain separate and require
+explicit human, claim, fund, pause, or reconfigure Safe action and wallet confirmation.
+
+### 38.4 External Visual Dependency
+
+The Spline iframe is loaded from an external host and may be unavailable or
+display provider branding.
+
+A Spline failure affects only the animated launcher presentation. It does not
+change contract reads, dashboard operation, assistant rules, or financial
+transactions.
+
+### 38.5 Validation Evidence
+
+The Phase 18 frontend checkpoint reports:
+
+- 65 passing frontend test files;
+- 256 passing frontend tests;
+- zero Oxlint warnings or errors;
+- successful TypeScript validation;
+- successful Vite production build;
+- no signer, transaction, or write-layer access from assistant code;
+- no external-network calls from assistant engines.

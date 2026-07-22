@@ -29,7 +29,7 @@ export function UiStatePanel({
 
   return (
     <div
-      className={`ui-state-panel ui-state-panel-`}
+      className={`ui-state-panel ui-state-panel-${kind}`}
       role={role}
       aria-live={
         kind === 'loading'

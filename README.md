@@ -10,7 +10,7 @@ Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721
 
 Current phase:
 
-**Phase 16 — Admin Portal completed, committed, pushed, and verified**
+**Phase 18 — deterministic read-only assistants implemented and locally validated; documentation and Git finalization are in progress**
 
 Phase 14 public deployment:
 
@@ -178,12 +178,15 @@ Phase 16 Admin Portal validation completed:
 
 Current limitations and pending work:
 
-- final Phase 16 documentation review, repository audits, staging, commit,
-  push, remote verification, checkpoint, and handoff remain pending;
-- rich NFT metadata remains unimplemented;
-- AI assistants, demo video, and final submission remain pending;
-- the User Banking App and Admin Portal currently target Ethereum Sepolia
-  and are not production banking services;
+- Phase 18 documentation review, repository audits, staging, commit, push,
+  remote verification, checkpoint, and handoff remain pending;
+- rich NFT metadata, demonstration video, and final submission remain pending;
+- the assistants are deterministic rule-based explanation engines, not an
+  external LLM integration;
+- the Spline robot launcher requires its external scene host and may display
+  Spline branding;
+- the User Banking App and Admin Portal target Ethereum Sepolia and are not
+  production banking services;
 - local deterministic addresses remain development-only; the frontend uses
   the tracked and verified public Sepolia deployment addresses.
 
@@ -248,19 +251,26 @@ Completed:
 - Production coverage of 100% statements, 98.40% branches, 100% functions,
   and 100% lines
 
+- Phase 15 User Banking App
+- Phase 16 Admin Portal
+- Phase 18 deterministic Banking and Risk Assistants
+- Structured read-only assistant context and input-safety layer
+- Vietnamese and English assistant UI
+- Floating Spline 3D launcher with responsive dialog
+- 65 passing frontend test files and 256 passing frontend tests
+- Successful frontend lint, typecheck, and production build
+
 Not implemented yet:
 
 - Rich NFT metadata or custom `tokenURI`
-- Admin Portal
-- AI Banking Assistant
-- AI Risk Assistant
 - Demo video
 - Final submission audit
 
 Mandatory contract flows, Bonus C1, Bonus C2, deterministic local deployment,
-the verified public Sepolia deployment, the Phase 15 User Banking App, and the
-Phase 16 Admin Portal are implemented and validated. AI assistants remain
-pending.
+the verified Sepolia deployment, the User Banking App, the Admin Portal, and
+the deterministic read-only assistants are implemented and validated locally.
+
+Documentation and Git finalization for Phase 18 remain in progress.
 
 ## Core Contracts
 
@@ -530,42 +540,61 @@ The Phase 16 Admin Portal is implemented in the shared frontend with:
 The portal does not expose private keys, unlimited token approval, active
 deposit editing, or the deployment-only SavingCore authorization operation.
 
-## Planned AI Assistants
+## Implemented Read-Only SafeBank Assistants
 
-### AI Banking Assistant
+Phase 18 implements two deterministic, local, read-only explanation engines.
 
-Planned to explain:
+### Banking Assistant
 
-- saving plans;
-- interest;
-- penalties;
-- maturity;
-- renewal;
-- pending interest;
-- transaction errors.
+The Banking Assistant explains verified dashboard context including:
 
-### AI Risk Assistant
+- saving plans and APR;
+- deposit terms and maturity;
+- early-withdrawal penalties;
+- manual and permissionless renewal;
+- pending interest and claimant rules;
+- VaultManager funding-shortfall information.
 
-Planned to explain:
+### Risk Assistant
+
+The Risk Assistant explains verified administrator context including:
 
 - vault balance;
-- reserved interest;
+- total reserved interest;
 - available liquidity;
-- solvency ratio;
 - funding shortfall;
-- upcoming maturity risk.
+- independent pause states;
+- ownership and contract relationships;
+- plan configuration.
 
-AI will not:
+Each response contains four explicit sections:
 
-- hold private keys;
-- request seed phrases;
-- sign transactions;
-- submit transactions;
-- change plans;
-- withdraw funds;
-- fabricate financial values.
+1. fact;
+2. explanation;
+3. caution;
+4. next step.
 
-Neither AI assistant currently exists.
+The assistant architecture:
+
+- builds serializable context from already-read SafeBank dashboard data;
+- formats financial bigint values deterministically;
+- normalizes user input and rejects empty, overlong, control-character, and
+  external-URL input;
+- renders responses as plain React text;
+- supports loading, safe failure fallback, cancellation, and stale-response
+  protection;
+- supports Vietnamese and English;
+- does not use OpenAI, Gemini, another LLM, or an external AI API;
+- does not access a signer, transaction hook, write client, or wallet secret;
+- cannot approve, deposit, withdraw, renew, fund, pause, or change plans.
+
+A floating Spline 3D robot is used only as the visual launcher. Clicking the
+robot opens the relevant Banking or Risk Assistant. The Spline iframe is an
+external visual dependency and is not part of the assistant reasoning engine.
+
+The assistants are a SafeBank product extension rather than a mandatory
+Capstone contract requirement. Contract storage and confirmed transaction
+receipts remain authoritative.
 
 ## Local Requirements
 
@@ -779,23 +808,18 @@ Current development branch:
 
 The current action is to finalize:
 
-**Phase 16 — Admin Portal**
+**Phase 18 — Deterministic Read-Only SafeBank Assistants**
 
-Before Phase 16 may be declared complete:
+Before Phase 18 may be declared complete:
 
-1. review the complete Admin Portal source, localization, tests, and
-   documentation diff;
-2. run final secret, generated-file, dependency, scope, and whitespace audits;
-3. perform production-preview and browser smoke checks for both User Banking
-   App and Admin Portal views;
-4. stage only approved Phase 16 files;
-5. run cached diff and cached whitespace checks;
-6. commit and push Phase 16;
-7. fetch and verify matching local and remote commit hashes;
-8. confirm ahead/behind is `0 0` and the working tree is clean;
-9. produce the Phase 16 checkpoint and MASTER HANDOFF PROMPT;
-10. stop before beginning Phase 17 or any AI-assistant work.
-
-After Phase 16 is committed, pushed, and verified, continue only with the next
-explicitly approved phase. Phase 17 polish and Phase 18 AI work must not begin
-automatically.
+1. finish documentation alignment and stale-wording audits;
+2. review the complete tracked and untracked diff;
+3. run secret, generated-file, dependency, scope, and whitespace audits;
+4. perform the final User/Admin, Vietnamese/English, and responsive browser
+   smoke checks;
+5. stage only approved Phase 18 files;
+6. inspect the cached diff and cached whitespace result;
+7. commit and push Phase 18;
+8. fetch and verify matching local and remote commit hashes;
+9. confirm ahead/behind is `0 0` and the working tree is clean;
+10. produce the Phase 18 checkpoint and Phase 19 handoff.

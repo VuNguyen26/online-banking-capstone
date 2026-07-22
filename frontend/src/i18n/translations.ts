@@ -77,7 +77,7 @@ export const translations = {
     adminVaultDescription:
       'Theo dõi quỹ lãi, phần dự trữ và thanh khoản có thể rút mà không sử dụng tiền gốc của người gửi.',
     adminVaultHealthy:
-      'Đủ thanh khoản',
+      'Không ghi nhận thiếu hụt',
     adminVaultUnderfunded:
       'Thiếu thanh khoản',
     adminVaultUnderfundedWarning:
@@ -715,15 +715,15 @@ export const translations = {
     openErrorInsufficientBalance:
       'Ví đang kết nối không có đủ mUSDC.',
     transactionErrorRejected:
-      'Bạn đã từ chối giao dị trong ví.',
+      'Bạn đã từ chối giao dịch trong ví.',
     transactionErrorUnknown:
-      'Giao dị thất bại do nguyên nhân không xác định.',
+      'Giao dịch thất bại do nguyên nhân không xác định.',
     transactionErrorInvalidHash:
-      'Ví trả về mã giao dị không hợp lệ.',
+      'Ví trả về mã giao dịch không hợp lệ.',
     transactionErrorReceiptUnavailable:
-      'Không thể tải biên nhận giao dị.',
+      'Không thể tải biên nhận giao dịch.',
     transactionErrorMinedReverted:
-      'Giao dị đã được ghi vào block nhưng bị hoàn tác.',
+      'Giao dịch đã được ghi vào block nhưng bị hoàn tác.',
     walletErrorRequestRejected:
       'Bạn đã từ chối yêu cầu trong ví.',
     walletErrorReadState:
@@ -735,11 +735,63 @@ export const translations = {
     walletErrorSwitchSepolia:
       'Không thể chuyển sang Ethereum Sepolia.',
     walletErrorConnectBeforeTransaction:
-      'Hãy kết nối ví trước khi gửi giao dị.',
+      'Hãy kết nối ví trước khi gửi giao dịch.',
     walletErrorSwitchBeforeTransaction:
-      'Hãy chuyển ví sang Ethereum Sepolia trước khi gửi giao dị.',
+      'Hãy chuyển ví sang Ethereum Sepolia trước khi gửi giao dịch.',
     safeBankReadErrorFallback:
       'Không thể tải dữ liệu SafeBank từ Ethereum Sepolia.',
+    aiBankingTitle:
+      'Trợ lý Ngân hàng AI',
+    aiBankingDescription:
+      'Giải thích các gói tiết kiệm, khoản gửi, thời điểm đáo hạn, tái tục và lãi hoãn trả từ snapshot on-chain hiện tại.',
+    aiRiskTitle:
+      'Trợ lý Rủi ro AI',
+    aiRiskDescription:
+      'Giải thích trạng thái vault, nghĩa vụ lãi dự trữ, thiếu hụt nguồn vốn, pause state, owner và liên kết hợp đồng từ snapshot quản trị hiện tại.',
+    aiOpenAssistant:
+      'Mở trợ lý SafeBank',
+    aiCloseAssistant:
+      'Đóng trợ lý SafeBank',
+    aiRobotTitle:
+      'Robot trợ lý SafeBank 3D',
+    aiNeonAssistantLabel:
+      'Trợ lý SafeBank',
+    aiRiskQuestionPlaceholder:
+      'Ví dụ: Vault có đang thiếu vốn hoặc các liên kết hợp đồng có khớp không?',
+    aiReadOnlyNotice:
+      'Trợ lý chỉ cung cấp giải thích read-only. Trợ lý không kết nối ví, không ký và không gửi giao dịch.',
+    aiQuestionLabel:
+      'Câu hỏi của bạn',
+    aiBankingQuestionPlaceholder:
+      'Ví dụ: Giải thích APR của gói 1 hoặc khi nào khoản gửi 2 đáo hạn?',
+    aiSubmit:
+      'Hỏi trợ lý',
+    aiSubmitting:
+      'Đang phân tích…',
+    aiClear:
+      'Xóa',
+    aiResponseHeading:
+      'Phản hồi của trợ lý',
+    aiLoadingMessage:
+      'Đang phân tích dữ liệu SafeBank đã được xác minh.',
+    aiFailureMessage:
+      'Trợ lý hiện không thể tạo phản hồi. Các chức năng SafeBank khác vẫn hoạt động bình thường.',
+    aiCharacters:
+      'ký tự',
+    aiValidationEmpty:
+      'Hãy nhập câu hỏi.',
+    aiValidationTooLong:
+      'Câu hỏi vượt quá giới hạn 500 ký tự.',
+    aiValidationUrl:
+      'Trợ lý không mở hoặc đọc nội dung từ URL bên ngoài.',
+    aiSectionFact:
+      'Dữ kiện',
+    aiSectionExplanation:
+      'Giải thích',
+    aiSectionCaution:
+      'Lưu ý',
+    aiSectionNextStep:
+      'Bước tiếp theo',
   },
   en: {
     heroTitle:
@@ -819,7 +871,7 @@ export const translations = {
     adminVaultDescription:
       'Monitor the interest vault, reserved obligations and liquidity withdrawable without using depositor principal.',
     adminVaultHealthy:
-      'Healthy',
+      'No recorded shortfall',
     adminVaultUnderfunded:
       'Underfunded',
     adminVaultUnderfundedWarning:
@@ -1482,6 +1534,58 @@ export const translations = {
       'Switch your wallet to Ethereum Sepolia before sending a transaction.',
     safeBankReadErrorFallback:
       'Unable to load SafeBank data from Ethereum Sepolia.',
+    aiBankingTitle:
+      'AI Banking Assistant',
+    aiBankingDescription:
+      'Explain saving plans, deposits, maturity timing, renewals, and deferred interest from the current on-chain snapshot.',
+    aiRiskTitle:
+      'AI Risk Assistant',
+    aiRiskDescription:
+      'Explain vault accounting, reserved-interest obligations, funding shortfall, pause state, ownership, and contract relationships from the current administration snapshot.',
+    aiOpenAssistant:
+      'Open SafeBank assistant',
+    aiCloseAssistant:
+      'Close SafeBank assistant',
+    aiRobotTitle:
+      'SafeBank 3D assistant robot',
+    aiNeonAssistantLabel:
+      'SafeBank Assistant',
+    aiRiskQuestionPlaceholder:
+      'Example: Is the vault underfunded or do all contract relationships match?',
+    aiReadOnlyNotice:
+      'This assistant is read-only. It cannot connect a wallet, sign, or submit transactions.',
+    aiQuestionLabel:
+      'Your question',
+    aiBankingQuestionPlaceholder:
+      'Example: Explain plan 1 APR or when deposit 2 matures.',
+    aiSubmit:
+      'Ask assistant',
+    aiSubmitting:
+      'Analyzing…',
+    aiClear:
+      'Clear',
+    aiResponseHeading:
+      'Assistant response',
+    aiLoadingMessage:
+      'Analyzing verified SafeBank data.',
+    aiFailureMessage:
+      'The assistant cannot produce a response right now. Other SafeBank features remain available.',
+    aiCharacters:
+      'characters',
+    aiValidationEmpty:
+      'Enter a question.',
+    aiValidationTooLong:
+      'The question exceeds the 500-character limit.',
+    aiValidationUrl:
+      'The assistant does not open or read external URLs.',
+    aiSectionFact:
+      'Fact',
+    aiSectionExplanation:
+      'Explanation',
+    aiSectionCaution:
+      'Caution',
+    aiSectionNextStep:
+      'Next step',
   },
 } as const
 

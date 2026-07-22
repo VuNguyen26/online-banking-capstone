@@ -6,34 +6,27 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | Security Model and Threat Analysis |
-| Current project phase | Phase 15 — User Banking App |
-| Implementation status | Smart-contract controls, Bonus C1, Bonus C2, local and public deployment protections, and User Banking App security controls are implemented and validated; Admin Portal, AI, and professional-audit controls remain pending |
+| Current project phase | Phase 18 — Deterministic Read-Only SafeBank Assistants |
+| Implementation status | Smart-contract controls, Bonus C1, Bonus C2, local and public deployment protections, User Banking App controls, Admin Portal controls, hardened UI states, and deterministic assistant boundaries are implemented and locally validated; professional audit and final submission remain pending |
 | Security approach | Defense-in-depth and risk reduction |
 | Smart contract model | Non-upgradeable |
+| Assistant model | Deterministic local rule engine; no external LLM or AI API |
 | Validated networks | Local chain ID 31337 and Ethereum Sepolia chain ID 11155111 |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document records implemented security controls together with the planned
-security model for later SafeBank phases.
+Phase 18 does not give the assistant financial authority.
 
-Phase 14 adds public deployment evidence without changing the contract
-security model. The public workflow validates network identity, dedicated
-signer identity, fee budget, nonce state, dependencies, ownership,
-authorization, pause state, Personal Variant values, C1/C2 reads, canonical
-plan state, receipts, deployment records, and source verification.
+The assistant receives only structured, serializable dashboard context and
+returns explanatory plain text. It cannot obtain a signer, import transaction
+clients, connect a wallet, or submit a transaction.
 
-Phase 15 adds a non-privileged User Banking App that separates read-only RPC
-access from user-authorized wallet writes, checks the Ethereum Sepolia
-context, approves only the exact requested token amount, and contains no
-deployment private keys, mnemonics, Etherscan API keys, or administrator
-credentials. Known internal errors may be localized, while external RPC and
-contract revert details remain intact. The frontend is not an authorization
-or security boundary.
+The external Spline iframe is a presentation dependency only. Its availability
+or content does not determine SafeBank state or transaction authorization.
 
-It does not claim that the contracts have been independently audited, that the
-system is production-ready, or that source verification proves absence of
-vulnerabilities.
+Passing tests and source verification reduce identified risks. They do not
+constitute an independent professional audit or production-readiness
+guarantee.
 
 ## 1.1 Personal Variant Security Baseline
 
@@ -499,17 +492,23 @@ Trust level:
 
 The frontend may improve UX, but a user can call the contracts directly.
 
-## 6.7 AI Provider
+## 6.7 Deterministic Assistant Engine
 
 Privilege level:
 
-- none on-chain.
+- none on-chain;
+- none in the wallet or transaction layer.
 
 Trust level:
 
-- untrusted for authoritative financial state.
+- advisory only;
+- not authoritative for financial state.
 
-AI output is advisory only.
+The implemented engine uses local deterministic rules and verified structured
+context. It does not call an external LLM or AI provider.
+
+Its output may still be incomplete or fail to classify an unsupported
+question, so contract state remains authoritative.
 
 ## 6.8 RPC Provider
 
@@ -1866,79 +1865,95 @@ The frontend must clearly state:
 
 ---
 
-## 28. AI Security
+## 28. Assistant Security
 
-## 28.1 Allowed AI Behavior
+## 28.1 Implemented Boundary
 
-AI may:
+The Banking and Risk Assistants are deterministic, read-only explanation
+engines.
 
-- explain plan terms;
-- compare deterministic values;
-- explain maturity;
-- explain penalties;
-- explain renewal;
-- explain pending interest;
-- summarize solvency metrics;
-- translate revert reasons into easier language.
+They may:
 
-## 28.2 Forbidden AI Behavior
+- explain verified plan and deposit context;
+- explain maturity, renewal, penalty, and pending-interest rules;
+- explain vault balance, reserve, liquidity, shortfall, pause state, ownership,
+  and contract relationships;
+- provide cautions and suggested next review steps.
 
-AI must not:
+They may not:
 
-- request or hold private keys;
-- request a seed phrase;
-- sign transactions;
-- submit transactions;
-- select an amount without showing deterministic inputs;
-- fabricate APR;
-- fabricate balance;
-- fabricate maturity;
-- fabricate reserve values;
-- claim guaranteed returns;
-- override contract authorization.
+- request or hold private keys or seed phrases;
+- connect a wallet;
+- obtain a signer;
+- access transaction hooks or write clients;
+- sign or submit transactions;
+- approve, deposit, withdraw, renew, claim, fund, pause, or change plans;
+- fabricate an authoritative balance, APR, maturity, claimant, or liability;
+- claim guaranteed return, complete safety, or professional audit assurance.
 
-## 28.3 Source of Truth
+## 28.2 Structured Context
 
-Financial values must come from:
+Assistant factual input comes from dashboard data already produced by verified
+frontend read layers.
 
-- contract reads;
-- verified event data;
-- deterministic project formulas.
+Context builders:
 
-AI may explain those values but must not invent them.
+- format bigint values deterministically;
+- create JSON-serializable objects;
+- exclude provider, signer, contract, and transaction objects.
 
-## 28.4 Prompt Injection
+The assistant does not perform an additional contract read or network request.
 
-Untrusted user or event text may attempt to manipulate the assistant.
+## 28.3 Input Safety
 
-The AI integration must separate:
+Input handling:
 
-- system instructions;
-- verified structured contract data;
-- user questions;
-- untrusted free text.
+- normalizes whitespace;
+- rejects empty questions;
+- limits questions to 500 characters;
+- removes or rejects control characters;
+- rejects external URLs;
+- revalidates input at the engine boundary.
 
-## 28.5 Sensitive Data
+## 28.4 Output Safety
 
-Do not send the following to an AI provider:
+Assistant output:
 
-- private key;
-- seed phrase;
-- secret environment values;
-- authentication tokens;
-- unnecessary personal data.
+- is rendered as ordinary React text;
+- is not injected as raw HTML;
+- contains fact, explanation, caution, and next-step sections;
+- uses safe localized fallback text when processing fails;
+- supports cancellation and stale-response protection.
 
-## 28.6 Fallback
+## 28.5 External-Network Boundary
 
-When AI fails:
+The assistant engines do not call OpenAI, Gemini, another LLM, or an external
+AI API.
 
-- deterministic calculators remain available;
+The Spline iframe is the only Phase 18 external visual dependency. It renders
+the robot launcher but does not receive assistant questions or structured
+SafeBank context from the assistant engine.
+
+## 28.6 Failure Isolation
+
+If the assistant or Spline scene fails:
+
 - contract data remains visible;
-- transactions remain possible;
-- warnings remain available;
-- the demo remains usable.
+- user and administrator financial functions remain available;
+- deterministic transaction validation remains available;
+- no contract state changes;
+- no wallet action occurs.
 
----
+## 28.7 Validation Evidence
+
+The Phase 18 checkpoint reports:
+
+- 65 passing frontend test files;
+- 256 passing frontend tests;
+- successful lint, TypeScript validation, and production build;
+- no assistant signer, transaction, or write-layer access;
+- no external-network calls from assistant engines;
+- tested validation, loading, fallback, cancellation, and plain-text rendering.
 
 ## 29. Secret Management
 
@@ -2823,3 +2838,25 @@ Observed results:
 
 Passing deployment checks and source verification reduce identified
 configuration risk. They do not guarantee security.
+
+## 46. Phase 18 Assistant Security Evidence
+
+Observed Phase 18 evidence:
+
+- Banking and Risk contexts are structured and serializable;
+- no provider, signer, contract instance, or write client is placed in context;
+- assistant source does not import transaction hooks or write modules;
+- assistant source does not call `fetch`, Axios, XMLHttpRequest, or WebSocket;
+- user input is bounded and normalized;
+- external URLs are rejected;
+- output is rendered as plain text;
+- in-flight work is cancelled when the panel unmounts;
+- stale responses are ignored;
+- failure produces localized safe fallback content;
+- the Spline dependency is isolated to visual launcher rendering;
+- 65 frontend test files and 256 frontend tests pass;
+- lint, typecheck, build, and whitespace validation pass.
+
+These controls reduce assistant-related risk but do not make assistant
+explanations authoritative. Contract state and confirmed receipts remain the
+source of truth.

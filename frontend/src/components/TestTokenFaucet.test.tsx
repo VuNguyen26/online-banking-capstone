@@ -112,7 +112,7 @@ describe('TestTokenFaucet', () => {
       expect(
         screen.getByRole('alert'),
       ).toHaveTextContent(
-        'Bạn đã từ chối giao dị trong ví.',
+        'Bạn đã từ chối giao dịch trong ví.',
       ),
     )
 

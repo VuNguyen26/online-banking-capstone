@@ -142,7 +142,7 @@ describe('AdminVaultPanel', () => {
     )
 
     expect(
-      screen.getByText('Healthy'),
+      screen.getByText('No recorded shortfall'),
     ).toBeInTheDocument()
 
     expect(

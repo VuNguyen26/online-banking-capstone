@@ -6,21 +6,22 @@
 |---|---|
 | Project | SafeBank / Online Banking System |
 | Document | UI/UX Product Plan |
-| Current project phase | Phase 15 — User Banking App |
-| Implementation status | The User Banking App, mandatory contracts, Bonus C1, Bonus C2, local deployment, verified Sepolia deployment, public metadata, and explorer verification are implemented and validated; the Admin Portal and AI assistants remain planned |
+| Current project phase | Phase 18 — Deterministic Read-Only SafeBank Assistants |
+| Implementation status | User Banking App, Admin Portal, hardened loading/error/empty/confirmation states, and deterministic Banking and Risk Assistants are implemented and locally validated; production hosting, professional accessibility review, final video, and final submission remain pending |
 | Target product areas | User Banking App and Admin Portal |
 | Product style | Modern, trustworthy, clear, accessible, and responsive |
+| Assistant presentation | Floating Spline 3D launcher and responsive dialog |
+| Assistant model | Deterministic local rule engine; no external LLM |
 | Branding model | Original SafeBank identity |
 | Test asset | MockUSDC with 6 decimals |
 | Student ID | 3122560090 |
 
-This document defines the SafeBank product experience and is aligned with the
-implemented contracts, local deployment, public Sepolia interfaces, and
-Phase 15 User Banking App. The Admin Portal and AI assistants remain planned
-and have not yet been implemented.
+The Phase 18 assistant is optional for financial workflows and cannot submit
+transactions.
 
-The public deployment is educational and uses freely mintable MockUSDC with no
-real-world monetary value.
+The external Spline scene is used only for the animated launcher. Core
+dashboard and financial operations must remain usable if that visual asset is
+unavailable.
 
 ## 1.1 SafeBank Personal Variant
 
@@ -307,19 +308,27 @@ For implemented Bonus C2, the future interface must expose:
 - explanations for withdrawal rejection above available liquidity;
 - reserve lifecycle history from C2 events.
 
-## 4.4 AI Extension Scope
+## 4.4 Assistant Extension Scope
 
-After the deterministic product is complete, the UI may include:
+Phase 18 implements:
 
-- AI Banking Assistant;
-- AI Risk Assistant;
-- plain-language transaction error explanation;
-- plan comparisons;
-- vault-risk summaries.
+- a Banking Assistant for plan, deposit, maturity, renewal, pending-interest,
+  and vault explanations;
+- a Risk Assistant for liquidity, reserve, shortfall, pause, ownership,
+  relationship, and plan explanations;
+- Vietnamese and English questions and responses;
+- fact, explanation, caution, and next-step response sections;
+- bounded and validated text input;
+- loading, failure fallback, cancellation, and clear behavior;
+- a floating Spline 3D robot launcher;
+- a responsive desktop dialog and mobile bottom sheet;
+- reduced-motion handling for launcher animation.
 
-AI must never be required for normal transactions.
+The assistant is not required for normal transactions and does not replace
+deterministic forms, contract data, confirmations, or wallet review.
 
----
+The current implementation is a deterministic rule-based assistant rather
+than an external LLM chatbot.
 
 ## 5. Branding Constraints
 
@@ -3282,10 +3291,9 @@ Not implemented in Phase 15:
 - demonstration video;
 - final submission audit.
 
-This document now serves as both the UI/UX specification and the implementation
-record for the Phase 15 User Banking App. Sections describing the Admin Portal
-and AI assistants remain specifications until those product areas are
-implemented and validated.
+This section records the historical Phase 15 checkpoint. The later Phase 16
+Admin Portal and Phase 18 assistant implementation sections supersede its
+then-pending product-status statements.
 
 ---
 
@@ -3316,8 +3324,8 @@ The following product decisions remain open for later phases:
 2. final visual-identity refinements and design-token expansion;
 3. event-indexing infrastructure;
 4. charting requirements and library selection;
-5. Admin Portal application-shell architecture;
-6. AI provider and server-side AI architecture;
+5. production routing and hosting architecture;
+6. any future external-LLM provider or server-side AI architecture;
 7. final production wallet-support policy;
 8. production confirmation and transaction-monitoring policy;
 9. final risk-classification thresholds;
@@ -3348,3 +3356,82 @@ The experience must consistently communicate:
 12. that AI is advisory only.
 
 Implementation must remain aligned with the actual smart contract behavior and must be revised whenever the on-chain interface changes.
+
+## 83. Phase 18 Assistant UI/UX Status
+
+Phase 18 adds a compact assistant experience without placing a large permanent
+panel inside either dashboard.
+
+### 83.1 Launcher
+
+The launcher:
+
+- is fixed to the lower-right viewport area;
+- uses the provided external Spline 3D robot scene;
+- shows an animated HUD-style `SafeBank Assistant` label;
+- uses a typewriter effect, subtle cyan glow, directional markers, and reduced
+  motion support;
+- remains a normal accessible button even though the visible robot is rendered
+  in an iframe.
+
+Spline provider branding may remain visible because it belongs to the external
+scene.
+
+### 83.2 Dialog Behavior
+
+On desktop, the launcher opens a right-aligned assistant dialog.
+
+On small screens, it opens as a bottom sheet.
+
+Supported closing actions include:
+
+- close button;
+- backdrop click;
+- Escape key.
+
+Opening moves focus to the close button. Closing restores focus to the
+launcher and unmounts the assistant panel.
+
+### 83.3 Banking and Risk Modes
+
+The User Banking view opens the Banking Assistant.
+
+The Admin Portal opens the Risk Assistant.
+
+Only the assistant matching the currently ready dashboard context is mounted.
+
+### 83.4 Response Presentation
+
+Every successful response displays:
+
+- Fact;
+- Explanation;
+- Caution;
+- Next step.
+
+Text is rendered plainly and is not treated as executable HTML.
+
+### 83.5 Honest Product Language
+
+The interface communicates that:
+
+- the assistant is read-only;
+- it cannot connect a wallet, sign, or submit transactions;
+- its answer is explanatory;
+- contract state remains authoritative;
+- MockUSDC is a test asset;
+- zero funding shortfall is an accounting snapshot, not a professional
+  solvency guarantee.
+
+### 83.6 Validation
+
+The current frontend checkpoint reports:
+
+- 65 passing test files;
+- 256 passing tests;
+- zero lint warnings or errors;
+- successful TypeScript validation;
+- successful production build;
+- manual User and Admin launcher smoke checks;
+- Vietnamese and English assistant coverage;
+- desktop and responsive launcher review.
