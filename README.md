@@ -162,7 +162,8 @@ SafeBank uses three production contracts.
 
 The primary custody invariant is:
 
-> `SavingCore` holds user principal. `VaultManager` holds bank-funded interest liquidity.
+> [!IMPORTANT]
+> **Primary custody invariant:** `SavingCore` holds user principal. `VaultManager` holds bank-funded interest liquidity.
 
 Interest is never funded from another depositor's principal.
 
@@ -485,6 +486,9 @@ One delayed auto-renew transaction creates exactly one new term. It does not cre
 
 ## Bonus C1 — Principal-First Settlement
 
+> [!IMPORTANT]
+> **Settlement guarantee:** User principal remains recoverable when the bank-funded interest vault cannot pay the complete interest amount.
+
 The base assignment requires maturity withdrawal to revert when the vault cannot pay interest. That behavior can indirectly lock the user's own principal even though `SavingCore` still holds it.
 
 SafeBank instead uses principal-first settlement:
@@ -512,6 +516,9 @@ Paused, unauthorized, malformed, empty-revert, and unexpected vault failures sti
 - rejects a second successful claim.
 
 ## Bonus C2 — Solvency Guard
+
+> [!IMPORTANT]
+> **Solvency boundary:** Reserved interest is excluded from administrator-withdrawable liquidity, while any remaining funding shortfall stays visible on-chain.
 
 `SavingCore.totalReservedInterest` tracks:
 
@@ -703,43 +710,50 @@ Additional events support administration, accounting, and monitoring, including:
 
 ### 1. Transferable certificate
 
-> The deposit NFT can be transferred. If Alice sells her NFT to Bob before maturity, who can withdraw - Alice or Bob? Is this behavior good or dangerous? Show the exact line in your code that decides this.
+> [!NOTE]
+> **Assignment question:** The deposit NFT can be transferred. If Alice sells her NFT to Bob before maturity, who can withdraw - Alice or Bob? Is this behavior good or dangerous? Show the exact line in your code that decides this.
 
 Bob can withdraw because SafeBank assigns active-deposit economic rights to the direct current ERC721 owner, not permanently to the original depositor. The deciding line appears in each owner-restricted action, including `SavingCore.sol:618`, where the contract executes `address currentOwner = ownerOf(depositId);`, followed by a direct comparison between `msg.sender` and `currentOwner`. This behavior gives the certificate real transferable value, but it is dangerous if a user thinks the NFT is only a collectible because transferring it also transfers the right to principal and interest. Tests such as `"transfers withdrawal rights to the current NFT owner"`, `"transfers early-withdrawal rights with the NFT"`, and `"transfers manual-renewal rights and the renewed NFT to the current owner"` prove that the new owner gains the rights and the previous owner loses them.
 
 ### 2. Empty vault
 
-> A user reaches maturity but the vault does not have enough money for the interest. The spec says "revert". What problem does this create for the user, and what alternative design could you offer (for example: pay principal only, or wait in a queue)? Which one did you choose to follow, and why?
+> [!NOTE]
+> **Assignment question:** A user reaches maturity but the vault does not have enough money for the interest. The spec says "revert". What problem does this create for the user, and what alternative design could you offer (for example: pay principal only, or wait in a queue)? Which one did you choose to follow, and why?
 
 Reverting the complete maturity transaction can lock the user's own principal even though that principal is still safely held by `SavingCore`; the bank can therefore delay principal recovery merely by failing to fund interest. SafeBank implements Bonus C1 and returns principal first, then defers the complete unpaid interest in `pendingInterest[depositId]` while snapshotting the current NFT owner in `interestClaimant[depositId]`. Only the exact `VaultManager.InsufficientVaultBalance` selector activates this fallback, while pause, authorization, malformed-revert, and unexpected failures still revert atomically. I chose full-value deferral instead of partial interest because it keeps accounting and claim authorization deterministic, and the test `"returns principal and defers full interest when the vault is underfunded"` proves the selected behavior.
 
 ### 3. Dead bot
 
-> The auto-renew bot goes offline for one month. What happens to deposits that passed the grace period? Does the user lose anything? Propose one change that protects the user in this case.
+> [!NOTE]
+> **Assignment question:** The auto-renew bot goes offline for one month. What happens to deposits that passed the grace period? Does the user lose anything? Propose one change that protects the user in this case.
 
 Nothing happens automatically because Solidity does not execute code merely because time passes; the old deposit remains `Active` until a valid transaction succeeds. The user does not lose principal and may still call maturity withdrawal after the grace period while the deposit remains active. SafeBank protects liveness by making `autoRenew(depositId)` permissionless, so the owner, another keeper, or any account can trigger it without receiving the renewed NFT or financial rights. A delayed call creates exactly one new term using one old-term interest calculation and starts the new term at the actual execution timestamp, as verified by the delayed-execution tests; an operational deployment can further protect availability by running multiple independent low-privilege keepers.
 
 ### 4. Rounding dust
 
-> The interest formula uses integer division, so some tiny amount is always lost to rounding. In your design, who keeps this dust - the user or the vault? Can the rounding ever cause a revert or a wrong balance? Prove your answer with one of your test cases.
+> [!NOTE]
+> **Assignment question:** The interest formula uses integer division, so some tiny amount is always lost to rounding. In your design, who keeps this dust - the user or the vault? Can the rounding ever cause a revert or a wrong balance? Prove your answer with one of your test cases.
 
 SafeBank uses floor rounding, so the user receives the largest whole-token-unit interest amount not greater than the mathematical result, and the remaining dust stays in `VaultManager`. The internal `_calculateInterest` function uses `Math.mulDiv`, which performs multiplication and division safely and deterministically without creating an overpayment. Floor rounding does not cause a wrong balance because only the computed integer amount is transferred, and a zero-rounded result skips the zero-value vault payout. The test `"keeps integer-rounding dust inside VaultManager"` funds the vault with the calculated interest plus one smallest unit, settles the deposit, and verifies that exactly `1` unit remains in the vault.
 
 ### 5. Boundary times
 
-> At the exact second of maturityAt, is a withdrawal "early" or "at maturity"? At the exact end of the grace period, can the user still manually renew? Show the comparison operators (>= or >) you used, and explain each choice.
+> [!NOTE]
+> **Assignment question:** At the exact second of maturityAt, is a withdrawal "early" or "at maturity"? At the exact end of the grace period, can the user still manually renew? Show the comparison operators (>= or >) you used, and explain each choice.
 
 At exactly `maturityAt`, the deposit is mature: `withdrawAtMaturity` rejects only when `block.timestamp < deposit.maturityAt`, while `earlyWithdraw` rejects when `block.timestamp >= deposit.maturityAt`. Manual renewal uses the half-open interval `maturityAt <= timestamp < graceEndsAt`; the contract rejects it with `if (block.timestamp >= graceEndsAt)`. Auto-renew uses the complementary condition and rejects only while `block.timestamp < graceEndsAt`, so it becomes valid at the exact grace-period end. This gives one non-overlapping transition point, proven by tests for exact maturity, one second before grace end, exact grace end, and exact-end auto-renew.
 
 ### 6. Disabled plan with active deposits
 
-> The admin disables a plan while many deposits from that plan are still active. What can those users still do? Can they still manually renew INTO the disabled plan? Justify your rule.
+> [!NOTE]
+> **Assignment question:** The admin disables a plan while many deposits from that plan are still active. What can those users still do? Can they still manually renew INTO the disabled plan? Justify your rule.
 
 Disabling a plan does not change existing deposit snapshots or invalidate active certificates. Existing owners may still withdraw early, withdraw at maturity, or participate in snapshot-based auto-renew because those actions use the stored deposit terms rather than replacing them with current plan configuration. They cannot open a new deposit with the disabled plan, and they cannot manually renew into it because `manualRenew` contains `if (!newPlan.enabled) { revert PlanNotEnabled(newPlanId); }`. This rule protects existing contractual rights while ensuring an administrator can stop the plan from being actively selected for new business.
 
 ### 7. Attack thinking
 
-> Describe one realistic attack on your system (for example: reentrancy on withdraw, double withdraw, or a fake token) and show the exact mechanism in your code that stops it.
+> [!NOTE]
+> **Assignment question:** Describe one realistic attack on your system (for example: reentrancy on withdraw, double withdraw, or a fake token) and show the exact mechanism in your code that stops it.
 
 A realistic attack is token-callback reentrancy during withdrawal: a malicious ERC20 attempts to call a SafeBank financial function again while the original transfer is still executing. SafeBank protects the financial entry points with `nonReentrant`, including `withdrawAtMaturity`, `earlyWithdraw`, `manualRenew`, `autoRenew`, and `claimPendingInterest`; it also changes lifecycle or pending state before external interactions. The active-only status check prevents a second terminal action, while EVM atomicity restores all earlier state if a later required interaction fails. Tests including `"blocks token callback reentrancy while completing the original withdrawal"`, `"blocks token callback reentrancy while completing the original early withdrawal"`, and the renewal and pending-claim reentrancy suites verify that the nested call fails with `ReentrancyGuardReentrantCall` while the original valid operation remains consistent.
 
