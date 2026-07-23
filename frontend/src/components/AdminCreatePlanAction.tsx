@@ -437,7 +437,7 @@ export function AdminCreatePlanAction({
           />
         </label>
 
-        <label className="admin-checkbox-field">
+        <label className="admin-checkbox-field admin-create-plan-enabled-toggle">
           <input
             type="checkbox"
             checked={enabled}

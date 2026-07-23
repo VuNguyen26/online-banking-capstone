@@ -309,11 +309,11 @@ export const translations = {
     adminDepositInspectionHeading:
       'Kiểm tra khoản tiền gửi',
     adminDepositInspectionDescription:
-      'Nhập deposit ID để đọc snapshot trực tiếp từ SavingCore. Chức năng này hoàn toàn chỉ đọc.',
-    adminDepositId:
-      'Deposit ID',
+      'Nhập mã khoản tiền gửi để đọc dữ liệu trực tiếp từ SavingCore. Chức năng này hoàn toàn chỉ đọc.',
+    adminDepositId: 'Mã khoản tiền gửi',
+    adminDepositIdPlaceholder: 'Nhập mã khoản tiền gửi',
     adminDepositSearch:
-      'Tra cứu deposit',
+      'Tra cứu khoản tiền gửi',
     adminDepositSearching:
       'Đang tra cứu...',
     adminDepositLoading:
@@ -757,13 +757,35 @@ export const translations = {
     aiNeonAssistantLabel:
       'Trợ lý SafeBank',
     aiRiskQuestionPlaceholder:
-      'Ví dụ: Vault có đang thiếu vốn hoặc các liên kết hợp đồng có khớp không?',
+      'Nhập câu hỏi hoặc chọn một gợi ý bên trên.',
     aiReadOnlyNotice:
       'Trợ lý chỉ cung cấp giải thích read-only. Trợ lý không kết nối ví, không ký và không gửi giao dịch.',
     aiQuestionLabel:
       'Câu hỏi của bạn',
+    aiSuggestedQuestions:
+      'Câu hỏi gợi ý',
     aiBankingQuestionPlaceholder:
-      'Ví dụ: Giải thích APR của gói 1 hoặc khi nào khoản gửi 2 đáo hạn?',
+      'Nhập câu hỏi hoặc chọn một gợi ý bên trên.',
+    aiBankingSuggestionPlans:
+      'SafeBank hiện có những gói tiết kiệm nào?',
+    aiBankingSuggestionApr:
+      'APR của gói tiết kiệm được tính như thế nào?',
+    aiBankingSuggestionPenalty:
+      'Phí rút trước hạn của khoản gửi là bao nhiêu?',
+    aiBankingSuggestionMaturity:
+      'Khi nào khoản gửi đáo hạn và có thể tái tục?',
+    aiBankingSuggestionVault:
+      'Vault có đang thiếu vốn hoặc có lãi hoãn trả không?',
+    aiRiskSuggestionVault:
+      'Vault hiện có đang thiếu vốn không?',
+    aiRiskSuggestionPause:
+      'SavingCore hoặc VaultManager có đang tạm dừng không?',
+    aiRiskSuggestionRelationships:
+      'Các liên kết hợp đồng hiện có khớp không?',
+    aiRiskSuggestionOwnership:
+      'Ai đang là owner của SavingCore và VaultManager?',
+    aiRiskSuggestionPlans:
+      'Các gói tiết kiệm hiện có thông số như thế nào?',
     aiSubmit:
       'Hỏi trợ lý',
     aiSubmitting:
@@ -1104,8 +1126,8 @@ export const translations = {
       'Inspect a deposit',
     adminDepositInspectionDescription:
       'Enter a deposit ID to read its snapshot directly from SavingCore. This feature is strictly read-only.',
-    adminDepositId:
-      'Deposit ID',
+    adminDepositId: 'Deposit ID',
+    adminDepositIdPlaceholder: 'Enter deposit ID',
     adminDepositSearch:
       'Search deposit',
     adminDepositSearching:
@@ -1551,13 +1573,35 @@ export const translations = {
     aiNeonAssistantLabel:
       'SafeBank Assistant',
     aiRiskQuestionPlaceholder:
-      'Example: Is the vault underfunded or do all contract relationships match?',
+      'Enter a question or choose a suggestion above.',
     aiReadOnlyNotice:
       'This assistant is read-only. It cannot connect a wallet, sign, or submit transactions.',
     aiQuestionLabel:
       'Your question',
+    aiSuggestedQuestions:
+      'Suggested questions',
     aiBankingQuestionPlaceholder:
-      'Example: Explain plan 1 APR or when deposit 2 matures.',
+      'Enter a question or choose a suggestion above.',
+    aiBankingSuggestionPlans:
+      'Which saving plans are currently available?',
+    aiBankingSuggestionApr:
+      'How is a saving plan APR calculated?',
+    aiBankingSuggestionPenalty:
+      'What is the early-withdrawal penalty?',
+    aiBankingSuggestionMaturity:
+      'When does a deposit mature and when can it renew?',
+    aiBankingSuggestionVault:
+      'Is the vault underfunded or is any interest deferred?',
+    aiRiskSuggestionVault:
+      'Is VaultManager currently underfunded?',
+    aiRiskSuggestionPause:
+      'Are SavingCore or VaultManager currently paused?',
+    aiRiskSuggestionRelationships:
+      'Do all contract relationships currently match?',
+    aiRiskSuggestionOwnership:
+      'Who owns SavingCore and VaultManager?',
+    aiRiskSuggestionPlans:
+      'What are the current saving-plan parameters?',
     aiSubmit:
       'Ask assistant',
     aiSubmitting:

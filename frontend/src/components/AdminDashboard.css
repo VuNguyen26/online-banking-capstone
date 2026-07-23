@@ -485,3 +485,444 @@
     overflow-wrap: anywhere;
   }
 }
+
+/* SafeBank Admin UI polish pass 1 */
+
+.admin-overview {
+  padding:
+    clamp(24px, 4vw, 38px);
+}
+
+.admin-overview >
+  .admin-configuration-panel,
+.admin-overview >
+  .admin-plans-panel,
+.admin-overview >
+  .admin-vault-panel {
+  margin-top: 30px;
+  padding: 30px 0 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid
+    var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.admin-overview >
+  .admin-panel {
+  margin-top: 30px;
+}
+
+.admin-contract-card,
+.admin-relationships,
+.admin-pause-action,
+.admin-create-plan,
+.admin-plan-management,
+.admin-wallet-liquidity,
+.admin-vault-funding,
+.admin-vault-withdraw,
+.admin-fee-receiver-action,
+.admin-deposit-inspection,
+.admin-deposit-result {
+  background: var(--color-surface-subtle);
+  border-color: var(--color-border);
+  border-radius: var(--radius-inner);
+  box-shadow: none;
+}
+
+.admin-summary-card {
+  min-height: 110px;
+  padding: 20px;
+  background:
+    linear-gradient(
+      145deg,
+      #f7fbf9,
+      #eef7f2
+    );
+  border: 1px solid
+    var(--color-border);
+  border-radius: var(--radius-inner);
+}
+
+.admin-summary-card span {
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.admin-summary-card output {
+  color: var(--color-brand-950);
+  font-size:
+    clamp(1.35rem, 2.5vw, 1.72rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.admin-inline-form input,
+.admin-create-plan-form input,
+.admin-vault-funding-form input,
+.admin-vault-withdraw-form input,
+.admin-fee-receiver-form input,
+.admin-deposit-search-row input {
+  min-height: 46px;
+  border-radius: var(--radius-control);
+}
+
+.admin-inline-form,
+.admin-vault-funding-form,
+.admin-vault-withdraw-form,
+.admin-fee-receiver-form,
+.admin-deposit-search-row {
+  gap: 12px;
+}
+
+.admin-plan-management,
+.admin-vault-actions,
+.admin-pause-actions {
+  gap: 16px;
+}
+
+.admin-plan-management
+  .form-guidance,
+.admin-vault-actions
+  .form-guidance,
+.admin-pause-actions
+  .form-guidance {
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.admin-checkbox-field {
+  min-height: 46px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border: 1px solid
+    var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.danger-button {
+  min-height: 46px;
+  padding: 0.74rem 1rem;
+  border-radius: var(--radius-control);
+  font-weight: 750;
+}
+
+.admin-status-badge {
+  font-weight: 750;
+}
+
+@media (max-width: 700px) {
+  .admin-overview {
+    padding: 20px;
+  }
+
+  .admin-overview >
+    .admin-configuration-panel,
+  .admin-overview >
+    .admin-plans-panel,
+  .admin-overview >
+    .admin-vault-panel {
+    margin-top: 24px;
+    padding-top: 24px;
+  }
+
+  .admin-summary-card {
+    min-height: 96px;
+    padding: 17px;
+  }
+
+  .admin-contract-card,
+  .admin-relationships,
+  .admin-pause-action,
+  .admin-create-plan,
+  .admin-plan-management,
+  .admin-wallet-liquidity,
+  .admin-vault-funding,
+  .admin-vault-withdraw,
+  .admin-fee-receiver-action,
+  .admin-deposit-inspection,
+  .admin-deposit-result {
+    border-radius: 14px;
+  }
+}
+
+/* SafeBank Admin UI polish pass 2 */
+
+.admin-overview >
+  .section-heading:first-child
+  .eyebrow {
+  display: none;
+}
+
+.admin-write-access-notice {
+  display: grid;
+  grid-template-columns:
+    auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-top: 22px;
+  padding: 17px 18px;
+  color: var(--color-brand-950);
+  background:
+    linear-gradient(
+      135deg,
+      #f2f8f5,
+      #e8f4ee
+    );
+  border: 1px solid
+    var(--color-border);
+  border-radius: var(--radius-inner);
+}
+
+.admin-write-access-notice strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.admin-write-access-notice p {
+  margin: 3px 0 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.admin-write-access-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: #ffffff;
+  background: var(--color-brand-700);
+  border-radius: 999px;
+  font-family: Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.admin-write-access-notice
+  .secondary-button {
+  min-width: 170px;
+  margin: 0;
+}
+
+.admin-overview-disconnected
+  .admin-pause-actions,
+.admin-overview-disconnected
+  .admin-fee-receiver-action,
+.admin-overview-disconnected
+  .admin-create-plan,
+.admin-overview-disconnected
+  .admin-plan-management,
+.admin-overview-disconnected
+  .admin-vault-actions,
+.admin-overview-wrong-network
+  .admin-pause-actions,
+.admin-overview-wrong-network
+  .admin-fee-receiver-action,
+.admin-overview-wrong-network
+  .admin-create-plan,
+.admin-overview-wrong-network
+  .admin-plan-management,
+.admin-overview-wrong-network
+  .admin-vault-actions {
+  display: none;
+}
+
+.admin-overview-disconnected
+  .admin-configuration-panel,
+.admin-overview-wrong-network
+  .admin-configuration-panel {
+  padding-bottom: 0;
+}
+
+.admin-panel-heading
+  .section-kicker {
+  margin-bottom: 8px;
+  color: var(--color-brand-700);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.danger-button:disabled {
+  color: #7d8984;
+  background: #e5ebe8;
+  border-color: #d4ded9;
+  opacity: 1;
+}
+
+@media (max-width: 700px) {
+  .admin-write-access-notice {
+    grid-template-columns:
+      auto minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .admin-write-access-notice
+    .secondary-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+}
+/* SafeBank Admin UI polish pass 3 */
+
+.admin-write-access-notice
+  > div {
+  min-width: 0;
+}
+
+.admin-write-access-notice
+  strong {
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .admin-write-access-notice {
+    grid-template-columns:
+      auto minmax(0, 1fr);
+  }
+
+  .admin-write-access-notice
+    .secondary-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* SafeBank UI final corrections */
+
+.admin-deposit-inspection {
+  padding:
+    clamp(24px, 3vw, 32px);
+}
+
+.admin-deposit-inspection
+  .admin-panel-heading {
+  margin: 0 0 26px;
+  padding: 0;
+}
+
+.admin-deposit-inspection
+  .admin-panel-heading h2 {
+  margin-top: 7px;
+}
+
+.admin-deposit-inspection
+  .admin-panel-heading p:last-child {
+  max-width: 72ch;
+  margin-bottom: 0;
+  line-height: 1.65;
+}
+
+.admin-deposit-search-form {
+  margin-top: 0;
+}
+
+.admin-deposit-search-row {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 14px;
+}
+
+.admin-deposit-search-row input {
+  min-width: 0;
+}
+
+.admin-deposit-search-row
+  .primary-button {
+  min-width: 190px;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .admin-deposit-inspection {
+    padding: 20px;
+  }
+
+  .admin-deposit-inspection
+    .admin-panel-heading {
+    margin-bottom: 22px;
+  }
+
+  .admin-deposit-search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-deposit-search-row
+    .primary-button {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* SafeBank compact create-plan toggle */
+
+.admin-create-plan-enabled-toggle {
+  align-self: end;
+  justify-self: start;
+  display: inline-flex;
+  width: fit-content;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0 0 7px;
+  padding: 0 4px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 11px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.admin-create-plan-enabled-toggle:hover {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-create-plan-enabled-toggle:focus-within {
+  outline:
+    3px solid
+    rgba(25, 119, 89, 0.18);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.admin-create-plan-enabled-toggle
+  input[type="checkbox"] {
+  width: 19px;
+  height: 19px;
+  min-width: 19px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color:
+    var(--color-brand-700, #176f56);
+  cursor: pointer;
+}
+
+.admin-create-plan-enabled-toggle
+  span {
+  line-height: 1.35;
+  font-weight: 700;
+  color:
+    var(--color-ink-900, #183229);
+}
+
+@media (max-width: 700px) {
+  .admin-create-plan-enabled-toggle {
+    min-height: 40px;
+    margin: 0;
+  }
+}

@@ -212,6 +212,30 @@ describe('RiskAssistantPanel', () => {
     ).toBeInTheDocument()
   })
 
+  it('shows localized deterministic risk questions', () => {
+    renderPanel({
+      ask: vi.fn(
+        async (request) =>
+          createAnswer(
+            request.language,
+          ),
+      ),
+    })
+
+    expect(
+      screen.getByText(
+        'Câu hỏi gợi ý',
+      ),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('button', {
+        name:
+          'Vault hiện có đang thiếu vốn không?',
+      }),
+    ).toBeInTheDocument()
+  })
+
   it('follows the saved English language preference', () => {
     localStorage.setItem(
       'safebank.language',
@@ -235,8 +259,15 @@ describe('RiskAssistantPanel', () => {
 
     expect(
       screen.getByPlaceholderText(
-        'Example: Is the vault underfunded or do all contract relationships match?',
+        'Enter a question or choose a suggestion above.',
       ),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('button', {
+        name:
+          'Do all contract relationships currently match?',
+      }),
     ).toBeInTheDocument()
   })
 })

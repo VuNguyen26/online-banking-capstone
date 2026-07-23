@@ -54,6 +54,8 @@ const LABELS: AssistantPanelLabels = {
   questionLabel: 'Question',
   questionPlaceholder:
     'Ask about SafeBank',
+  suggestedQuestionsLabel:
+    'Suggested questions',
   submit: 'Ask assistant',
   submitting: 'Analyzing...',
   clear: 'Clear',
@@ -93,6 +95,10 @@ function renderPanel(
       language="en"
       context={CONTEXT}
       client={client}
+      suggestedQuestions={[
+        'Explain the vault',
+        'Review saving plans',
+      ]}
       labels={LABELS}
     />,
   )
@@ -117,6 +123,34 @@ describe('AssistantPanel', () => {
         'Read-only advisory.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it('fills the input from a suggested question without submitting automatically', async () => {
+    const user = userEvent.setup()
+
+    const ask = vi.fn(
+      async () => ANSWER,
+    )
+
+    renderPanel({ ask })
+
+    const textbox =
+      screen.getByRole('textbox', {
+        name: 'Question',
+      })
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Explain the vault',
+      }),
+    )
+
+    expect(textbox).toHaveValue(
+      'Explain the vault',
+    )
+
+    expect(textbox).toHaveFocus()
+    expect(ask).not.toHaveBeenCalled()
   })
 
   it('shows deterministic input validation before calling the client', async () => {
@@ -144,6 +178,20 @@ describe('AssistantPanel', () => {
 
   it('submits normalized input and renders plain-text answer sections', async () => {
     const user = userEvent.setup()
+
+    const scrollIntoView =
+      vi.fn()
+
+    Object.defineProperty(
+      HTMLElement.prototype,
+      'scrollIntoView',
+      {
+        configurable: true,
+        writable: true,
+        value: scrollIntoView,
+      },
+    )
+
     const ask = vi.fn(
       async () => ANSWER,
     )
@@ -190,6 +238,13 @@ describe('AssistantPanel', () => {
         name: 'Next step',
       }),
     ).toBeInTheDocument()
+
+    expect(
+      scrollIntoView,
+    ).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+    })
   })
 
   it('shows a safe fallback when the client fails', async () => {

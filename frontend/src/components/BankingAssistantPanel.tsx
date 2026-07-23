@@ -61,6 +61,8 @@ export function BankingAssistantPanel({
           t(
             'aiBankingQuestionPlaceholder',
           ),
+        suggestedQuestionsLabel:
+          t('aiSuggestedQuestions'),
         submit: t('aiSubmit'),
         submitting:
           t('aiSubmitting'),
@@ -97,6 +99,18 @@ export function BankingAssistantPanel({
       [t],
     )
 
+  const suggestedQuestions =
+    useMemo(
+      () => [
+        t('aiBankingSuggestionPlans'),
+        t('aiBankingSuggestionApr'),
+        t('aiBankingSuggestionPenalty'),
+        t('aiBankingSuggestionMaturity'),
+        t('aiBankingSuggestionVault'),
+      ],
+      [t],
+    )
+
   return (
     <AssistantPanel
       title={t('aiBankingTitle')}
@@ -109,6 +123,9 @@ export function BankingAssistantPanel({
       language={language}
       context={context}
       client={client}
+      suggestedQuestions={
+        suggestedQuestions
+      }
       labels={labels}
     />
   )

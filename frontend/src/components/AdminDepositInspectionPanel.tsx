@@ -199,7 +199,7 @@ export function AdminDepositInspectionPanel({
             inputMode="numeric"
             value={depositIdInput}
             disabled={isLoading}
-            placeholder="1"
+            placeholder={t('adminDepositIdPlaceholder')}
             onChange={(event) => {
               setDepositIdInput(
                 event.target.value,

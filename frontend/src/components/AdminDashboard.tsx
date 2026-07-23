@@ -42,6 +42,11 @@ type AdminDashboardProps = {
   ) => void
 }
 
+type AdminWriteAccess =
+  | 'ready'
+  | 'disconnected'
+  | 'wrong-network'
+
 export function AdminDashboard({
   wallet,
   onViewChange,
@@ -49,13 +54,31 @@ export function AdminDashboard({
   const admin = useAdminData()
   const { t } = useLanguage()
 
+  const writeAccess: AdminWriteAccess =
+    !wallet.isConnected
+      ? 'disconnected'
+      : !wallet.isSepolia
+        ? 'wrong-network'
+        : 'ready'
+
+  const writeAccessMessage =
+    writeAccess === 'disconnected'
+      ? t('adminWalletDisconnected')
+      : writeAccess === 'wrong-network'
+        ? t('adminSwitchSepoliaAction')
+        : null
+
   return (
     <ApplicationShell
       activeView="admin"
       onViewChange={onViewChange}
     >
       <section
-        className="panel admin-overview"
+        className={[
+          'panel',
+          'admin-overview',
+          `admin-overview-${writeAccess}`,
+        ].join(' ')}
         aria-labelledby="admin-overview-heading"
       >
         <div className="section-heading">
@@ -141,6 +164,62 @@ export function AdminDashboard({
                 </output>
               </article>
             </div>
+
+            {writeAccessMessage ? (
+              <aside
+                className="admin-write-access-notice"
+                role="status"
+                aria-live="polite"
+              >
+                <span
+                  className="admin-write-access-icon"
+                  aria-hidden="true"
+                >
+                  i
+                </span>
+
+                <div>
+                  <strong>
+                    {writeAccessMessage}
+                  </strong>
+                </div>
+
+                {writeAccess ===
+                'disconnected' ? (
+                  wallet.walletAvailable ? (
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      disabled={
+                        wallet.isConnecting
+                      }
+                      onClick={() => {
+                        void wallet.connectWallet()
+                      }}
+                    >
+                      {t(
+                        'adminConnectWalletAction',
+                      )}
+                    </button>
+                  ) : null
+                ) : (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={
+                      wallet.isSwitchingNetwork
+                    }
+                    onClick={() => {
+                      void wallet.switchToSepolia()
+                    }}
+                  >
+                    {t(
+                      'adminSwitchSepoliaAction',
+                    )}
+                  </button>
+                )}
+              </aside>
+            ) : null}
 
             <RiskAssistantLauncher
               data={admin.data}

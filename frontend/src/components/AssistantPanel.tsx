@@ -28,6 +28,7 @@ import './AssistantPanel.css'
 export type AssistantPanelLabels = {
   questionLabel: string
   questionPlaceholder: string
+  suggestedQuestionsLabel: string
   submit: string
   submitting: string
   clear: string
@@ -55,6 +56,7 @@ type AssistantPanelProps<TContext> = {
   language: Language
   context: TContext
   client: AssistantClient<TContext>
+  suggestedQuestions: readonly string[]
   labels: AssistantPanelLabels
 }
 
@@ -74,6 +76,7 @@ export function AssistantPanel<TContext>({
   language,
   context,
   client,
+  suggestedQuestions,
   labels,
 }: AssistantPanelProps<TContext>) {
   const titleId = useId()
@@ -103,6 +106,16 @@ export function AssistantPanel<TContext>({
     setIsLoading,
   ] = useState(false)
 
+  const textareaRef =
+    useRef<HTMLTextAreaElement | null>(
+      null,
+    )
+
+  const responseRef =
+    useRef<HTMLElement | null>(
+      null,
+    )
+
   const requestId = useRef(0)
   const abortController =
     useRef<AbortController | null>(null)
@@ -114,6 +127,18 @@ export function AssistantPanel<TContext>({
     }
   }, [])
 
+  useEffect(() => {
+    if (answer === null) {
+      return
+    }
+
+    responseRef.current
+      ?.scrollIntoView?.({
+        behavior: 'smooth',
+        block: 'start',
+      })
+  }, [answer])
+
   const clear = () => {
     requestId.current += 1
     abortController.current?.abort()
@@ -123,6 +148,15 @@ export function AssistantPanel<TContext>({
     setAnswer(null)
     setError(null)
     setIsLoading(false)
+  }
+
+  const selectSuggestedQuestion = (
+    suggestedQuestion: string,
+  ) => {
+    setQuestion(suggestedQuestion)
+    setAnswer(null)
+    setError(null)
+    textareaRef.current?.focus()
   }
 
   const submit = async (
@@ -242,6 +276,40 @@ export function AssistantPanel<TContext>({
         {readOnlyNotice}
       </p>
 
+      {suggestedQuestions.length > 0 ? (
+        <div
+          className="ai-assistant-suggestions"
+          aria-labelledby={`${titleId}-suggestions`}
+        >
+          <p
+            id={`${titleId}-suggestions`}
+            className="ai-assistant-suggestions-label"
+          >
+            {labels.suggestedQuestionsLabel}
+          </p>
+
+          <div className="ai-assistant-suggestion-list">
+            {suggestedQuestions.map(
+              (suggestedQuestion) => (
+                <button
+                  key={suggestedQuestion}
+                  type="button"
+                  className="ai-assistant-suggestion"
+                  disabled={isLoading}
+                  onClick={() => {
+                    selectSuggestedQuestion(
+                      suggestedQuestion,
+                    )
+                  }}
+                >
+                  {suggestedQuestion}
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+      ) : null}
+
       <form
         className="ai-assistant-form"
         onSubmit={(event) => {
@@ -253,6 +321,7 @@ export function AssistantPanel<TContext>({
         </label>
 
         <textarea
+          ref={textareaRef}
           id={`${titleId}-question`}
           rows={4}
           value={question}
@@ -322,6 +391,7 @@ export function AssistantPanel<TContext>({
 
       {answer !== null ? (
         <section
+          ref={responseRef}
           className="ai-assistant-response"
           aria-labelledby={
             responseHeadingId

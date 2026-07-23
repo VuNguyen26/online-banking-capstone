@@ -174,6 +174,30 @@ describe('BankingAssistantPanel', () => {
     ).toBeInTheDocument()
   })
 
+  it('shows localized deterministic banking questions', () => {
+    renderPanel({
+      ask: vi.fn(
+        async (request) =>
+          createAnswer(
+            request.language,
+          ),
+      ),
+    })
+
+    expect(
+      screen.getByText(
+        'Câu hỏi gợi ý',
+      ),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('button', {
+        name:
+          'APR của gói tiết kiệm được tính như thế nào?',
+      }),
+    ).toBeInTheDocument()
+  })
+
   it('follows the saved English language preference', () => {
     localStorage.setItem(
       'safebank.language',

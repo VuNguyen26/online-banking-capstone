@@ -55,6 +55,8 @@ export function RiskAssistantPanel({
           t(
             'aiRiskQuestionPlaceholder',
           ),
+        suggestedQuestionsLabel:
+          t('aiSuggestedQuestions'),
         submit: t('aiSubmit'),
         submitting:
           t('aiSubmitting'),
@@ -91,6 +93,20 @@ export function RiskAssistantPanel({
       [t],
     )
 
+  const suggestedQuestions =
+    useMemo(
+      () => [
+        t('aiRiskSuggestionVault'),
+        t('aiRiskSuggestionPause'),
+        t(
+          'aiRiskSuggestionRelationships',
+        ),
+        t('aiRiskSuggestionOwnership'),
+        t('aiRiskSuggestionPlans'),
+      ],
+      [t],
+    )
+
   return (
     <AssistantPanel
       title={t('aiRiskTitle')}
@@ -103,6 +119,9 @@ export function RiskAssistantPanel({
       language={language}
       context={context}
       client={client}
+      suggestedQuestions={
+        suggestedQuestions
+      }
       labels={labels}
     />
   )
