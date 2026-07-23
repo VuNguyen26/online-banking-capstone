@@ -1,10 +1,56 @@
-# SafeBank — Blockchain Term Deposit System
+<h1 align="center">SafeBank</h1>
 
-SafeBank is an educational blockchain-based fixed-term savings application developed for the **Blockchain Programming Final Project — Online Banking System**.
+<p align="center">
+  <strong>Blockchain Term Deposit System</strong>
+</p>
+
+<p align="center">
+  A fixed-term savings protocol with transferable ERC721 certificates,<br>
+  separate principal and interest custody, principal-first settlement,<br>
+  and reserve-aware solvency controls.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Solidity-0.8.28-363636?style=flat-square&logo=solidity&logoColor=white" alt="Solidity 0.8.28">
+  <img src="https://img.shields.io/badge/Hardhat-2.28.6-C9A800?style=flat-square" alt="Hardhat 2.28.6">
+  <img src="https://img.shields.io/badge/React-19-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React 19">
+  <img src="https://img.shields.io/badge/TypeScript-Strict-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="Strict TypeScript">
+  <img src="https://img.shields.io/badge/Network-Sepolia-5B5BD6?style=flat-square&logo=ethereum&logoColor=white" alt="Ethereum Sepolia">
+</p>
+
+<p align="center">
+  <a href="#compile-and-test-contracts"><img src="https://img.shields.io/badge/Contract_tests-258_passing-2E7D32?style=flat-square" alt="258 contract tests passing"></a>
+  <a href="#run-the-frontend"><img src="https://img.shields.io/badge/Frontend_tests-256_passing-2E7D32?style=flat-square" alt="256 frontend tests passing"></a>
+  <a href="#compile-and-test-contracts"><img src="https://img.shields.io/badge/Production_coverage-98.40%25_branches-1565C0?style=flat-square" alt="98.40 percent production branch coverage"></a>
+  <a href="#sepolia-deployment"><img src="https://img.shields.io/badge/Etherscan-3_contracts_verified-1565C0?style=flat-square" alt="Three contracts verified on Etherscan"></a>
+</p>
+
+<p align="center">
+  <a href="#overview">Overview</a>
+  &middot;
+  <a href="#personal-variant">Personal Variant</a>
+  &middot;
+  <a href="#architecture">Architecture</a>
+  &middot;
+  <a href="#design-answers">Design Answers</a>
+  &middot;
+  <a href="#sepolia-deployment">Sepolia Deployment</a>
+  &middot;
+  <a href="#compile-and-test-contracts">Testing</a>
+  &middot;
+  <a href="#documentation">Documentation</a>
+</p>
+
+---
+
+## Overview
+
+SafeBank is an educational blockchain-based fixed-term savings application developed for the **Blockchain Programming Final Project - Online Banking System**.
 
 Users deposit six-decimal MockUSDC into `SavingCore`, receive a transferable ERC721 deposit certificate, and later withdraw or renew according to the deposit's on-chain state. Bank-funded interest is held separately in `VaultManager`.
 
-> **Educational use only:** MockUSDC is freely mintable test currency with no real-world monetary value. SafeBank is not a production banking service and has not received an independent professional security audit.
+> [!NOTE]
+> MockUSDC is freely mintable test currency with no real-world monetary value. SafeBank is not a production banking service and has not received an independent professional security audit.
 
 ## Personal Variant
 
@@ -30,27 +76,33 @@ All MockUSDC calculations use six-decimal smallest units:
 - scripts, tests, and frontend calculations use `parseUnits(value, 6)`;
 - `parseEther` is not used for MockUSDC amounts.
 
-## Project Status
+## Validation Snapshot
 
-Implemented and locally validated:
+| Area | Last validated result |
+|---|---|
+| Smart-contract suite | `258` tests passing |
+| Deployment regression | `5` tests passing |
+| Production-contract coverage | `100%` statements, `98.40%` branches, `100%` functions, `100%` lines |
+| Complete-project coverage | `99.11%` statements, `97.17%` branches, `96.97%` functions, `96.98%` lines |
+| Frontend suite | `65` test files and `256` tests passing |
+| Frontend quality gates | `0` Oxlint warnings or errors; TypeScript and production build passing |
+| Sepolia deployment | Three production contracts deployed and verified on Etherscan |
+| Repository audit | Documentation reconciled, repository audited, and tracked source clean |
+
+Implemented product scope includes:
 
 - all mandatory smart-contract flows;
-- Bonus C1 — Principal-First Settlement;
-- Bonus C2 — Solvency Guard;
+- Bonus C1 - Principal-First Settlement;
+- Bonus C2 - Solvency Guard;
 - deterministic local deployment and demo seed;
 - guarded Sepolia deployment and state verification;
-- Etherscan source verification for all three production contracts;
-- React User Banking App;
-- React Admin Portal;
-- responsive loading, empty, error, confirmation, and transaction states;
+- React User Banking App and Admin Portal;
+- Vietnamese and English interfaces;
 - deterministic Banking and Risk Assistants;
-- Vietnamese and English frontend interfaces;
-- complete contract and frontend automated test suites.
+- responsive loading, empty, error, confirmation, and transaction states.
 
 Remaining final-submission work:
 
-- final documentation reconciliation;
-- final repository audit;
 - demonstration video;
 - final submission packaging.
 
