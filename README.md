@@ -1,825 +1,1017 @@
-# SafeBank — Online Banking System
+# SafeBank — Blockchain Term Deposit System
 
-SafeBank is a blockchain-based fixed-term savings system developed for the Blockchain Programming Capstone Project.
+SafeBank is an educational blockchain-based fixed-term savings application developed for the **Blockchain Programming Final Project — Online Banking System**.
 
-Users will deposit six-decimal MockUSDC into a smart contract, receive an ERC721 deposit certificate, and later withdraw, renew, or claim eligible interest according to the on-chain deposit state.
+Users deposit six-decimal MockUSDC into `SavingCore`, receive a transferable ERC721 deposit certificate, and later withdraw or renew according to the deposit's on-chain state. Bank-funded interest is held separately in `VaultManager`.
 
-> SafeBank is an educational project. MockUSDC is a freely mintable test token with no real-world monetary value.
+> **Educational use only:** MockUSDC is freely mintable test currency with no real-world monetary value. SafeBank is not a production banking service and has not received an independent professional security audit.
 
-## Current Status
+## Personal Variant
 
-Current phase:
+Student ID: `3122560090`
 
-**Phase 18 — deterministic read-only assistants implemented and locally validated; documentation and Git finalization are in progress**
+The final two digits are:
 
-Phase 14 public deployment:
+- `A = 0`;
+- `B = 9`.
 
-| Item | Value |
-|---|---|
-| Network | Ethereum Sepolia |
-| Chain ID | `11155111` |
-| Deployer, administrator, and fee receiver | `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9` |
-| Confirmation policy | 2 confirmations |
-| MockUSDC | `0xcf779EC5D80573D3254054a17c5B4f0117491662` |
-| VaultManager | `0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7` |
-| SavingCore | `0xa35c55e7E2dB5874699cC9fb8d0E25032f51b443` |
-| Canonical plan | Plan ID `1` |
-| Etherscan source verification | Successful for all three contracts |
-
-Public deployment transactions:
-
-| Action | Transaction hash | Block |
+| Parameter | Assignment formula | SafeBank value |
 |---|---|---:|
-| Deploy MockUSDC | `0xa81c48442241a266792a81f735a5af0af1a3fa9251978b2ac9edeb6d4fe7b28a` | `11320265` |
-| Deploy VaultManager | `0x815109fdaa03422d1b8692e80d1d9f8ec3ba25b3d21a5488e90b7347f66a7dbf` | `11320267` |
-| Deploy SavingCore | `0xbfcd2b495cac445e3f7af8c29d9d93fdbf6ff2e491d788f4392d67945d3c3883` | `11320269` |
-| Authorize SavingCore | `0x6c665a22b299c14297c7492c9bf218475a8270702ac162a8ac6d92d78cc56061` | `11320271` |
-| Create canonical plan | `0x8913d7f10bb4e952f08543cd6ee550ff4285e9214c6656042b9dd5edb086415b` | `11320273` |
+| Grace period | `(A mod 3) + 2 days` | `2 days` |
+| Default plan APR | `200 + A × 25 bps` | `200 bps = 2.00%` |
+| Early-withdrawal penalty | `300 + B × 50 bps` | `750 bps = 7.50%` |
+| Default plan tenor | `B` odd → `180 days` | `180 days` |
+| MockUSDC decimals | Fixed assignment requirement | `6` |
 
-Validated public initial state:
+All MockUSDC calculations use six-decimal smallest units:
 
-- plan count `1`;
-- deposit count `0`;
-- canonical plan: 180 days, 200-bps APR, 100–10,000 mUSDC limits,
-  750-bps early-withdrawal penalty, enabled;
-- VaultManager balance `0`;
-- total reserved interest `0`;
-- available liquidity `0`;
-- funding shortfall `0`;
-- SavingCore and VaultManager unpaused;
-- no demo balances minted;
-- no vault funding;
-- no default deposits.
+- `1 mUSDC = 1,000,000` units;
+- `1,000 mUSDC = 1,000,000,000` units;
+- scripts, tests, and frontend calculations use `parseUnits(value, 6)`;
+- `parseEther` is not used for MockUSDC amounts.
 
-The public workflow was rerun idempotently: all three contracts were reused,
-authorization was skipped, plan ID `1` was preserved, nonce stayed at `5`,
-and no additional SepoliaETH was spent.
+## Project Status
 
-Etherscan source verification proves source-to-bytecode matching for the
-submitted compiler settings and constructor arguments. It is not an
-independent professional security audit.
+Implemented and locally validated:
 
-Retained Phase 13 local-deployment checkpoint:
+- all mandatory smart-contract flows;
+- Bonus C1 — Principal-First Settlement;
+- Bonus C2 — Solvency Guard;
+- deterministic local deployment and demo seed;
+- guarded Sepolia deployment and state verification;
+- Etherscan source verification for all three production contracts;
+- React User Banking App;
+- React Admin Portal;
+- responsive loading, empty, error, confirmation, and transaction states;
+- deterministic Banking and Risk Assistants;
+- Vietnamese and English frontend interfaces;
+- complete contract and frontend automated test suites.
 
-- `hardhat.config.ts` local-network and named-account configuration;
-- `.gitignore` policy for local deployment records;
-- `deploy/00_deploy_mock_usdc.ts`;
-- `deploy/01_deploy_vault_manager.ts`;
-- `deploy/02_deploy_saving_core.ts`;
-- `deploy/03_authorize_saving_core.ts`;
-- `deploy/04_seed_demo.ts`;
-- `scripts/verify-local-deployment.ts`;
-- `test/Deployment.test.ts`;
-- local deployment, verification, and focused-test npm workflows;
-- production-only ABI export allowlist;
-- Phase 13 documentation alignment.
+Remaining final-submission work:
 
-Phase 13 implementation includes:
+- final documentation reconciliation;
+- final repository audit;
+- demonstration video;
+- final submission packaging.
 
-- explicit local network support for `hardhat` and `localhost`;
-- chain ID `31337` enforcement in every Phase 13 deployment script;
-- rejection of nonlocal networks by the deploy and seed workflow;
-- deterministic named accounts for deployer/admin, fee receiver, two demo
-  users, and a low-privilege keeper;
-- deployment order:
-  1. MockUSDC;
-  2. VaultManager;
-  3. SavingCore;
-  4. one-time SavingCore authorization;
-  5. deterministic demo seed;
-- exact constructor configuration:
-  - `MockUSDC()`;
-  - `VaultManager(token, admin, feeReceiver)`;
-  - `SavingCore(token, vaultManager, admin)`;
-- dependency, bytecode, owner, pause, fee receiver, token, vault, and
-  authorization verification after deployment;
-- canonical plan ID `1` with 180-day tenor, 200-bps APR, 100–10,000 mUSDC
-  limits, 750-bps early-withdrawal penalty, and enabled status;
-- demo user target balances of 5,000 and 10,000 mUSDC;
-- VaultManager target balance of 25,000 mUSDC;
-- no default deposit creation;
-- idempotent authorization, plan, user-balance, and vault-funding behavior;
-- persistent `localhost` deployment records ignored by Git;
-- ephemeral `hardhat` deployment without saved records;
-- read-only post-deployment verification with structured JSON output;
-- ABI export restricted to MockUSDC, VaultManager, and SavingCore.
+Rich NFT metadata and a custom `tokenURI` are intentionally not implemented.
 
-Phase 13 validation completed:
+## Implemented Scope
 
-- clean Solidity compilation using Solidity `0.8.28`, optimizer `1,000` runs,
-  and `viaIR`;
-- TypeScript validation with `npx tsc --noEmit`;
-- ephemeral `hardhat` deployment and deterministic seed;
-- persistent `localhost` reset deployment;
-- two successful `verify:local` runs;
-- successful idempotent `deploy:local` rerun with reused contracts and no
-  duplicate seed state;
-- three deployed contracts with nonempty bytecode;
-- matching token, vault, ownership, fee-receiver, authorization, and Personal
-  Variant configuration;
-- seeded state:
-  - plan count `1`;
-  - deposit count `0`;
-  - demo user balances `5000.0` and `10000.0` mUSDC;
-  - vault balance `25000.0` mUSDC;
-  - reserved interest `0.0` mUSDC;
-  - available liquidity `25000.0` mUSDC;
-  - funding shortfall `0.0` mUSDC;
-- 5 focused deployment workflow tests;
-- **258 passing** across the complete project suite;
-- production-contract coverage of 100% statements, 98.40% branches,
-  100% functions, and 100% lines;
-- complete project coverage of 99.11% statements, 97.17% branches,
-  96.97% functions, and 96.98% lines;
-- exactly three retained production ABI files;
-- local node shutdown and temporary-log cleanup verified.
+### Mandatory Capstone Scope
 
-Phase 15 User Banking App validation completed:
+SafeBank implements:
 
-- React 19, TypeScript, Vite, ethers v6, Vitest, Testing Library, and Oxlint;
-- public Sepolia reads through an ethers JsonRpcProvider;
-- wallet-authorized writes through an ethers BrowserProvider and signer;
-- browser-wallet connection, account state, chain detection, and Sepolia switching;
-- public protocol, saving-plan, account, and C2 interest-vault metrics;
-- permissionless Sepolia test-token faucet for MockUSDC;
-- exact-amount MockUSDC approval and saving-deposit opening;
-- owned ERC721 deposit-certificate portfolio;
-- early withdrawal, maturity withdrawal, manual renewal, and permissionless auto-renewal;
-- C1 deferred-interest visibility and claims;
-- Vietnamese and English UI with Vietnamese as the default;
-- persisted language preference and synchronized HTML language metadata;
-- localized deterministic validation and internal provider/transaction errors while preserving external RPC and revert messages;
-- 32 passing frontend test files and 146 passing frontend tests;
-- zero Oxlint warnings or errors;
-- successful TypeScript validation and Vite production build;
-- successful production preview smoke test with HTTP 200 for the HTML entry point and all five generated assets.
+- six-decimal permissionless-mint `MockUSDC`;
+- separate principal and interest custody;
+- administrator-managed saving plans;
+- immutable APR, penalty, and tenor snapshots per deposit;
+- ERC721 deposit certificates;
+- maturity withdrawal;
+- early withdrawal with snapshotted penalty;
+- manual renewal during the two-day grace period;
+- permissionless auto-renew after the grace period;
+- pause and unpause controls;
+- required lifecycle events;
+- Hardhat test coverage above 90%;
+- React demonstration frontend;
+- all seven required Design Answers.
 
-Phase 16 Admin Portal validation completed:
+### Selected Bonus Challenges
 
-- shared User Banking App and Admin Portal shell with internal view switching;
-- AdminDataProvider mounted only while the Admin Portal is active;
-- public Sepolia reads without requiring wallet connection;
-- separate SavingCore-owner and VaultManager-owner authorization;
-- owner, pending-owner, pause-state, fee-receiver, contract-relationship,
-  deposit-count, saving-plan, and vault-solvency visibility;
-- saving-plan creation, APR updates, and independent enable or disable actions;
-- exact-amount MockUSDC approval followed by separate VaultManager funding;
-- withdrawals restricted in the UI to available VaultManager liquidity;
-- fee-receiver updates with address validation;
-- independent SavingCore and VaultManager pause or unpause actions;
-- strictly read-only deposit inspection by deposit ID;
-- reusable transaction lifecycle feedback with Sepolia Etherscan links;
-- Vietnamese and English interfaces with Vietnamese as the default;
-- no frontend private key, unlimited approval, active-deposit editing, or
-  exposure of the deployment-only SavingCore authorization operation;
-- no smart-contract, deployment, Hardhat-configuration, or dependency changes;
-- complete frontend tests, TypeScript validation, Oxlint, production build,
-  Hardhat compilation, contract tests, and whitespace checks succeeded.
+SafeBank implements both selected bonus challenges:
 
-Current limitations and pending work:
+- **C1 — Principal-First Settlement:** principal can be returned at maturity even when the interest vault cannot pay the complete calculated interest. The full unpaid amount becomes a claimant-specific pending liability.
+- **C2 — Solvency Guard:** expected and pending interest are reserved, exposed through solvency metrics, and excluded from administrator-withdrawable vault liquidity.
 
-- Phase 18 documentation review, repository audits, staging, commit, push,
-  remote verification, checkpoint, and handoff remain pending;
-- rich NFT metadata, demonstration video, and final submission remain pending;
-- the assistants are deterministic rule-based explanation engines, not an
-  external LLM integration;
-- the Spline robot launcher requires its external scene host and may display
-  Spline branding;
-- the User Banking App and Admin Portal target Ethereum Sepolia and are not
-  production banking services;
-- local deterministic addresses remain development-only; the frontend uses
-  the tracked and verified public Sepolia deployment addresses.
+### Product Extensions
 
-Previous completed phases:
+The project additionally implements:
 
-- Phase 0: project, environment, Git, and GitHub initialization;
-- Phase 1: architecture, security, UI/UX, and design-decision documentation;
-- Phase 2: six-decimal MockUSDC contract and tests;
-- Phase 3: base VaultManager contract and tests;
-- Phase 4: SavingCore foundation and saving-plan management;
-- Phase 5: deposit opening, financial-term snapshots, principal custody, and
-  ERC721 deposit certificates;
-- Phase 6: base maturity withdrawal flow;
-- Phase 7: early withdrawal with snapshotted penalty and atomic settlement;
-- Phase 8: manual renewal during the two-day grace period;
-- Phase 9: permissionless auto-renewal after the grace period;
-- Phase 10: hardening, regression, security, and documentation alignment;
-- Phase 11: Bonus C1 principal-first settlement and deferred-interest claims;
-- Phase 12: Bonus C2 reserved-interest solvency guard;
-- Phase 13: deterministic local deployment scripts and demo seed.
+- Vietnamese and English User Banking App;
+- Admin Portal in the same React application;
+- explicit transaction confirmation workflows;
+- deterministic Banking Assistant;
+- deterministic Risk Assistant;
+- responsive Spline robot assistant launcher;
+- local and Sepolia deployment verification utilities.
 
-## Current Implementation Status
+The assistants are local deterministic explanation engines. They do not call an external LLM, connect a wallet, obtain a signer, or submit transactions.
 
-Completed:
+## Architecture
 
-- Hardhat, TypeScript, coverage, Git, and GitHub setup
-- Architecture, security, UI/UX, and design-decision documentation
-- Six-decimal permissionless `MockUSDC`
-- Base `VaultManager`
-- SavingCore ownership, pause, and saving-plan management
-- Deposit opening, immutable financial snapshots, principal custody, and
-  ERC721 deposit certificates
-- Maturity withdrawal, early withdrawal, manual renewal, and permissionless
-  auto-renewal
-- Current NFT owner economic rights and historical NFT retention
-- Exact maturity and grace-period boundaries
-- C1 principal-first maturity settlement
-- Full-value deferred interest and fixed claimant snapshots
-- Claimant-only pending-interest claims with rollback and reentrancy protection
-- C2 aggregate reserved-interest accounting
-- Reservation, release, consumption, and renewal reserve transitions
-- Undercollateralized deposit opening with explicit funding shortfall
-- Vault available-liquidity calculation and owner-withdrawal protection
-- Production ABI export restricted to MockUSDC, SavingCore, and VaultManager
-- Local-only deployment scripts with chain-ID and network guards
-- Deterministic named local roles
-- One-time SavingCore authorization workflow
-- Idempotent canonical-plan and demo-liquidity seed
-- Ephemeral Hardhat and persistent localhost deployment modes
-- Read-only local deployment verification
-- Dedicated Sepolia deployment workflow separated from local demo seeding
-- Sepolia preflight validation for network, signer, nonce, balance, fee budget,
-  deployment-record state, and predicted addresses
-- Public deployment of MockUSDC, VaultManager, and SavingCore
-- One-time public SavingCore authorization and canonical plan ID `1`
-- Read-only public state and receipt verification
-- Idempotent public deployment rerun
-- Tracked public deployment records and compact machine-readable metadata
-- Etherscan source verification for all three production contracts
-- Deployment fixture regression tests
-- 258 passing tests
-- Production coverage of 100% statements, 98.40% branches, 100% functions,
-  and 100% lines
+SafeBank uses three production contracts.
 
-- Phase 15 User Banking App
-- Phase 16 Admin Portal
-- Phase 18 deterministic Banking and Risk Assistants
-- Structured read-only assistant context and input-safety layer
-- Vietnamese and English assistant UI
-- Floating Spline 3D launcher with responsive dialog
-- 65 passing frontend test files and 256 passing frontend tests
-- Successful frontend lint, typecheck, and production build
+| Contract | Responsibility |
+|---|---|
+| `MockUSDC` | Six-decimal ERC20 test token with public minting |
+| `SavingCore` | Saving plans, principal custody, deposit lifecycle, ERC721 certificates, C1 pending interest, and C2 liability accounting |
+| `VaultManager` | Bank-funded interest liquidity, fee receiver, interest payouts, administrator withdrawals, and solvency reads |
 
-Not implemented yet:
+The primary custody invariant is:
 
-- Rich NFT metadata or custom `tokenURI`
-- Demo video
-- Final submission audit
+> `SavingCore` holds user principal. `VaultManager` holds bank-funded interest liquidity.
 
-Mandatory contract flows, Bonus C1, Bonus C2, deterministic local deployment,
-the verified Sepolia deployment, the User Banking App, the Admin Portal, and
-the deterministic read-only assistants are implemented and validated locally.
+Interest is never funded from another depositor's principal.
 
-Documentation and Git finalization for Phase 18 remain in progress.
+The contracts are non-upgradeable. This avoids proxy administration, initializer, storage-layout, and upgrade-governance complexity for the Capstone.
+
+~~~mermaid
+flowchart LR
+    User[Depositor or NFT Owner]
+    Admin[Bank Administrator]
+    Keeper[Permissionless Keeper]
+    UI[React Frontend]
+
+    Token[MockUSDC]
+    Core[SavingCore]
+    Vault[VaultManager]
+    NFT[ERC721 Certificate]
+
+    UI --> User
+    UI --> Admin
+
+    User -->|approve and open deposit| Core
+    User -->|withdraw or manually renew| Core
+    Keeper -->|trigger auto-renew| Core
+    Admin -->|manage plans| Core
+    Admin -->|fund and manage vault| Vault
+
+    Core -->|principal custody| Token
+    Core -->|mint certificate| NFT
+    Core -->|request interest| Vault
+    Vault -->|bank-funded interest| Token
+~~~
 
 ## Core Contracts
 
 ### MockUSDC
 
-`MockUSDC` is now implemented as a six-decimal ERC20 test token using OpenZeppelin Contracts `5.3.0`.
+`MockUSDC` is a demonstration ERC20 token with:
 
-Implemented characteristics:
+- token name `Mock USD Coin`;
+- symbol `mUSDC`;
+- exactly 6 decimals;
+- public permissionless minting;
+- no backing, redemption, tax, blacklist, or real-world value.
 
-- contract name: `MockUSDC`;
-- token name: `Mock USD Coin`;
-- token symbol: `mUSDC`;
-- 6 decimals;
-- permissionless public minting for tests and demonstrations;
-- no owner restriction on minting;
-- no tax, blacklist, redemption, backing, or production stablecoin behavior;
-- no real-world monetary value.
-
-The exported project ABI is located at:
-
-`data/abi/contracts/MockUSDC.sol/MockUSDC.json`
-
-MockUSDC amounts must use six-decimal units.
-
-Examples:
-
-- `ethers.parseUnits("1", 6)` equals `1,000,000` smallest units;
-- `ethers.parseUnits("1000", 6)` equals `1,000,000,000` smallest units;
-- `parseEther` must not be used for MockUSDC amounts.
-### VaultManager
-
-`VaultManager` is the bank-funded interest-liquidity contract and the
-enforcement point for administrator withdrawal limits.
-
-Implemented characteristics:
-
-- immutable MockUSDC-compatible ERC20 reference;
-- initial owner configured through OpenZeppelin `Ownable`;
-- two-step ownership transfers through `Ownable2Step`;
-- nonzero initial fee receiver;
-- owner-only fee receiver updates;
-- owner-only vault funding through `SafeERC20.safeTransferFrom`;
-- funding remains available while paused for liquidity restoration;
-- one-time owner-only authorization of a deployed SavingCore-compatible
-  contract;
-- interest payout callable only by the authorized contract;
-- interest payout blocked while paused;
-- actual ERC20 balance used as the vault-balance source of truth;
-- `totalReservedInterest()` read from the authorized `SavingCore`;
-- zero reserve returned before SavingCore authorization;
-- `availableLiquidity()` equal to
-  `max(vaultBalance - totalReservedInterest, 0)`;
-- `fundingShortfall()` equal to
-  `max(totalReservedInterest - vaultBalance, 0)`;
-- owner withdrawal to the current owner while unpaused;
-- owner withdrawal rejected above available liquidity;
-- zero-address, zero-amount, authorization, pause, and liquidity validation;
-- reentrancy protection on token-moving entry points;
-- inherited pause, unpause, and ownership events;
-- explicit administrative and payout events.
-
-The exported project ABI is located at:
-
-`data/abi/contracts/VaultManager.sol/VaultManager.json`
-
-VaultManager does not hold user principal.
-
-`SavingCore` remains the authoritative source of aggregate interest
-liabilities. VaultManager reads that value through the internal
-`ISavingCoreReserve` interface after one-time authorization; the separate
-interface ABI is not retained as a production artifact.
-
-VaultManager does not contain:
-
-- per-deposit records;
-- C1 pending-interest mappings;
-- deposit lifecycle transitions;
-- reserve mutation functions callable by external users or administrators.
+Public minting is appropriate only for testing and demonstrations.
 
 ### SavingCore
 
-`SavingCore` is the central deposit lifecycle, certificate, principal-custody,
-C1, and C2 accounting contract.
+`SavingCore` is responsible for:
 
-Implemented characteristics include:
+- saving-plan creation and management;
+- principal custody;
+- plan validation;
+- deposit creation;
+- APR, penalty, and tenor snapshots;
+- ERC721 certificate minting;
+- maturity withdrawal;
+- early withdrawal;
+- manual renewal;
+- permissionless auto-renew;
+- pending-interest accounting;
+- pending-interest claims;
+- aggregate reserved-interest accounting;
+- lifecycle and financial events.
 
-- non-upgradeable OpenZeppelin ERC721 deployment;
-- collection name `SafeBank Deposit Certificate` and symbol `SBDC`;
-- immutable MockUSDC and VaultManager references with deployed-bytecode checks;
-- `Ownable2Step`, independent `Pausable`, `ReentrancyGuard`, and `SafeERC20`;
-- personal-variant constants:
-  - `GRACE_PERIOD = 2 days`;
-  - `DEFAULT_TENOR_DAYS = 180`;
-  - `DEFAULT_APR_BPS = 200`;
-  - `DEFAULT_EARLY_WITHDRAW_PENALTY_BPS = 750`;
-- saving-plan creation, APR updates, enable, disable, bounds, and reads;
-- deposit and NFT identifiers beginning at one with `tokenId == depositId`;
-- principal transfer into SavingCore;
-- immutable principal, tenor, APR, penalty, start, and maturity snapshots;
-- safe ERC721 certificate minting and complete rollback on failure;
-- maturity withdrawal, early withdrawal, manual renewal, and permissionless
-  auto-renew;
-- C1 principal-first settlement and fixed pending-interest claimant;
-- claimant-only full-value pending-interest claims;
-- aggregate `totalReservedInterest`;
-- reservation from snapshotted expected interest when a deposit opens;
-- no reservation when interest rounds to zero;
-- reserve release on early withdrawal;
-- reserve consumption on funded maturity settlement;
-- reserve preservation when C1 defers interest;
-- reserve consumption after a successful pending-interest claim;
-- atomic old-reserve consumption and new-reserve creation during renewal;
-- explicit `InsufficientReservedInterest` invariant protection;
-- `InterestReserved`, `ReservedInterestReleased`, and
-  `ReservedInterestConsumed` events;
-- EVM rollback preserving reserve accounting on failed transfers, payouts,
-  authorization, pause checks, and safe NFT minting;
-- first-successful-terminal-action enforcement;
-- ERC20 and ERC721 callback reentrancy protection.
+The ERC721 collection is:
 
-The exported project ABI is located at:
+- name: `SafeBank Deposit Certificate`;
+- symbol: `SBDC`.
 
-`data/abi/contracts/SavingCore.sol/SavingCore.json`
+For every deposit:
 
-The current implementation does not include rich NFT metadata or a custom
-`tokenURI`.
+~~~text
+tokenId == depositId
+~~~
 
-Financial rights are derived from the on-chain deposit record, current NFT
-ownership for active owner-restricted actions, and the fixed C1 claimant
-snapshot for an already-created pending claim.
+Plan IDs and deposit IDs begin at `1`. Identifier `0` is invalid.
 
-## Architecture Principle
+### VaultManager
 
-SafeBank separates user principal from bank-funded interest.
+`VaultManager` is responsible for:
 
-- `SavingCore` holds user principal.
-- `VaultManager` holds interest liquidity.
-- Interest must never be paid using another depositor's principal.
-- The frontend and AI are not security boundaries.
-- On-chain contract state is the source of truth.
+- bank-funded interest custody;
+- vault funding;
+- owner withdrawals;
+- fee-receiver configuration;
+- one-time SavingCore authorization;
+- interest payouts;
+- independent pause and unpause;
+- reserved-interest reads;
+- available-liquidity calculation;
+- funding-shortfall calculation.
 
-The current architecture is non-upgradeable.
+`VaultManager` does not hold user principal.
 
-Upgradeable proxy packages were intentionally removed during Phase 0.
+## Saving Plan Model
 
-## Personal Variant
+Each plan stores:
 
-Student ID:
+| Field | Meaning |
+|---|---|
+| `tenorDays` | Length of the deposit term |
+| `aprBps` | Annual rate in basis points |
+| `minDeposit` | Optional minimum principal |
+| `maxDeposit` | Optional maximum principal |
+| `earlyWithdrawPenaltyBps` | Early-withdrawal penalty |
+| `enabled` | Whether new deposits may use the plan |
 
-`3122560090`
+After plan creation:
 
-Required values:
+- APR may be updated for future deposits;
+- enabled state may change;
+- tenor, deposit limits, and penalty remain immutable;
+- existing deposits continue using their stored snapshots.
 
-| Parameter | Value |
-|---|---:|
-| Grace period | 2 days |
-| Default APR | 200 bps = 2.00% per year |
-| Early-withdrawal penalty | 750 bps = 7.50% |
-| Default tenor | 180 days |
-| MockUSDC decimals | 6 |
+A disabled plan cannot accept a new deposit and cannot be selected for manual renewal.
 
-MockUSDC amount conversion must use six decimals.
+## Deposit Lifecycle
 
-Examples:
+A deposit stores:
 
-- 1 mUSDC = 1,000,000 smallest units
-- 1,000 mUSDC = 1,000,000,000 smallest units
-- ethers scripts must use `parseUnits(amount, 6)`
-- `parseEther` must not be used for MockUSDC
+- selected plan ID;
+- principal;
+- start timestamp;
+- maturity timestamp;
+- tenor snapshot;
+- APR snapshot;
+- early-withdrawal penalty snapshot;
+- lifecycle status.
 
-## Selected Bonus Challenges
+The base statuses are:
 
-SafeBank selected and implemented two bonus challenges.
+- `Active`;
+- `Withdrawn`;
+- `ManualRenewed`;
+- `AutoRenewed`.
 
-### C1 — Principal-First Settlement
+An active deposit may reach exactly one terminal transition:
 
-Implemented behavior:
+- `Active → Withdrawn` through maturity withdrawal;
+- `Active → Withdrawn` through early withdrawal;
+- `Active → ManualRenewed`;
+- `Active → AutoRenewed`.
 
-- return principal at maturity even when VaultManager cannot pay the complete
-  calculated interest;
-- defer the full unpaid amount rather than attempting partial payout;
-- snapshot the direct current NFT owner as the fixed claimant;
-- permit that claimant to claim after later vault funding;
-- preserve complete rollback for non-liquidity VaultManager failures;
-- keep manual and auto-renewal fully funded without a pending fallback.
+Renewal creates a new active deposit and a new ERC721 certificate. The old certificate remains as historical evidence, while the terminal status of its deposit prevents reuse.
 
-Status:
+## Ownership Model
 
-**Implemented and validated locally in Phase 11.**
+For active owner-restricted actions, economic rights follow the direct current NFT owner:
 
-### C2 — Solvency Guard
+~~~solidity
+address currentOwner = ownerOf(depositId);
+~~~
 
-Implemented behavior:
+The current owner may:
 
-- track aggregate expected and pending interest in
-  `SavingCore.totalReservedInterest`;
-- reserve positive expected interest when opening a deposit;
-- release reserve on early withdrawal;
-- consume reserve on funded settlement and successful pending claim;
-- preserve deferred C1 interest as a real reserved liability;
-- atomically replace old and new reserves during renewal;
-- allow undercollateralized deposit opening while exposing shortfall;
-- expose `VaultManager.totalReservedInterest()`;
-- expose `VaultManager.availableLiquidity()`;
-- expose `VaultManager.fundingShortfall()`;
-- prevent owner withdrawal above available liquidity.
+- withdraw early;
+- withdraw at maturity;
+- manually renew.
 
-Status:
+The original depositor loses those rights after transferring the certificate.
 
-**Implemented and validated locally in Phase 12.**
+ERC721 token approval or operator approval alone does not grant the right to withdraw or manually renew because the contract compares `msg.sender` directly with `ownerOf(depositId)`.
 
-## Documentation
+Permissionless auto-renew is different: any address may trigger it, but the renewed NFT is always minted to the current owner of the old certificate.
 
-Phase 1 documentation:
+A pending C1 interest claim is also different. Its claimant is snapshotted at maturity settlement and does not move with a later transfer of the historical NFT.
 
-- [System Architecture](docs/ARCHITECTURE.md)
-- [Security Model](docs/SECURITY.md)
-- [UI/UX Plan](docs/UI_UX_PLAN.md)
-- [Design Decisions](docs/DESIGN_DECISIONS.md)
+## Financial Calculations
 
-These documents describe the planned system.
+### Simple Interest
 
-They are not evidence that the described contracts, security controls, tests, frontend, AI assistants, or deployments already exist.
+SafeBank uses simple interest for one term:
 
-## Product Experience
+~~~text
+interest =
+    principal × aprBpsAtOpen × tenorSeconds
+    ÷ (365 days × 10,000)
+~~~
 
-SafeBank defines two clearly separated product areas.
+Where:
+
+~~~text
+tenorSeconds = tenorDays × 86,400
+~~~
+
+The implementation uses `Math.mulDiv`:
+
+~~~solidity
+return Math.mulDiv(
+    principal,
+    aprBps * tenorSeconds,
+    365 days * BPS_DENOMINATOR
+);
+~~~
+
+Solidity integer division rounds down.
+
+Interest does not compound inside a deposit term. Compounding occurs only when a renewal successfully creates a new deposit whose principal is:
+
+~~~text
+newPrincipal = oldPrincipal + fundedInterest
+~~~
+
+For positive interest, the tokens must physically move from `VaultManager` into `SavingCore`. The project never creates unfunded compounded principal.
+
+### Early-Withdrawal Penalty
+
+The penalty is:
+
+~~~text
+penalty =
+    principal × penaltyBpsAtOpen ÷ 10,000
+~~~
+
+The user receives:
+
+~~~text
+userReceive = principal - penalty
+~~~
+
+Early withdrawal pays zero interest. The current fee receiver receives the penalty.
+
+## Exact Time Boundaries
+
+SafeBank uses explicit, non-overlapping timestamp rules.
+
+| Time | Valid behavior |
+|---|---|
+| `timestamp < maturityAt` | Early withdrawal |
+| `timestamp == maturityAt` | Maturity withdrawal and manual renewal begin |
+| `maturityAt <= timestamp < graceEndsAt` | Maturity withdrawal or manual renewal |
+| `timestamp == graceEndsAt` | Manual renewal is closed; auto-renew becomes valid |
+| `timestamp > graceEndsAt` | Maturity withdrawal or permissionless auto-renew while the deposit remains active |
+
+Where:
+
+~~~text
+graceEndsAt = maturityAt + GRACE_PERIOD
+~~~
+
+Time passing alone never executes Solidity code. A transaction must be mined to change a deposit's stored state.
+
+After the grace period, maturity withdrawal and auto-renew may both be valid while the old deposit remains `Active`. The first successfully mined transaction changes the status, and the later conflicting transaction reverts.
+
+## Withdrawal and Renewal Behavior
+
+### Maturity Withdrawal
+
+`withdrawAtMaturity(depositId)` requires:
+
+- an existing deposit;
+- status `Active`;
+- caller equal to the current NFT owner;
+- `block.timestamp >= maturityAt`;
+- unpaused `SavingCore`.
+
+Principal is returned from `SavingCore`.
+
+Interest is requested from `VaultManager`.
+
+If the complete interest amount is available, the current owner receives principal and interest immediately.
+
+If the vault reports the exact `InsufficientVaultBalance` error, C1 returns principal and records the complete interest amount as pending.
+
+### Early Withdrawal
+
+`earlyWithdraw(depositId)` requires:
+
+- an existing deposit;
+- status `Active`;
+- caller equal to the current NFT owner;
+- `block.timestamp < maturityAt`;
+- unpaused `SavingCore`.
+
+The user receives principal minus the snapshotted penalty. The fee receiver receives the penalty, and no interest is paid.
+
+The deposit becomes terminal with status `Withdrawn`.
+
+### Manual Renewal
+
+`manualRenew(depositId, newPlanId)` is valid only when:
+
+~~~text
+maturityAt <= block.timestamp < maturityAt + GRACE_PERIOD
+~~~
+
+It also requires:
+
+- direct current NFT ownership;
+- an active old deposit;
+- an existing enabled target plan;
+- compounded principal within the selected plan's limits;
+- complete funding of any positive old-term interest.
+
+The selected plan's current tenor, APR, and penalty become the new deposit snapshots.
+
+The old NFT remains historical. A new NFT is minted to the current owner.
+
+### Permissionless Auto-Renew
+
+`autoRenew(depositId)` becomes valid when:
+
+~~~text
+block.timestamp >= maturityAt + GRACE_PERIOD
+~~~
+
+Any address may trigger it.
+
+Auto-renew preserves the old deposit's:
+
+- plan ID;
+- tenor snapshot;
+- APR snapshot;
+- penalty snapshot.
+
+It does not read the current plan APR, enabled state, minimum, or maximum.
+
+One delayed auto-renew transaction creates exactly one new term. It does not create retroactive multiple terms, and the new term starts at the successful transaction timestamp.
+
+## Bonus C1 — Principal-First Settlement
+
+The base assignment requires maturity withdrawal to revert when the vault cannot pay interest. That behavior can indirectly lock the user's own principal even though `SavingCore` still holds it.
+
+SafeBank instead uses principal-first settlement:
+
+1. mark the active deposit as terminal;
+2. return principal from `SavingCore`;
+3. attempt the complete interest payout through `VaultManager`;
+4. recognize only `VaultManager.InsufficientVaultBalance`;
+5. restore the interest reserve after that exact liquidity failure;
+6. record the complete amount in `pendingInterest[depositId]`;
+7. record the current NFT owner in `interestClaimant[depositId]`;
+8. allow that fixed claimant to claim later.
+
+The fallback is full-or-defer. SafeBank does not make a partial interest payment.
+
+Paused, unauthorized, malformed, empty-revert, and unexpected vault failures still revert the complete transaction instead of being treated as normal underfunding.
+
+`claimPendingInterest(depositId)`:
+
+- requires a positive pending amount;
+- requires the caller to equal the snapshotted claimant;
+- clears pending state before the external payout;
+- consumes the matching reserve;
+- relies on EVM rollback to restore both if payout fails;
+- rejects a second successful claim.
+
+## Bonus C2 — Solvency Guard
+
+`SavingCore.totalReservedInterest` tracks:
+
+- expected positive interest for active deposits;
+- unpaid C1 pending interest.
+
+Reserve lifecycle:
+
+- deposit opening: reserve expected positive interest;
+- early withdrawal: release unused expected interest;
+- funded maturity settlement: consume the reserve;
+- C1 deferred settlement: preserve the unpaid reserve;
+- successful pending claim: consume the reserve;
+- manual renewal: replace the old reserve with the selected new-plan reserve;
+- auto-renew: replace the old reserve with the new snapshot-based reserve.
+
+`VaultManager` calculates:
+
+~~~text
+availableLiquidity =
+    max(vaultBalance - totalReservedInterest, 0)
+~~~
+
+~~~text
+fundingShortfall =
+    max(totalReservedInterest - vaultBalance, 0)
+~~~
+
+The administrator cannot withdraw more than `availableLiquidity`.
+
+SafeBank permits an otherwise valid deposit to open while the vault is undercollateralized. The liability remains visible, the administrator cannot worsen the shortfall through withdrawal, and C1 protects principal recovery if interest remains unavailable at maturity.
+
+C2 provides liability visibility and withdrawal containment. It does not guarantee that every interest obligation is immediately funded.
+
+## Frontend
+
+The frontend is one React, TypeScript, and Vite application.
+
+Architecture:
+
+- local `ApplicationView` state switches between User Banking App and Admin Portal;
+- both areas use a shared `ApplicationShell`;
+- no React Router;
+- no Redux or Zustand;
+- ethers `JsonRpcProvider` performs public Sepolia reads;
+- ethers `BrowserProvider` and a user-approved signer perform writes;
+- contract storage and confirmed receipts remain authoritative.
 
 ### User Banking App
 
-The Phase 15 User Banking App is implemented with:
+Implemented user features:
 
-- explicit EIP-1193 browser-wallet connection;
-- Ethereum Sepolia chain detection and network switching;
-- public protocol reads without requiring wallet connection;
-- saving-plan browsing and estimated-interest display;
-- permissionless test mUSDC minting;
-- exact-amount MockUSDC approval;
-- saving-deposit opening;
-- owned ERC721 deposit-certificate display;
-- early and maturity withdrawal;
-- manual renewal during the grace period;
-- permissionless auto-renewal after grace;
-- C1 deferred-interest visibility and claims;
-- C2 interest-vault transparency metrics;
-- Sepolia Etherscan links;
-- Vietnamese and English interfaces with Vietnamese as the default.
+- connect an EIP-1193 browser wallet;
+- detect and switch to Ethereum Sepolia;
+- read public SafeBank state without a connected wallet;
+- view protocol, plan, account, and vault metrics;
+- mint test mUSDC;
+- approve the exact deposit amount;
+- open a deposit;
+- view owned ERC721 certificates;
+- withdraw early;
+- withdraw at maturity;
+- manually renew;
+- trigger permissionless auto-renew;
+- view and claim pending interest;
+- use Vietnamese or English;
+- open the deterministic Banking Assistant.
 
 ### Admin Portal
 
-The Phase 16 Admin Portal is implemented in the shared frontend with:
+Implemented administrator features:
 
-- a dedicated admin view without adding a routing dependency;
-- public Sepolia reads and browser-wallet-authorized writes;
-- separate SavingCore-owner and VaultManager-owner access checks;
-- owner, pending-owner, pause-state, fee-receiver, contract-relationship,
-  plan, deposit-count, and solvency visibility;
-- saving-plan creation, APR updates, and plan enable or disable actions;
-- exact-amount MockUSDC approval and VaultManager funding;
-- withdrawals limited to available VaultManager liquidity;
-- fee-receiver updates;
-- independent SavingCore and VaultManager pause or unpause actions;
-- strictly read-only deposit inspection by deposit ID;
-- transaction lifecycle and Sepolia Etherscan feedback;
-- Vietnamese and English interfaces with Vietnamese as the default.
+- view SavingCore and VaultManager ownership;
+- view pending ownership transfers;
+- view independent pause states;
+- view contract relationships;
+- inspect fee receiver;
+- create saving plans;
+- update plan APR;
+- enable or disable plans;
+- fund VaultManager;
+- withdraw only available liquidity;
+- change fee receiver;
+- independently pause or unpause both contracts;
+- inspect deposits by ID without editing them;
+- view solvency and funding-shortfall metrics;
+- open the deterministic Risk Assistant.
 
-The portal does not expose private keys, unlimited token approval, active
-deposit editing, or the deployment-only SavingCore authorization operation.
+Frontend access checks improve UX only. Solidity ownership checks remain authoritative.
 
-## Implemented Read-Only SafeBank Assistants
+### Transaction Safety
 
-Phase 18 implements two deterministic, local, read-only explanation engines.
+The frontend:
 
-### Banking Assistant
+- requests exact-amount token approval;
+- separates approval from deposit opening;
+- validates wallet connection and Sepolia chain before writes;
+- shows loading, wallet, submitted, confirming, success, and error states;
+- uses explicit confirmations for financial and administrator actions;
+- refreshes authoritative contract state after confirmed transactions;
+- never stores deployment private keys or wallet secrets.
 
-The Banking Assistant explains verified dashboard context including:
+## Deterministic Assistants
 
-- saving plans and APR;
-- deposit terms and maturity;
-- early-withdrawal penalties;
-- manual and permissionless renewal;
-- pending interest and claimant rules;
-- VaultManager funding-shortfall information.
+SafeBank includes:
 
-### Risk Assistant
+- Banking Assistant in the User Banking App;
+- Risk Assistant in the Admin Portal.
 
-The Risk Assistant explains verified administrator context including:
+The assistants:
 
-- vault balance;
-- total reserved interest;
-- available liquidity;
-- funding shortfall;
+- receive serializable context created from dashboard data already read by the application;
+- normalize control characters and whitespace;
+- reject empty questions;
+- reject questions longer than 500 characters;
+- reject external URLs;
+- return four structured sections:
+  1. fact;
+  2. explanation;
+  3. caution;
+  4. next step;
+- support Vietnamese and English;
+- render ordinary React text;
+- support cancellation and stale-response protection;
+- do not call OpenAI, Gemini, Anthropic, or another external AI API;
+- do not import signer or transaction clients;
+- cannot approve, deposit, withdraw, renew, claim, fund, pause, or modify plans.
+
+The external Spline scene is only a visual launcher. It is not a financial data source, authorization layer, or part of the deterministic reasoning engine.
+
+## Security Controls
+
+SafeBank applies defense-in-depth through:
+
+- separation of principal and interest custody;
+- current-owner authorization;
+- `Ownable2Step`;
 - independent pause states;
-- ownership and contract relationships;
-- plan configuration.
+- immutable deposit snapshots;
+- active-only lifecycle transitions;
+- checks-effects-interactions;
+- `ReentrancyGuard`;
+- `SafeERC20`;
+- safe ERC721 minting;
+- exact timestamp boundaries;
+- C1 principal-first settlement;
+- C2 reserve accounting;
+- exact-amount frontend approval;
+- explicit wallet and network checks;
+- deterministic assistant boundaries.
 
-Each response contains four explicit sections:
+Important residual risks include:
 
-1. fact;
-2. explanation;
-3. caution;
-4. next step.
+- compromised administrator ownership;
+- insufficient bank funding;
+- transaction-ordering competition after grace;
+- unsupported or malicious ERC20 behavior;
+- RPC or wallet failures;
+- user misunderstanding of NFT transfer rights;
+- absence of an independent professional audit.
 
-The assistant architecture:
+## Required Events
 
-- builds serializable context from already-read SafeBank dashboard data;
-- formats financial bigint values deterministically;
-- normalizes user input and rejects empty, overlong, control-character, and
-  external-URL input;
-- renders responses as plain React text;
-- supports loading, safe failure fallback, cancellation, and stale-response
-  protection;
-- supports Vietnamese and English;
-- does not use OpenAI, Gemini, another LLM, or an external AI API;
-- does not access a signer, transaction hook, write client, or wallet secret;
-- cannot approve, deposit, withdraw, renew, fund, pause, or change plans.
+The contracts emit the required assignment events:
 
-A floating Spline 3D robot is used only as the visual launcher. Clicking the
-robot opens the relevant Banking or Risk Assistant. The Spline iframe is an
-external visual dependency and is not part of the assistant reasoning engine.
+- `PlanCreated`;
+- `PlanUpdated`;
+- `DepositOpened`;
+- `Withdrawn`;
+- `Renewed`.
 
-The assistants are a SafeBank product extension rather than a mandatory
-Capstone contract requirement. Contract storage and confirmed transaction
-receipts remain authoritative.
+Additional events support administration, accounting, and monitoring, including:
 
-## Local Requirements
+- `PlanEnabled`;
+- `PlanDisabled`;
+- `VaultFunded`;
+- `VaultWithdrawn`;
+- `FeeReceiverUpdated`;
+- `SavingCoreAuthorized`;
+- `InterestPaid`;
+- `InterestDeferred`;
+- `PendingInterestClaimed`;
+- `InterestReserved`;
+- `ReservedInterestReleased`;
+- `ReservedInterestConsumed`;
+- inherited pause and ownership events.
 
-Current development environment:
+## Design Answers
 
-- Node.js `v22.18.0`
-- npm `11.5.2`
-- Hardhat `2.28.6`
-- Solidity `0.8.28`
-- ethers `6.17.0`
-- TypeScript `5.9.3`
-- OpenZeppelin Contracts `5.3.0`
+### 1. Transferable certificate
 
-The project currently uses npm and `package-lock.json`.
+> The deposit NFT can be transferred. If Alice sells her NFT to Bob before maturity, who can withdraw - Alice or Bob? Is this behavior good or dangerous? Show the exact line in your code that decides this.
 
-## Available Commands
+Bob can withdraw because SafeBank assigns active-deposit economic rights to the direct current ERC721 owner, not permanently to the original depositor. The deciding line appears in each owner-restricted action, including `SavingCore.sol:618`, where the contract executes `address currentOwner = ownerOf(depositId);`, followed by a direct comparison between `msg.sender` and `currentOwner`. This behavior gives the certificate real transferable value, but it is dangerous if a user thinks the NFT is only a collectible because transferring it also transfers the right to principal and interest. Tests such as `"transfers withdrawal rights to the current NFT owner"`, `"transfers early-withdrawal rights with the NFT"`, and `"transfers manual-renewal rights and the renewed NFT to the current owner"` prove that the new owner gains the rights and the previous owner loses them.
+
+### 2. Empty vault
+
+> A user reaches maturity but the vault does not have enough money for the interest. The spec says "revert". What problem does this create for the user, and what alternative design could you offer (for example: pay principal only, or wait in a queue)? Which one did you choose to follow, and why?
+
+Reverting the complete maturity transaction can lock the user's own principal even though that principal is still safely held by `SavingCore`; the bank can therefore delay principal recovery merely by failing to fund interest. SafeBank implements Bonus C1 and returns principal first, then defers the complete unpaid interest in `pendingInterest[depositId]` while snapshotting the current NFT owner in `interestClaimant[depositId]`. Only the exact `VaultManager.InsufficientVaultBalance` selector activates this fallback, while pause, authorization, malformed-revert, and unexpected failures still revert atomically. I chose full-value deferral instead of partial interest because it keeps accounting and claim authorization deterministic, and the test `"returns principal and defers full interest when the vault is underfunded"` proves the selected behavior.
+
+### 3. Dead bot
+
+> The auto-renew bot goes offline for one month. What happens to deposits that passed the grace period? Does the user lose anything? Propose one change that protects the user in this case.
+
+Nothing happens automatically because Solidity does not execute code merely because time passes; the old deposit remains `Active` until a valid transaction succeeds. The user does not lose principal and may still call maturity withdrawal after the grace period while the deposit remains active. SafeBank protects liveness by making `autoRenew(depositId)` permissionless, so the owner, another keeper, or any account can trigger it without receiving the renewed NFT or financial rights. A delayed call creates exactly one new term using one old-term interest calculation and starts the new term at the actual execution timestamp, as verified by the delayed-execution tests; an operational deployment can further protect availability by running multiple independent low-privilege keepers.
+
+### 4. Rounding dust
+
+> The interest formula uses integer division, so some tiny amount is always lost to rounding. In your design, who keeps this dust - the user or the vault? Can the rounding ever cause a revert or a wrong balance? Prove your answer with one of your test cases.
+
+SafeBank uses floor rounding, so the user receives the largest whole-token-unit interest amount not greater than the mathematical result, and the remaining dust stays in `VaultManager`. The internal `_calculateInterest` function uses `Math.mulDiv`, which performs multiplication and division safely and deterministically without creating an overpayment. Floor rounding does not cause a wrong balance because only the computed integer amount is transferred, and a zero-rounded result skips the zero-value vault payout. The test `"keeps integer-rounding dust inside VaultManager"` funds the vault with the calculated interest plus one smallest unit, settles the deposit, and verifies that exactly `1` unit remains in the vault.
+
+### 5. Boundary times
+
+> At the exact second of maturityAt, is a withdrawal "early" or "at maturity"? At the exact end of the grace period, can the user still manually renew? Show the comparison operators (>= or >) you used, and explain each choice.
+
+At exactly `maturityAt`, the deposit is mature: `withdrawAtMaturity` rejects only when `block.timestamp < deposit.maturityAt`, while `earlyWithdraw` rejects when `block.timestamp >= deposit.maturityAt`. Manual renewal uses the half-open interval `maturityAt <= timestamp < graceEndsAt`; the contract rejects it with `if (block.timestamp >= graceEndsAt)`. Auto-renew uses the complementary condition and rejects only while `block.timestamp < graceEndsAt`, so it becomes valid at the exact grace-period end. This gives one non-overlapping transition point, proven by tests for exact maturity, one second before grace end, exact grace end, and exact-end auto-renew.
+
+### 6. Disabled plan with active deposits
+
+> The admin disables a plan while many deposits from that plan are still active. What can those users still do? Can they still manually renew INTO the disabled plan? Justify your rule.
+
+Disabling a plan does not change existing deposit snapshots or invalidate active certificates. Existing owners may still withdraw early, withdraw at maturity, or participate in snapshot-based auto-renew because those actions use the stored deposit terms rather than replacing them with current plan configuration. They cannot open a new deposit with the disabled plan, and they cannot manually renew into it because `manualRenew` contains `if (!newPlan.enabled) { revert PlanNotEnabled(newPlanId); }`. This rule protects existing contractual rights while ensuring an administrator can stop the plan from being actively selected for new business.
+
+### 7. Attack thinking
+
+> Describe one realistic attack on your system (for example: reentrancy on withdraw, double withdraw, or a fake token) and show the exact mechanism in your code that stops it.
+
+A realistic attack is token-callback reentrancy during withdrawal: a malicious ERC20 attempts to call a SafeBank financial function again while the original transfer is still executing. SafeBank protects the financial entry points with `nonReentrant`, including `withdrawAtMaturity`, `earlyWithdraw`, `manualRenew`, `autoRenew`, and `claimPendingInterest`; it also changes lifecycle or pending state before external interactions. The active-only status check prevents a second terminal action, while EVM atomicity restores all earlier state if a later required interaction fails. Tests including `"blocks token callback reentrancy while completing the original withdrawal"`, `"blocks token callback reentrancy while completing the original early withdrawal"`, and the renewal and pending-claim reentrancy suites verify that the nested call fails with `ReentrancyGuardReentrantCall` while the original valid operation remains consistent.
+
+## Sepolia Deployment
+
+SafeBank is deployed on Ethereum Sepolia.
+
+| Item | Value |
+|---|---|
+| Network | Ethereum Sepolia |
+| Chain ID | `11155111` |
+| Confirmation policy | `2` confirmations |
+| Deployer and initial administrator | `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9` |
+| Initial fee receiver | `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9` |
+| MockUSDC | `0xcf779EC5D80573D3254054a17c5B4f0117491662` |
+| VaultManager | `0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7` |
+| SavingCore | `0xa35c55e7E2dB5874699cC9fb8d0E25032f51b443` |
+| Canonical plan | Plan ID `1` |
+| Etherscan verification | Successful for all three contracts |
+
+Canonical plan ID `1`:
+
+| Field | Value |
+|---|---:|
+| Tenor | `180 days` |
+| APR | `200 bps = 2.00%` |
+| Minimum deposit | `100 mUSDC` |
+| Maximum deposit | `10,000 mUSDC` |
+| Early-withdrawal penalty | `750 bps = 7.50%` |
+| Enabled | `true` |
+
+Tracked deployment evidence is stored in:
+
+- `deployments/sepolia/`;
+- `data/deployments/sepolia.json`.
+
+The verified initial public state contains:
+
+- plan count `1`;
+- deposit count `0`;
+- vault balance `0`;
+- total reserved interest `0`;
+- available liquidity `0`;
+- funding shortfall `0`;
+- both contracts unpaused;
+- no demo balances;
+- no vault funding;
+- no default deposits.
+
+Etherscan source verification confirms source-to-bytecode matching for the recorded compiler configuration and constructor arguments. It is not a professional security audit.
+
+## Requirements
+
+Validated development environment:
+
+- Node.js `v22.18.0`;
+- npm `11.5.2`;
+- Hardhat `2.28.6`;
+- Solidity `0.8.28`;
+- ethers `6.17.0`;
+- OpenZeppelin Contracts `5.3.0`.
+
+The repository uses npm lockfiles with lockfile version `3`.
+
+## Install Dependencies
+
+Install root dependencies:
+
+~~~bash
+npm install
+~~~
+
+Install frontend dependencies:
+
+~~~bash
+cd frontend
+npm install
+cd ..
+~~~
+
+Do not commit local environment files, private keys, seed phrases, or API keys.
+
+## Compile and Test Contracts
+
+Compile contracts:
+
+~~~bash
+npm run compile
+~~~
+
+Run the complete Hardhat suite:
+
+~~~bash
+npm test
+~~~
+
+Run focused suites:
+
+~~~bash
+npx hardhat test test/MockUSDC.test.ts
+npx hardhat test test/VaultManager.test.ts
+npx hardhat test test/SavingCore.test.ts
+npm run test:deployment
+~~~
+
+Generate Solidity coverage:
+
+~~~bash
+npm run coverage
+~~~
+
+Root TypeScript files are validated through the Hardhat compile, test, deployment, and verification workflows that execute them. The repository does not expose a standalone root `typecheck` script because standalone `tsc` does not preserve Hardhat's generated contract typing context. The React application has its own dedicated `npm run typecheck` command inside `frontend/`.
+Last validated contract checkpoint:
+
+- `258` passing tests;
+- production-contract coverage:
+  - `100%` statements;
+  - `98.40%` branches;
+  - `100%` functions;
+  - `100%` lines;
+- complete-project coverage:
+  - `99.11%` statements;
+  - `97.17%` branches;
+  - `96.97%` functions;
+  - `96.98%` lines.
+
+## Local Deployment
+
+### Ephemeral Hardhat Deployment
+
+Deploy and seed an ephemeral Hardhat network:
+
+~~~bash
+npm run deploy:ephemeral
+~~~
+
+### Persistent Localhost Deployment
+
+Start a local node in terminal 1:
+
+~~~bash
+npm run node:local
+~~~
+
+Reset-deploy and seed in terminal 2:
+
+~~~bash
+npm run deploy:local:reset
+~~~
+
+Verify the deployed state:
+
+~~~bash
+npm run verify:local
+~~~
+
+Rerun the idempotent deployment and seed reconciliation:
+
+~~~bash
+npm run deploy:local
+~~~
+
+The deterministic local seed creates:
+
+- canonical plan ID `1`;
+- demo-user target balances of `5,000` and `10,000` mUSDC;
+- VaultManager target balance of `25,000` mUSDC;
+- no default deposits.
+
+Local deployment scripts enforce chain ID `31337` and reject nonlocal networks.
+
+## Run the Frontend
+
+Enter the frontend directory:
+
+~~~bash
+cd frontend
+~~~
+
+Start development mode:
+
+~~~bash
+npm run dev
+~~~
+
+Run frontend validation:
+
+~~~bash
+npm test
+npm run lint
+npm run typecheck
+npm run build
+~~~
+
+Preview the production build:
+
+~~~bash
+npm run preview
+~~~
+
+Contract artifacts are synchronized automatically before development, testing, typechecking, and production builds.
+
+Last validated frontend checkpoint:
+
+- `65` passing test files;
+- `256` passing tests;
+- zero Oxlint warnings or errors;
+- successful TypeScript validation;
+- successful Vite production build.
+
+## Available Root Commands
 
 | Command | Purpose |
 |---|---|
-| `npm install` | Install dependencies |
-| `npx tsc --noEmit` | Check TypeScript without generating output |
-| `npm run compile` | Compile Solidity contracts and export production ABIs |
+| `npm install` | Install root dependencies |
+| `npm run compile` | Compile Solidity and export production ABIs |
 | `npm test` | Run the complete Hardhat test suite |
-| `npm run test:deployment` | Run the focused local deployment regression suite |
-| `npx hardhat test test\SavingCore.test.ts` | Run focused SavingCore tests |
-| `npx hardhat test test\VaultManager.test.ts` | Run focused VaultManager tests |
 | `npm run coverage` | Generate Solidity coverage |
-| `npm run clean` | Remove Hardhat-generated files |
-| `npm run size` | Report compiled contract sizes |
-| `npm run node` | Start a Hardhat node using normal deploy-task behavior |
-| `npm run node:local` | Start a persistent localhost node without auto-deploy |
-| `npm run deploy:ephemeral` | Deploy and seed on the ephemeral Hardhat network |
-| `npm run deploy:local:reset` | Reset-deploy and seed on a running localhost node |
-| `npm run deploy:local` | Reuse localhost deployments and idempotently reconcile seed state |
-| `npm run verify:local` | Read and verify the current localhost deployment |
-| `npx hardhat run scripts/preflight-sepolia-deployment.ts --network sepolia --no-compile` | Run the read-only Sepolia preflight |
-| `npm run deploy:sepolia` | Deploy or safely reuse the approved Sepolia deployment |
-| `npm run verify:sepolia:state` | Read and verify the Sepolia deployment state |
-
-Validated Phase 13 checkpoints:
-
-- Solidity compilation succeeds with `0.8.28`, optimizer `1,000` runs, and
-  `viaIR`;
-- TypeScript validation succeeds;
-- focused deployment testing reports `5 passing`;
-- the complete project suite reports `258 passing`;
-- SavingCore deployed bytecode is approximately `12.654 KiB`;
-- SavingCore initcode is approximately `13.905 KiB`;
-- VaultManager deployed bytecode is approximately `3.483 KiB`;
-- VaultManager initcode is approximately `3.897 KiB`;
-- production-contract coverage reports 100% statements, 98.40% branches,
-  100% functions, and 100% lines;
-- complete project coverage reports 99.11% statements, 97.17% branches,
-  96.97% functions, and 96.98% lines;
-- only the three production ABI files are retained;
-- `deployments/hardhat/` and `deployments/localhost/` remain ignored.
-
-Validated Phase 14 checkpoints:
-
-- Sepolia chain ID `11155111`;
-- dedicated deployer, owner, and fee receiver
-  `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9`;
-- three deployed contracts with nonempty bytecode;
-- five successful public transaction receipts;
-- two-confirmation deployment policy;
-- correct constructor dependencies, ownership, authorization, pause states,
-  Personal Variant, canonical plan, and C2 formulas;
-- no public demo mint, vault funding, or default deposits;
-- idempotent rerun with unchanged nonce and balance;
-- all three production contracts verified on Etherscan;
-- public metadata stored in `data/deployments/sepolia.json`;
-- public deployment records retained under `deployments/sepolia/`;
-- generated `deployments/*/solcInputs/` files remain ignored.
+| `npm run clean` | Remove Hardhat-generated output |
+| `npm run size` | Report contract sizes |
+| `npm run node:local` | Start a persistent local node without automatic deployment |
+| `npm run deploy:ephemeral` | Deploy and seed an ephemeral Hardhat network |
+| `npm run deploy:local:reset` | Reset-deploy and seed localhost |
+| `npm run deploy:local` | Reconcile localhost deployment and seed idempotently |
+| `npm run verify:local` | Verify the localhost deployment |
+| `npm run test:deployment` | Run deployment regression tests |
+| `npm run deploy:sepolia` | Run the guarded Sepolia deployment workflow |
+| `npm run verify:sepolia:state` | Verify tracked Sepolia state |
 
 ## Project Structure
 
-Current relevant structure:
+~~~text
+online-banking-capstone/
+├── contracts/
+│   ├── MockUSDC.sol
+│   ├── SavingCore.sol
+│   ├── VaultManager.sol
+│   └── mocks/
+├── deploy/
+│   ├── 00_deploy_mock_usdc.ts
+│   ├── 01_deploy_vault_manager.ts
+│   ├── 02_deploy_saving_core.ts
+│   ├── 03_authorize_saving_core.ts
+│   ├── 04_seed_demo.ts
+│   └── 10_deploy_sepolia.ts
+├── deployments/
+│   └── sepolia/
+├── data/
+│   ├── abi/
+│   └── deployments/
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── DESIGN_DECISIONS.md
+│   ├── SECURITY.md
+│   └── UI_UX_PLAN.md
+├── frontend/
+│   ├── scripts/
+│   ├── src/
+│   │   ├── ai/
+│   │   ├── components/
+│   │   ├── config/
+│   │   ├── contracts/
+│   │   ├── hooks/
+│   │   ├── i18n/
+│   │   ├── lib/
+│   │   └── providers/
+│   └── README.md
+├── scripts/
+│   ├── preflight-sepolia-deployment.ts
+│   ├── verify-local-deployment.ts
+│   └── verify-sepolia-deployment.ts
+├── test/
+│   ├── Deployment.test.ts
+│   ├── MockUSDC.test.ts
+│   ├── SavingCore.test.ts
+│   └── VaultManager.test.ts
+├── hardhat.config.ts
+├── package.json
+└── README.md
+~~~
 
-    online-banking-capstone/
-    ├── contracts/
-    │   ├── mocks/
-    │   │   ├── MockDepositReceiver.sol
-    │   │   ├── MockReentrantToken.sol
-    │   │   ├── MockSavingCoreCaller.sol
-    │   │   └── MockSavingCoreHarness.sol
-    │   ├── MockUSDC.sol
-    │   ├── SavingCore.sol
-    │   └── VaultManager.sol
-    ├── data/
-    │   └── abi/
-    │       └── contracts/
-    │           ├── MockUSDC.sol/
-    │           │   └── MockUSDC.json
-    │           ├── SavingCore.sol/
-    │           │   └── SavingCore.json
-    │           └── VaultManager.sol/
-    │               └── VaultManager.json
-    ├── deploy/
-    │   ├── 00_deploy_mock_usdc.ts
-    │   ├── 01_deploy_vault_manager.ts
-    │   ├── 02_deploy_saving_core.ts
-    │   ├── 03_authorize_saving_core.ts
-    │   └── 04_seed_demo.ts
-    ├── docs/
-    │   ├── ARCHITECTURE.md
-    │   ├── DESIGN_DECISIONS.md
-    │   ├── SECURITY.md
-    │   └── UI_UX_PLAN.md
-    ├── scripts/
-    │   └── verify-local-deployment.ts
-    ├── test/
-    │   ├── Deployment.test.ts
-    │   ├── MockUSDC.test.ts
-    │   ├── SavingCore.test.ts
-    │   └── VaultManager.test.ts
-    ├── .env.example
-    ├── .gitignore
-    ├── hardhat.config.ts
-    ├── package.json
-    ├── package-lock.json
-    ├── README.md
-    └── tsconfig.json
+## Documentation
 
-`MockSavingCoreCaller.sol` and `MockSavingCoreHarness.sol` are test-only
-contracts. They are not part of the retained production ABI set.
+Detailed project documentation:
 
-Phase 14 adds these tracked public-deployment assets:
+- [System Architecture](docs/ARCHITECTURE.md)
+- [Security Model](docs/SECURITY.md)
+- [UI/UX Plan and Implementation Record](docs/UI_UX_PLAN.md)
+- [Architecture and Product Decisions](docs/DESIGN_DECISIONS.md)
+- [Frontend Guide](frontend/README.md)
 
-- `deploy/10_deploy_sepolia.ts`;
-- `scripts/preflight-sepolia-deployment.ts`;
-- `scripts/verify-sepolia-deployment.ts`;
-- `data/deployments/sepolia.json`;
-- `deployments/sepolia/.chainId`;
-- `deployments/sepolia/MockUSDC.json`;
-- `deployments/sepolia/VaultManager.json`;
-- `deployments/sepolia/SavingCore.json`.
+These documents record both the original design reasoning and the implemented system through the current project checkpoint.
 
-Generated `deployments/*/solcInputs/` files remain ignored.
+## Known Limitations
 
-The local deployment-record directories are generated at runtime and ignored:
+- MockUSDC is a permissionless-mint test token and has no monetary value.
+- The contracts are non-upgradeable.
+- The administrator model remains centralized.
+- C2 exposes and contains interest underfunding but does not guarantee immediate full collateralization.
+- C1 pending interest may remain unpaid until the vault receives sufficient funding.
+- Auto-renew requires an actual transaction.
+- Competing maturity withdrawal and auto-renew transactions are resolved by blockchain ordering.
+- Only MockUSDC-like conventional ERC20 behavior is supported.
+- Rich NFT metadata and a custom `tokenURI` are not implemented.
+- The Spline launcher depends on an external visual host.
+- The application targets Ethereum Sepolia and is not production banking software.
+- Automated tests and Etherscan source verification do not replace an independent audit.
 
-- `deployments/hardhat/`;
-- `deployments/localhost/`.
+## Submission Checklist
 
-Phases 15 and 16 provide the tracked `frontend/` application, including:
-
-- React, TypeScript, and Vite configuration;
-- synchronized Sepolia deployment metadata and production ABIs;
-- public read and wallet-authorized write clients;
-- wallet connection and Sepolia network guards;
-- deposit opening, certificate portfolio, lifecycle actions, and C1 claims;
-- C2 interest-vault transparency;
-- Vietnamese and English localization;
-- component, provider, hook, contract-client, and utility tests;
-- frontend development and validation documentation.
-- shared User Banking App and Admin Portal application shell;
-- admin configuration, plan, vault, and deposit-inspection panels;
-- per-contract owner authorization and wallet-network guards;
-- admin transaction lifecycle feedback and focused test coverage;
-
-Generated `frontend/node_modules/` and `frontend/dist/` directories remain
-ignored and are not part of the tracked source structure.
-
-Generated Hardhat artifacts, cache files, TypeChain output, coverage reports,
-test-mock ABIs, internal-interface ABIs, local deployment records, and
-temporary node logs are not part of the tracked source structure.
-
-## Security Notice
-
-SafeBank follows a defense-in-depth approach.
-
-The project must not claim that the contracts are impossible to hack.
-
-Security will later depend on:
-
-- correct access control;
-- state-machine validation;
-- current NFT ownership;
-- SafeERC20;
-- reentrancy protection;
-- exact timestamp boundaries;
-- principal and interest separation;
-- test coverage;
-- security tests;
-- deployment verification;
-- secure administrator-key handling.
-
-Never commit:
-
-- `.env`
-- private keys
-- wallet seed phrases
-- API secrets
-- `node_modules/`
-- `coverage/`
-- `coverage.json`
-- `artifacts/`
-- `cache/`
-
-## Repository
-
-GitHub repository:
-
-`https://github.com/VuNguyen26/online-banking-capstone`
-
-Current development branch:
-
-`main`
-
-## Next Step
-
-The current action is to finalize:
-
-**Phase 18 — Deterministic Read-Only SafeBank Assistants**
-
-Before Phase 18 may be declared complete:
-
-1. finish documentation alignment and stale-wording audits;
-2. review the complete tracked and untracked diff;
-3. run secret, generated-file, dependency, scope, and whitespace audits;
-4. perform the final User/Admin, Vietnamese/English, and responsive browser
-   smoke checks;
-5. stage only approved Phase 18 files;
-6. inspect the cached diff and cached whitespace result;
-7. commit and push Phase 18;
-8. fetch and verify matching local and remote commit hashes;
-9. confirm ahead/behind is `0 0` and the working tree is clean;
-10. produce the Phase 18 checkpoint and Phase 19 handoff.
+- [x] Required smart contracts
+- [x] Personal Variant values
+- [x] Required saving flows
+- [x] ERC721 certificates
+- [x] Required events
+- [x] Test coverage above 90%
+- [x] React frontend
+- [x] Seven Design Answers
+- [x] Bonus C1 implementation and tests
+- [x] Bonus C2 implementation and tests
+- [x] Local deployment workflow
+- [x] Sepolia deployment
+- [x] Etherscan source verification
+- [x] Final documentation reconciliation
+- [x] Final repository audit
+- [ ] Demonstration video
+- [ ] Final submission packaging

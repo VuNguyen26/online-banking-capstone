@@ -1,1830 +1,807 @@
-# SafeBank UI/UX Plan
+# SafeBank UI/UX Implementation Guide
 
 ## 1. Document Status
 
 | Field | Value |
 |---|---|
-| Project | SafeBank / Online Banking System |
-| Document | UI/UX Product Plan |
-| Current project phase | Phase 18 — Deterministic Read-Only SafeBank Assistants |
-| Implementation status | User Banking App, Admin Portal, hardened loading/error/empty/confirmation states, and deterministic Banking and Risk Assistants are implemented and locally validated; production hosting, professional accessibility review, final video, and final submission remain pending |
-| Target product areas | User Banking App and Admin Portal |
-| Product style | Modern, trustworthy, clear, accessible, and responsive |
-| Assistant presentation | Floating Spline 3D launcher and responsive dialog |
-| Assistant model | Deterministic local rule engine; no external LLM |
-| Branding model | Original SafeBank identity |
+| Project | SafeBank — Blockchain Term Deposit System |
+| Document | Implemented UI/UX Architecture and Product Behavior |
+| Current documentation phase | Phase 19 — Final Documentation |
+| Frontend stack | React, TypeScript, Vite, ethers |
+| Application model | One single-page application |
+| Product areas | User Banking App and Admin Portal |
+| Primary language | Vietnamese |
+| Secondary language | English |
+| Public network | Ethereum Sepolia, chain ID `11155111` |
 | Test asset | MockUSDC with 6 decimals |
-| Student ID | 3122560090 |
+| Assistant model | Deterministic local rule engines |
+| External visual dependency | Spline robot launcher |
 
-The Phase 18 assistant is optional for financial workflows and cannot submit
-transactions.
+This document describes the UI and UX implemented in the current frontend.
 
-The external Spline scene is used only for the animated launcher. Core
-dashboard and financial operations must remain usable if that visual asset is
-unavailable.
+It replaces earlier route-level and framework-planning assumptions.
 
-## 1.1 SafeBank Personal Variant
+The current application:
 
-The frontend must consistently present the personal variant derived from student ID `3122560090`.
+- does not use React Router;
+- does not use Redux or Zustand;
+- switches between User and Admin views through local application state;
+- keeps all financial authority in the connected wallet and Solidity contracts;
+- treats assistants as optional read-only explanation tools.
 
-Required values:
+A professional accessibility review, usability study, and production banking certification have not been completed.
 
-- grace period: 2 days;
-- default APR: 200 bps = 2.00% per year;
-- early withdrawal penalty: 750 bps = 7.50%;
-- default tenor: 180 days;
-- MockUSDC decimals: 6 decimals.
+## 2. Personal Variant Presentation
 
-UI calculations and input handling must use six-decimal token units.
+The UI consistently presents the Personal Variant derived from student ID `3122560090`.
 
-The interface must not use `parseEther` for MockUSDC.
+| Parameter | Value |
+|---|---:|
+| Grace period | `2 days` |
+| Default APR | `200 bps = 2.00%` |
+| Early-withdrawal penalty | `750 bps = 7.50%` |
+| Default tenor | `180 days` |
+| MockUSDC decimals | `6` |
 
-## 1.2 Phase 13 Local Integration Baseline
+User-facing financial calculations use six-decimal token units.
 
-Frontend development may rely on these implemented and locally validated
-interfaces:
+The frontend does not use `parseEther` for MockUSDC.
 
-- saving-plan creation, APR update, enable, disable, and reads;
-- deposit opening and ERC721 certificate issuance;
-- maturity withdrawal and early withdrawal;
-- manual renewal and permissionless auto-renew;
-- C1 pending-interest reads and claims;
-- C2 reserved-interest, available-liquidity, and funding-shortfall reads;
-- owner vault withdrawal constrained by available liquidity;
-- plan, deposit, certificate, ownership, token, fee receiver, authorization,
-  and independent pause reads;
-- implemented custom errors and lifecycle events;
-- production ABIs for MockUSDC, VaultManager, and SavingCore.
+## 3. Product Positioning
 
-Phase 13 also provides:
+SafeBank is presented as:
 
-- an ephemeral Hardhat deployment command;
-- a persistent localhost reset-deployment command;
-- an idempotent localhost reconciliation command;
-- a read-only localhost verification command;
-- deterministic local roles for admin, fee receiver, two users, and keeper;
-- canonical plan ID `1`;
-- deterministic user and vault balances;
-- no pre-created deposits.
+- an educational blockchain Capstone;
+- a fixed-term savings demonstration;
+- a Sepolia testnet application;
+- a transparent contract-driven product;
+- a system using freely mintable test tokens.
 
-The standard local addresses are deterministic only under the default Hardhat
-mnemonic. Frontend product areas that connect to a local environment must read
-environment-specific addresses from a defined configuration source and
-validate:
+The interface must not imply:
 
-- chain ID;
-- address format;
-- deployed bytecode;
-- token, vault, and SavingCore relationships.
+- legal deposit insurance;
+- guaranteed real-world returns;
+- production banking certification;
+- professional financial advice;
+- real monetary value for MockUSDC;
+- autonomous financial authority for assistants.
 
-At the Phase 13 checkpoint, no frontend route, component, transaction hook,
-wallet integration, or rendered metric existed yet. Phase 15 later implemented
-the User Banking App against the tracked public Sepolia deployment.
+The educational and test-token context remains visible throughout the experience.
 
-The frontend must not present these as available yet:
+## 4. Product Principles
 
-- autonomous AI transaction execution;
-- rich NFT metadata.
+### 4.1 Contract State Is Authoritative
 
-Contract state remains authoritative even when the UI displays a deterministic
-estimate.
+The UI may calculate estimates and derive availability, but contract storage and confirmed transaction receipts remain authoritative.
 
-## 1.3 Phase 14 Public Integration Baseline
+The interface distinguishes:
 
-The Phase 15 User Banking App consumes:
+- estimated values;
+- current on-chain values;
+- pending transaction values;
+- confirmed results;
+- historical certificate data.
 
-- production ABIs for MockUSDC, VaultManager, and SavingCore;
-- `data/deployments/sepolia.json`;
-- tracked Sepolia deployment records;
-- verified Etherscan links.
+### 4.2 Explain Before Signing
 
-Validated configuration:
+Before opening the wallet, consequential actions present:
 
-| Item | Value |
-|---|---|
-| Chain ID | `11155111` |
-| MockUSDC | `0xcf779EC5D80573D3254054a17c5B4f0117491662` |
-| VaultManager | `0xA79F660FaB4Ebae6Ac4298034Cb3FD6d28e5D2f7` |
-| SavingCore | `0xa35c55e7E2dB5874699cC9fb8d0E25032f51b443` |
-| Initial administrator | `0xA998526b0A5F23680f50fa3677f5c6576Dba89d9` |
-| Canonical plan | ID `1` |
-| Initial deposit count | `0` |
-| Initial vault balance | `0` |
+- action type;
+- relevant amount;
+- contract or recipient;
+- timing condition;
+- expected state transition;
+- important warning;
+- network context.
 
-The User Banking App and later frontend product areas must validate the chain,
-addresses, contract interfaces, dependencies, and protocol state required by
-their runtime scope.
+### 4.3 No Hidden Financial Actions
 
-The UI must not treat a metadata flag or Etherscan verification as an
-authorization boundary or security audit.
+The frontend does not:
 
-No Sepolia demo user balances or deposits exist yet. Local deterministic
-addresses remain local-only.
-
-## 2. Product Vision
-
-SafeBank presents blockchain-based fixed-term savings through a product experience that feels understandable, transparent, and controlled.
-
-The interface should help users understand:
-
-- what they are depositing;
-- which saving plan they selected;
-- how interest is calculated;
-- when the deposit matures;
-- what happens during early withdrawal;
-- what an NFT certificate represents;
-- what manual renewal means;
-- what permissionless auto-renew means;
-- what happens when the vault lacks interest;
-- which transaction is being signed.
-
-The product must not hide blockchain behavior behind misleading banking language.
-
-It should explain Web3 concepts in clear language while preserving factual accuracy.
-
----
-
-## 3. Product Principles
-
-## 3.1 Trust Through Clarity
-
-Every important financial value must be visible before the user signs.
-
-The interface should show:
-
-- token;
-- amount;
-- plan;
-- APR;
-- tenor;
-- maturity;
-- expected interest;
-- expected payout;
-- penalty;
-- recipient;
-- contract;
-- network.
-
-## 3.2 Contract State Is Authoritative
-
-The UI may calculate estimates, but on-chain state is the source of truth.
-
-The frontend must distinguish:
-
-- estimated value;
-- confirmed on-chain value;
-- pending transaction value;
-- historical event value.
-
-## 3.3 No Hidden Financial Actions
-
-The interface must not:
-
-- automatically approve tokens;
-- automatically submit transactions;
-- automatically sign;
-- automatically renew without a transaction;
-- hide the difference between approval and deposit opening;
+- sign automatically;
+- submit automatically;
+- silently approve tokens;
 - default to unlimited approval;
 - silently switch networks;
-- silently change an entered amount.
+- hide approval as part of a deposit;
+- execute assistant suggestions.
 
-## 3.4 User-Controlled Transactions
+### 4.4 Safe Defaults
 
-Every state-changing transaction must be confirmed through the user's wallet.
-
-The application prepares the action.
-
-The wallet signs and submits it.
-
-## 3.5 Explain Before Asking for Signature
-
-Before opening MetaMask or another compatible wallet, the UI must explain:
-
-- what action will happen;
-- which contract will receive the call;
-- what token amount may move;
-- what expected state change will occur;
-- which risks are relevant.
-
-## 3.6 Progressive Disclosure
-
-Basic users should see a clear summary first.
-
-Advanced details may be expandable, including:
-
-- contract address;
-- transaction hash;
-- token smallest-unit amount;
-- exact timestamp;
-- deposit ID;
-- NFT token ID;
-- event fields;
-- reserve information;
-- pending-interest details.
-
-## 3.7 Safe Defaults
-
-SafeBank should default to:
+Implemented safe defaults include:
 
 - exact token approval;
-- supported network validation;
-- explicit confirmations;
-- no transaction when configuration is incomplete;
-- no AI dependency for core financial flows;
-- no unlimited token allowance;
-- no destructive one-click admin actions.
+- Sepolia validation;
+- explicit confirmation;
+- disabled action when required data is unavailable;
+- no transaction from assistant output;
+- no optimistic terminal state before receipt confirmation.
 
-## 3.8 Honest Status
+### 4.5 Honest Status
 
-The UI must clearly distinguish:
+The UI distinguishes:
 
-- planned;
-- unavailable;
-- disabled;
 - loading;
-- submitted;
-- confirming;
-- successful;
-- rejected;
-- reverted;
-- replaced;
-- paused;
-- underfunded.
-
----
-
-## 4. Scope Classification
-
-## 4.1 Mandatory Frontend Scope
-
-The capstone requires a React-based demonstration frontend that supports the mandatory deposit flows.
-
-The minimum functional scope must ultimately include:
-
-- wallet connection;
-- plan viewing;
-- deposit opening;
-- NFT certificate viewing;
-- maturity withdrawal;
-- early withdrawal;
-- manual renewal;
-- auto-renew interaction;
-- core administrator actions;
-- transaction feedback.
-
-## 4.2 SafeBank Product Decisions
-
-SafeBank additionally plans:
-
-- separate User Banking App and Admin Portal experiences;
-- detailed transaction lifecycle UX;
-- deposit progress and maturity visualization;
-- NFT-transfer warning;
-- explicit test-token labeling;
-- network and contract validation;
-- audit-event views;
-- solvency visualization;
-- responsive behavior;
-- accessibility requirements.
-
-## 4.3 Bonus UI Scope
-
-For implemented Bonus C1, the future interface must expose:
-
-- principal-first settlement outcomes;
-- pending-interest amount and fixed claimant;
-- full-value claims and claim status;
-- warning that historical NFT transfer does not transfer an existing claim.
-
-For implemented Bonus C2, the future interface must expose:
-
-- total reserved interest;
-- available liquidity;
-- funding shortfall;
-- solvency ratio derived from verified values;
-- undercollateralization warnings;
-- owner-withdrawal maximum;
-- explanations for withdrawal rejection above available liquidity;
-- reserve lifecycle history from C2 events.
-
-## 4.4 Assistant Extension Scope
-
-Phase 18 implements:
-
-- a Banking Assistant for plan, deposit, maturity, renewal, pending-interest,
-  and vault explanations;
-- a Risk Assistant for liquidity, reserve, shortfall, pause, ownership,
-  relationship, and plan explanations;
-- Vietnamese and English questions and responses;
-- fact, explanation, caution, and next-step response sections;
-- bounded and validated text input;
-- loading, failure fallback, cancellation, and clear behavior;
-- a floating Spline 3D robot launcher;
-- a responsive desktop dialog and mobile bottom sheet;
-- reduced-motion handling for launcher animation.
-
-The assistant is not required for normal transactions and does not replace
-deterministic forms, contract data, confirmations, or wallet review.
-
-The current implementation is a deterministic rule-based assistant rather
-than an external LLM chatbot.
-
-## 5. Branding Constraints
-
-SafeBank must use an original product identity.
-
-The UI must not copy:
-
-- a real bank's logo;
-- a real bank's name;
-- an exact banking color palette;
-- a recognizable banking landing-page layout;
-- proprietary icons or illustrations;
-- brand slogans from existing financial institutions.
-
-The product may use general principles associated with trusted financial software:
-
-- generous spacing;
-- clear hierarchy;
-- restrained color use;
-- readable numbers;
-- visible confirmation;
-- professional typography;
-- consistent status indicators.
-
----
-
-## 6. Proposed Brand Direction
-
-The final visual identity will be selected during frontend implementation.
-
-The current planning direction is:
-
-- product name: SafeBank;
-- tone: calm, transparent, modern;
-- visual character: structured cards, clear financial summaries, subtle blockchain references;
-- primary emphasis: trust and control;
-- secondary emphasis: maturity progress and solvency visibility.
-
-The design should avoid appearing like:
-
-- a speculative trading platform;
-- a casino;
-- a meme-token dashboard;
-- a clone of an existing bank;
-- a generic unstyled Hardhat demo.
-
----
-
-## 7. Design Tokens at Planning Level
-
-No frontend design tokens have been implemented yet.
-
-The following categories must later be defined centrally.
-
-## 7.1 Color Roles
-
-Planned semantic roles:
-
-- primary action;
-- secondary action;
-- neutral surface;
-- elevated surface;
-- page background;
-- border;
-- standard text;
-- secondary text;
-- positive status;
-- warning status;
-- dangerous action;
-- informational status;
-- disabled state;
-- focus ring.
-
-Colors must be selected for contrast, not only appearance.
-
-## 7.2 Typography Roles
-
-Planned roles:
-
-- display heading;
-- page title;
-- section title;
-- card title;
-- body text;
-- small supporting text;
-- financial value;
-- mono-style contract data;
-- button label;
-- form label.
-
-Financial values should use stable number alignment where practical.
-
-## 7.3 Spacing Roles
-
-A consistent spacing system should cover:
-
-- inline spacing;
-- component padding;
-- card padding;
-- section spacing;
-- page margins;
-- mobile gutters;
-- desktop content width.
-
-## 7.4 Radius and Elevation
-
-Use a restrained set of:
-
-- border radii;
-- shadow levels;
-- modal elevation;
-- dropdown elevation;
-- sticky navigation elevation.
-
-## 7.5 Motion
-
-Motion should be limited to:
-
-- progress transitions;
-- loading indicators;
-- confirmation transitions;
-- expandable details;
-- non-distracting page transitions.
-
-The interface must respect reduced-motion preferences.
-
----
-
-## 8. Primary Personas
-
-## 8.1 Depositor Persona
-
-The depositor wants to:
-
-- understand available plans;
-- estimate return;
-- deposit MockUSDC;
-- monitor maturity;
-- withdraw or renew;
-- avoid signing the wrong transaction;
-- understand the NFT certificate.
-
-Possible concerns:
-
-- unfamiliarity with basis points;
-- confusion about six token decimals;
-- fear of losing principal;
-- confusion between approve and deposit;
-- confusion about NFT transfer;
-- uncertainty about transaction status;
-- uncertainty about vault funding.
-
-## 8.2 Current NFT Owner Persona
-
-This persona may not be the original depositor.
-
-The UI must focus on current rights rather than original ownership.
-
-The current NFT owner needs to know:
-
-- it owns the certificate;
-- it now controls the deposit;
-- the original depositor no longer controls settlement;
-- certificate transfer transfers the economic rights;
-- historical certificates may remain visible after completion.
-
-## 8.3 Bank Administrator Persona
-
-The administrator wants to:
-
-- create and manage plans;
-- fund interest liquidity;
-- understand liabilities;
-- withdraw only allowable liquidity;
-- change fee receiver safely;
-- pause and unpause;
-- inspect events;
-- understand risk before taking action.
-
-Administrator actions require stronger confirmations because they affect multiple users.
-
-## 8.4 Demonstration Viewer Persona
-
-The evaluator or instructor wants to:
-
-- understand the architecture quickly;
-- see the personal variant;
-- observe correct financial calculations;
-- verify NFT ownership behavior;
-- observe maturity and grace boundaries;
-- see bonus features;
-- inspect transaction links and events;
-- understand security decisions.
-
----
-
-## 9. Information Architecture
-
-SafeBank is planned as two clearly separated product areas.
-
-### User Banking App
-
-- public landing page;
-- user dashboard;
-- saving plans;
-- deposit-opening wizard;
-- deposit portfolio;
-- deposit details;
-- pending interest;
-- wallet and transaction activity.
-
-### Admin Portal
-
-- admin dashboard;
-- plan management;
-- vault management;
-- system controls;
-- audit history;
-- risk monitoring.
-
-The separation may use route groups in one frontend project or two frontend shells.
-
-The final framework decision remains open.
-
----
-
-## 10. Planned User Routes
-
-| Route | Purpose |
-|---|---|
-| `/` | Public product introduction and entry point |
-| `/app` | User dashboard |
-| `/app/plans` | Browse and compare saving plans |
-| `/app/deposits` | View owned and historical deposit certificates |
-| `/app/deposits/:id` | View one deposit and available actions |
-| `/app/pending-interest` | View and claim deferred interest |
-| `/app/activity` | Optional user transaction and event history |
-| `/app/settings` | Optional network, display, and wallet preferences |
-
-Exact routes may change during implementation.
-
-No route exists at the time this document is written.
-
----
-
-## 11. Planned Admin Routes
-
-| Route | Purpose |
-|---|---|
-| `/admin` | Admin overview |
-| `/admin/plans` | Create and manage saving plans |
-| `/admin/vault` | Fund and manage interest liquidity |
-| `/admin/system` | Pause, unpause, and system configuration |
-| `/admin/audit` | Inspect contract events |
-| `/admin/risk` | Review solvency and liability metrics |
-
-Access to these pages is a frontend UX decision.
-
-Actual authorization must remain in Solidity.
-
----
-
-## 12. Public Landing Page
-
-The landing page should explain SafeBank without implying real banking services.
-
-Recommended sections:
-
-1. product headline;
-2. educational-project notice;
-3. explanation of fixed-term blockchain savings;
-4. principal and interest separation;
-5. how NFT certificates work;
-6. main user flow;
-7. personal-variant values;
-8. supported network;
-9. test-token notice;
-10. security and risk summary;
-11. call to connect wallet or enter app.
-
-The page must prominently state:
-
-- SafeBank is an educational capstone;
-- MockUSDC is a test token;
-- assets have no real monetary value;
-- returns are based on contract rules, not a legal guarantee.
-
----
-
-## 13. User Navigation
-
-The planned desktop navigation may include:
-
-- Overview;
-- Plans;
-- My Deposits;
-- Pending Interest;
-- Activity.
-
-Wallet and network status should remain visible.
-
-The mobile layout may use:
-
-- a compact top bar;
-- a bottom navigation bar;
-- a drawer for secondary options.
-
-The navigation must show which area the user is currently viewing.
-
----
-
-## 14. User Dashboard
-
-The dashboard should answer:
-
-- Which wallet is connected?
-- Which network is active?
-- How much MockUSDC does the wallet hold?
-- How much active principal does the user control?
-- How much estimated interest is associated with active deposits?
-- Which deposits mature soon?
-- Is any interest pending?
-- What action should the user take next?
-
-## 14.1 Planned Summary Cards
-
-Possible cards:
-
-- wallet MockUSDC balance;
-- total active principal;
-- estimated active-term interest;
-- active deposit count;
-- deposits maturing soon;
-- pending interest;
-- system status.
-
-## 14.2 Deposit Preview List
-
-Each deposit preview should show:
-
-- deposit ID;
-- NFT ID;
-- principal;
-- APR snapshot;
-- maturity date;
-- status;
-- progress;
-- next valid action.
-
-## 14.3 Dashboard Actions
-
-Primary actions:
-
-- view plans;
-- open deposit;
-- inspect maturing deposit;
-- claim pending interest when available.
-
-## 14.4 Empty Dashboard
-
-When no wallet is connected:
-
-- explain wallet connection;
-- show supported network;
-- avoid displaying fake balances.
-
-When the wallet owns no deposits:
-
-- explain how deposits work;
-- provide a link to plans;
-- distinguish empty data from loading failure.
-
----
-
-## 15. Plans Page
-
-The plans page presents only plans read from the contract.
-
-## 15.1 Plan Card Fields
-
-Each plan card should show:
-
-- plan ID;
-- tenor in days and approximate months;
-- APR percentage;
-- APR in basis points in advanced details;
-- minimum deposit;
-- maximum deposit;
-- early-withdrawal penalty;
-- enabled status;
-- estimated maturity date after amount entry;
-- expected interest after amount entry.
-
-## 15.2 Plan Status
-
-Enabled plans may present an Open Deposit action.
-
-Disabled plans should:
-
-- remain visible when useful for transparency;
-- show a Disabled badge;
-- explain that no new deposits can use them;
-- not present an active deposit button.
-
-## 15.3 Plan Comparison
-
-The comparison tool may show:
-
-- tenor;
-- APR;
-- penalty;
-- min;
-- max;
-- expected interest;
-- expected maturity payout.
-
-Comparison values must be deterministic.
-
-## 15.4 Financial Explanation
-
-The page should explain:
-
-- one basis point equals 0.01%;
-- 200 bps equals 2.00%;
-- interest is simple within one term;
-- compounding happens only after successful renewal;
-- displayed values are estimates until confirmed on-chain.
-
----
-
-## 16. Open Deposit Wizard
-
-Opening a deposit should be a guided multi-step flow.
-
-## 16.1 Step 1 — Select Plan
-
-Display:
-
-- enabled plans;
-- tenor;
-- APR;
-- penalty;
-- min and max;
-- plan ID.
-
-Validation:
-
-- plan exists;
-- plan is enabled;
-- plan data loaded from the expected contract.
-
-## 16.2 Step 2 — Enter Amount
-
-Display:
-
-- wallet balance;
-- amount field;
-- MockUSDC symbol;
-- six-decimal behavior;
-- min and max;
-- available balance.
-
-Client-side validation may assist the user but must not replace contract validation.
-
-## 16.3 Step 3 — Review Estimate
-
-Show:
-
-- principal;
-- APR snapshot that will be requested;
-- penalty snapshot that will be requested;
-- tenor;
-- estimated interest;
-- estimated maturity payout;
-- estimated maturity date;
-- early-withdrawal penalty;
-- contract address;
-- network;
-- test-token warning.
-
-## 16.4 Step 4 — Token Approval
-
-Clearly explain:
-
-- approval does not open the deposit;
-- approval permits SavingCore to transfer the specified amount;
-- the spender is SavingCore;
-- the approval amount is exact;
-- another wallet confirmation follows for deposit opening.
-
-Possible states:
-
-- approval not required because allowance is sufficient;
+- empty;
+- ready;
+- disabled;
 - waiting for wallet;
 - submitted;
 - confirming;
-- successful;
+- success;
 - rejected;
-- failed;
-- replaced.
+- reverted;
+- RPC failure;
+- paused;
+- underfunded.
 
-## 16.5 Step 5 — Open Deposit
+### 4.6 Progressive Disclosure
 
-Before wallet confirmation, show:
+Primary views emphasize:
+
+- action;
+- amount;
+- status;
+- timing;
+- next available step.
+
+Supporting details include:
+
+- contract addresses;
+- plan IDs;
+- deposit IDs;
+- timestamps;
+- basis points;
+- transaction hashes;
+- reserve metrics;
+- claimant information.
+
+## 5. Application Structure
+
+SafeBank is one React single-page application.
+
+`App.tsx` stores:
+
+~~~text
+ApplicationView = user | admin
+~~~
+
+The application renders either:
+
+- `UserDashboard`;
+- `AdminDashboard`.
+
+Both are wrapped by:
+
+~~~text
+ApplicationShell
+~~~
+
+The frontend does not define route paths such as:
+
+- `/app`;
+- `/admin`;
+- `/app/plans`;
+- `/app/deposits`.
+
+View switching is immediate and local.
+
+## 6. Shared Application Shell
+
+`ApplicationShell` provides the common product frame.
+
+Shared responsibilities include:
+
+- SafeBank branding;
+- User and Admin view switch;
+- language switch;
+- responsive page layout;
+- consistent primary content width;
+- shared navigation presentation;
+- educational and network context.
+
+User and Admin views remain visually related while preserving different workflows.
+
+The shell does not grant administrator authority.
+
+## 7. Language Experience
+
+SafeBank supports:
+
+- Vietnamese;
+- English.
+
+Vietnamese is the default language.
+
+The selected language is:
+
+- managed by `LanguageProvider`;
+- persisted in `localStorage`;
+- restored on later visits;
+- reflected in document language metadata;
+- applied to user, administrator, transaction, error, and assistant content.
+
+Contract values and identifiers are not translated.
+
+## 8. Wallet Experience
+
+The wallet layer supports an injected EIP-1193 browser wallet.
+
+Implemented wallet states include:
+
+- no browser wallet detected;
+- disconnected;
+- connecting;
+- connected;
+- wrong network;
+- switching network;
+- ready for transactions;
+- provider error.
+
+Displayed wallet information includes:
+
+- shortened connected address;
+- current network state;
+- Sepolia requirement;
+- action to connect;
+- action to switch network;
+- error feedback.
+
+The frontend never requests a private key or seed phrase.
+
+## 9. Network Experience
+
+The application targets Ethereum Sepolia only.
+
+Before returning a signer, the wallet layer verifies:
+
+- an injected provider exists;
+- an account is connected;
+- chain ID equals `11155111`.
+
+Public contract reads may continue without a connected wallet.
+
+Wrong-network state:
+
+- prevents write preparation;
+- displays a clear Sepolia requirement;
+- offers an explicit switch action;
+- does not silently change the network.
+
+## 10. Public Data Loading
+
+Public reads use an ethers `JsonRpcProvider`.
+
+The application can display public protocol data before wallet connection.
+
+Public data includes:
+
+- contract configuration;
+- plan count;
+- saving plans;
+- deposit count;
+- pause states;
+- vault balance;
+- reserved interest;
+- available liquidity;
+- funding shortfall;
+- latest block timestamp.
+
+Public loading is separate from wallet-specific loading.
+
+## 11. User Banking App Overview
+
+The User Banking App is implemented in `UserDashboard`.
+
+Primary user areas include:
+
+- wallet section;
+- open-deposit panel;
+- contract links;
+- deposit portfolio;
+- Banking Assistant;
+- protocol and account data.
+
+The dashboard supports both:
+
+- users with no connected wallet;
+- connected users with or without deposits.
+
+Fake balances or example deposits are not displayed as live state.
+
+## 12. Wallet Section
+
+The wallet section presents:
+
+- connection status;
+- connected address;
+- network status;
+- connect action;
+- Sepolia switch action;
+- wallet-related errors.
+
+The section avoids:
+
+- requesting wallet access on page load;
+- presenting a disconnected account as zero balance;
+- claiming transaction readiness on the wrong network.
+
+## 13. Contract Links
+
+The User Banking App displays tracked Sepolia contract addresses.
+
+Links are provided for:
+
+- MockUSDC;
+- VaultManager;
+- SavingCore.
+
+Address presentation uses:
+
+- shortened human-readable form;
+- full address where appropriate;
+- Sepolia Etherscan target;
+- explicit contract identity.
+
+Etherscan source verification is not presented as a security audit.
+
+## 14. Saving Plan Presentation
+
+Plan information includes:
+
+- plan ID;
+- tenor;
+- APR;
+- APR percentage conversion;
+- minimum deposit;
+- maximum deposit;
+- early-withdrawal penalty;
+- enabled state.
+
+Enabled plans may be selected for new deposits.
+
+Disabled plans:
+
+- remain visible when relevant;
+- show disabled state;
+- cannot be used to open a new deposit;
+- cannot be selected for manual renewal;
+- do not invalidate existing deposits.
+
+Basis-point presentation explains that:
+
+~~~text
+100 bps = 1.00%
+200 bps = 2.00%
+750 bps = 7.50%
+~~~
+
+## 15. Open Deposit Experience
+
+The implemented deposit flow separates approval from deposit creation.
+
+### 15.1 Plan Selection
+
+The user selects an enabled plan.
+
+Displayed plan data includes:
+
+- tenor;
+- APR;
+- limits;
+- penalty;
+- plan ID.
+
+### 15.2 Amount Entry
+
+The amount input:
+
+- uses mUSDC;
+- supports six decimals;
+- validates a positive amount;
+- validates plan minimum and maximum;
+- compares against wallet balance when available;
+- avoids floating-point authoritative calculations.
+
+### 15.3 Estimate
+
+The review displays:
+
+- principal;
+- plan;
+- tenor;
+- APR;
+- estimated interest;
+- estimated maturity payout;
+- estimated maturity timestamp;
+- early-withdrawal penalty;
+- network;
+- SavingCore address;
+- test-token warning.
+
+The estimate mirrors contract integer-floor behavior.
+
+### 15.4 Approval
+
+Approval is a separate wallet transaction.
+
+The UI explains:
+
+- approval does not create a deposit;
+- SavingCore is the spender;
+- the requested amount is exact;
+- a second confirmation is required for deposit opening.
+
+Existing sufficient allowance may skip a new approval.
+
+### 15.5 Deposit Transaction
+
+Before submission, the confirmation includes:
 
 - selected plan;
 - principal;
-- expected snapshot values;
+- expected snapshots;
 - network;
-- SavingCore address;
-- approved amount.
+- contract;
+- expected NFT certificate.
 
-After success, show:
+After confirmation, authoritative data is refreshed.
+
+## 16. Deposit Portfolio
+
+`DepositPortfolioPanel` displays deposits associated with the connected wallet.
+
+Portfolio data includes:
 
 - deposit ID;
-- NFT ID;
-- principal;
-- maturity;
-- transaction hash;
-- Etherscan link;
-- link to deposit details.
-
-## 16.6 Wizard Recovery
-
-If the user leaves after approval but before opening:
-
-- the app should recognize the current allowance;
-- it should allow continuation;
-- it should not claim that a deposit exists.
-
----
-
-## 17. Interest Estimation
-
-The frontend estimator must mirror the contract formula:
-
-`interest = principal × aprBps × tenorSeconds ÷ (365 days × 10,000)`
-
-The UI must:
-
-- use token units consistently;
-- apply integer floor rounding when presenting contract-equivalent values;
-- label approximate human-readable values;
-- avoid floating-point errors for authoritative calculations;
-- use big-integer-compatible logic.
-
-The frontend must not rely on JavaScript floating-point arithmetic for exact token accounting.
-
----
-
-## 18. Early Withdrawal Estimation
-
-The estimator must mirror the implemented early-withdrawal formulas:
-
-`penalty = floor(principal × penaltyBpsAtOpen ÷ 10,000)`
-
-`userReceive = principal - penalty`
-
-Authoritative inputs must come from the deposit snapshot:
-
-- `principal`;
-- `penaltyBpsAtOpen`;
-- `maturityAt`;
-- current deposit status.
-
-The fee receiver is not snapshotted in the deposit.
-
-The interface must refresh `VaultManager.feeReceiver()` immediately before preparing the transaction because the current configured receiver receives the penalty.
-
-The confirmation must show:
-
-- original principal;
-- snapshotted penalty percentage;
-- exact floor-rounded penalty amount;
-- exact amount returned to the current NFT owner;
-- current fee receiver in advanced details;
-- zero interest paid;
-- current owner address;
-- current timestamp and maturity timestamp;
-- irreversible terminal result;
-- statement that the NFT remains as a historical certificate.
-
-The interface must preserve the exact identity:
-
-`userReceive + penalty = principal`
-
-The UI must handle these valid boundaries:
-
-- `0 bps`: user receives the full principal and no fee transfer is required;
-- `10,000 bps`: fee receiver receives the full principal and no user transfer is required;
-- a positive fractional penalty may round down to zero;
-- all arithmetic must use integer-safe six-decimal token units.
-
-The primary button should use clear wording such as:
-
-- Review Early Withdrawal;
-- Confirm Early Withdrawal.
-
-It should not use vague wording such as:
-
-- Continue;
-- Proceed.
-
----
-## 19. Deposit Portfolio Page
-
-The deposit portfolio should separate deposits by state.
-
-Possible tabs or filters:
-
-- Active;
-- Matured;
-- Renewable;
-- Completed;
-- Pending Interest;
-- All.
-
-Each deposit card should show:
-
-- certificate NFT ID;
-- deposit ID;
-- principal;
+- certificate ID;
 - current owner;
-- maturity;
-- status;
-- plan;
-- APR snapshot;
-- next valid action.
-
-Historical deposits should remain visible because NFTs are not burned.
-
----
-
-## 20. Deposit Detail Page
-
-The deposit detail page is the primary explanation and action screen.
-
-## 20.1 Header
-
-Display:
-
-- deposit ID;
-- NFT certificate ID;
-- status;
-- current owner;
-- network;
-- contract address.
-
-## 20.2 Financial Summary
-
-Display:
-
 - principal;
 - APR snapshot;
 - penalty snapshot;
-- tenor;
-- expected term interest;
-- expected maturity payout;
-- pending interest where applicable.
+- tenor snapshot;
+- start time;
+- maturity time;
+- grace end;
+- status;
+- pending interest;
+- claimant;
+- available actions.
 
-## 20.3 Time Summary
+Historical certificates remain visible after terminal actions.
 
-Display:
+The UI does not treat a retained NFT as proof that its old deposit remains active.
 
-- start date;
-- maturity date;
-- grace-period end;
-- current time basis;
-- progress bar;
-- current lifecycle window.
+## 17. Deposit Discovery
 
-Time should be displayed consistently.
+The contract does not use `ERC721Enumerable`.
 
-The UI should identify the timezone used for human-readable dates.
+Owned-deposit discovery is performed off-chain through available deposit IDs and current ownership checks.
 
-Exact blockchain timestamps should be available in advanced details.
+The frontend reconciles:
 
-## 20.4 Ownership Summary
-
-Display:
-
-- current NFT owner;
+- candidate deposit IDs;
+- `ownerOf(depositId)`;
+- deposit status;
 - connected wallet;
-- whether the connected wallet is authorized;
-- original depositor only if intentionally stored and relevant;
-- economic-rights warning.
+- pending-interest claimant.
 
-## 20.5 Plan Snapshot
+The UI does not rely only on original depositor storage.
 
-Display the deposit's stored values, not only the current plan values.
+## 18. Lifecycle Action Availability
 
-The page may separately display:
-
-- snapshot APR;
-- current plan APR;
-- explanation when they differ.
-
-## 20.6 Available Actions
-
-The action area depends on:
+Available actions derive from:
 
 - deposit existence;
-- `Active` or terminal status;
-- direct current NFT ownership;
+- status `Active`;
+- direct current NFT owner;
 - current block timestamp;
-- SavingCore pause state;
-- VaultManager pause state;
-- selected renewal-plan validity;
-- implemented C1 pending-interest and claimant state;
-- implemented contract capability.
+- grace end;
+- SavingCore pause;
+- VaultManager pause;
+- pending-interest amount;
+- fixed claimant;
+- selected plan state.
 
-Phase 11 action rules:
+The frontend refreshes a recent block timestamp instead of relying only on the browser clock.
 
-- offer early withdrawal only when the deposit is `Active`;
-- offer early withdrawal only when the connected wallet is the direct
-  current NFT owner;
-- an ERC721-approved operator must not be shown as authorized;
-- offer early withdrawal only while `block.timestamp < maturityAt`;
-- stop offering early withdrawal at exactly `maturityAt`;
-- offer maturity withdrawal when `block.timestamp >= maturityAt`;
-- explain before maturity settlement that principal and interest have separate
-  custody sources;
-- after a fully funded maturity settlement, show principal and interest as
-  paid immediately;
-- after a deferred maturity settlement, show principal as paid and the full
-  calculated interest as pending;
-- show `Withdrawn.interest` as interest paid immediately, not as the total
-  interest obligation;
-- show the direct current NFT owner at settlement as the snapshotted claimant;
-- do not change the displayed claimant merely because the historical NFT is
-  transferred after settlement;
-- offer `claimPendingInterest(depositId)` only when
-  `pendingInterest(depositId) > 0`;
-- offer the claim only to `interestClaimant(depositId)`;
-- do not treat ERC721 approval as pending-interest claim authorization;
-- do not allow the claimant to select another payout recipient or partial
-  claim amount;
-- after a successful claim, show pending interest as zero while retaining the
-  historical claimant;
-- offer manual renewal only while the old deposit remains `Active`;
-- offer manual renewal only to the direct current certificate owner;
-- offer manual renewal only during
-  `maturityAt <= block.timestamp < maturityAt + GRACE_PERIOD`;
-- do not offer manual renewal before maturity;
-- stop offering manual renewal at the exact grace-period end;
-- offer permissionless auto-renew only while the old deposit remains
-  `Active`;
-- offer auto-renew when
-  `block.timestamp >= maturityAt + GRACE_PERIOD`;
-- allow the connected wallet to trigger auto-renew even when it is not the
-  current certificate owner;
-- display the current old-certificate owner as the new NFT recipient;
-- do not allow the caller to edit the recipient;
-- preserve the old plan ID, tenor, APR, and penalty snapshots in the
-  review;
-- do not require the original plan to remain enabled;
-- do not reapply the original plan minimum or maximum;
-- explain that one delayed transaction creates exactly one new term;
-- explain that the new term begins at the confirmed transaction timestamp;
-- include only enabled plans in the manual-renewal plan selector;
-- allow the same plan when it remains enabled;
-- validate compounded principal against the selected plan limits;
-- disable early withdrawal, maturity withdrawal, manual renewal, and
-  auto-renew while SavingCore is paused;
-- do not disable early withdrawal solely because VaultManager is paused;
-- explain that VaultManager pause blocks positive-interest maturity
-  withdrawal, positive-interest manual renewal, and positive-interest
-  auto-renew;
-- explain that zero-interest manual renewal or auto-renew may not require a
-  vault payout;
-- keep historical certificate viewing available after settlement or
-  renewal;
-- refresh old deposit, new deposit, NFT ownership, balances, and events
-  after every confirmed renewal;
-- never infer a terminal state from local UI state before receipt and
-  contract refresh.
+## 19. Early Withdrawal UX
 
-Possible actions:
+Early withdrawal is offered only when:
 
-- early withdraw;
-- withdraw at maturity;
-- manually renew during the grace period;
-- trigger permissionless auto-renew after the grace period;
-- claim pending interest when the connected wallet is the snapshotted claimant;
-- view historical certificates.
+~~~text
+deposit.status == Active
+connectedWallet == ownerOf(depositId)
+blockTimestamp < maturityAt
+SavingCore.paused == false
+~~~
 
-Unavailable future actions must be labeled unavailable rather than silently
-displayed as working controls.
+The confirmation displays:
 
-## 20.7 Transaction History
+- original principal;
+- penalty rate;
+- floor-rounded penalty;
+- user receipt;
+- fee receiver;
+- zero interest;
+- current owner;
+- irreversible terminal result;
+- historical NFT retention.
 
-The page may display events associated with the deposit:
+The UI explains that VaultManager pause alone does not block early withdrawal.
 
-- opened;
-- transferred;
-- withdrawn;
-- renewed;
-- interest deferred;
-- pending interest claimed.
+At exact maturity, early withdrawal becomes unavailable.
 
-Event data must be labeled as indexed blockchain history.
+## 20. Maturity Withdrawal UX
 
----
+Maturity withdrawal is offered when:
 
-## 21. NFT Transfer Warning
+~~~text
+deposit.status == Active
+connectedWallet == ownerOf(depositId)
+blockTimestamp >= maturityAt
+SavingCore.paused == false
+~~~
 
-SafeBank must prominently communicate:
+The review displays:
 
-> Transferring the NFT transfers the right to receive the deposit principal and interest.
-
-The warning should appear:
-
-- on deposit details;
-- near certificate ownership information;
-- before linking users to an NFT transfer action;
-- in help content;
-- in AI explanations involving certificates.
-
-The UI should explain:
-
-- the NFT is not only a collectible;
-- the current owner controls economic actions;
-- the original depositor loses those rights after transfer;
-- historical certificates remain visible after completion;
-- transferring the historical NFT after deferred maturity settlement does not transfer the already snapshotted pending-interest claim.
-
----
-
-## 22. Maturity Withdrawal UX
-
-The maturity-withdrawal action is available when:
-
-`block.timestamp >= maturityAt`
-
-The confirmation must show:
-
-- principal to be returned;
+- principal;
 - calculated interest;
 - total expected payout;
 - current owner;
-- source of principal;
-- source of interest;
-- vault funding state;
-- transaction contract;
-- network.
+- principal source;
+- interest source;
+- vault state;
+- network;
+- contract.
 
-For an underfunded Phase 11 maturity settlement, the interface must explain:
+For underfunded interest, the UI explains C1:
 
-- principal can still be returned;
-- the full calculated interest becomes pending when VaultManager cannot pay
-  the complete amount;
-- no partial interest payout is attempted;
-- the direct current NFT owner is snapshotted as claimant;
-- pending interest may be claimed later after VaultManager funding.
+- principal may still return;
+- complete unpaid interest becomes pending;
+- no partial interest payment is attempted;
+- the current owner becomes the fixed claimant;
+- later funding is required for claim.
 
----
+The UI does not promise immediate interest.
 
-## 23. Early Withdrawal UX
+## 21. Manual Renewal UX
 
-The implemented contract action is available only when:
+Manual renewal is offered only during:
 
-`deposit.status == Active`
+~~~text
+maturityAt <= blockTimestamp < graceEndsAt
+~~~
 
-`connectedWallet == ownerOf(depositId)`
+Additional conditions:
 
-`block.timestamp < maturityAt`
+- old deposit is active;
+- connected wallet is direct current owner;
+- SavingCore is not paused;
+- target plan exists;
+- target plan is enabled;
+- compounded principal satisfies target limits.
 
-`SavingCore.paused() == false`
+The plan selector includes enabled plans only.
 
-The UI must not treat ERC721 approval as withdrawal authorization.
-
-The interface must display a high-risk warning before wallet submission.
-
-The warning must include:
-
-- no interest will be paid;
-- snapshotted penalty percentage;
-- exact floor-rounded penalty amount;
-- exact amount returned;
-- current fee receiver in advanced details;
-- current NFT owner;
-- action is irreversible;
-- deposit status becomes `Withdrawn`;
-- certificate remains as historical evidence;
-- no second withdrawal or renewal is possible after settlement.
-
-At exactly `maturityAt`, the early-withdrawal action must disappear or become disabled and the maturity-withdrawal action may become available.
-
-If a prepared transaction reaches the contract after maturity, map `DepositAlreadyMatured` to a clear message such as:
-
-> “This deposit has reached maturity. Use maturity withdrawal instead.”
-
-SavingCore pause blocks the action.
-
-VaultManager pause alone does not block early withdrawal because the contract does not request interest from the vault.
-
-After confirmation, the UI must verify:
-
-- transaction receipt success;
-- terminal deposit status;
-- current NFT owner;
-- user token balance;
-- fee-receiver token balance where displayed;
-- retained NFT certificate.
-
----
-## 24. Manual Renewal UX
-
-The contract permits manual renewal only during:
-
-`maturityAt <= block.timestamp < maturityAt + GRACE_PERIOD`
-
-The UI must derive availability from current on-chain state rather than only
-from a local countdown.
-
-### 24.1 Eligibility
-
-Show the manual-renew action only when:
-
-- the old deposit exists;
-- the old deposit status is `Active`;
-- the connected wallet is the direct current NFT owner;
-- the current block timestamp is at or after maturity;
-- the current block timestamp is before the grace-period end;
-- SavingCore is not paused.
-
-An ERC721-approved operator must not be shown as authorized.
-
-### 24.2 Plan Selection
-
-The renewal-plan selector must:
-
-- include only existing enabled plans;
-- exclude disabled plans;
-- allow the same plan when it remains enabled;
-- show current APR, tenor, penalty, minimum, and maximum;
-- explain that these values become the new deposit snapshots;
-- validate the compounded principal against selected-plan limits.
-
-Disabling the old plan does not remove the holder's existing renewal right.
-The old plan does not need to remain enabled unless it is selected again.
-
-### 24.3 Renewal Estimate
-
-The review screen should show:
+The review displays:
 
 - old deposit ID;
-- old certificate owner;
+- old owner;
 - old principal;
 - old APR snapshot;
 - old tenor snapshot;
 - calculated old-term interest;
 - selected new plan;
-- compounded new principal;
-- new APR snapshot;
-- new penalty snapshot;
-- new tenor;
-- estimated new maturity;
-- old certificate outcome;
-- new NFT recipient.
-
-The old-term interest estimate must use old immutable snapshots.
-
-The new term estimate must use the selected plan's current values.
-
-### 24.4 Token Movement Explanation
-
-The confirmation must explain that:
-
-- the user does not receive interest into the wallet;
-- positive interest moves from VaultManager into SavingCore;
-- the funded interest becomes part of the new deposit principal;
-- the user's MockUSDC wallet balance remains unchanged;
-- total MockUSDC supply remains unchanged;
-- the old NFT remains as historical evidence;
-- a new NFT represents the renewed active deposit.
-
-For zero-rounded interest, explain that:
-
-- no interest payout is requested;
-- new principal equals old principal;
-- VaultManager balance does not change.
-
-### 24.5 Pause and Funding States
-
-When VaultManager is paused:
-
-- positive-interest renewal should be shown as blocked or expected to
-  revert;
-- zero-interest renewal may still be contract-valid;
-- the UI must not claim that every renewal is always blocked.
-
-When VaultManager is underfunded or SavingCore is unauthorized:
-
-- explain that compounding cannot complete;
-- do not imply that unpaid interest was added;
-- do not create optimistic local renewal state;
-- allow the user to return to maturity withdrawal while the old deposit
-  remains active.
-
-When SavingCore is paused, manual renewal is blocked regardless of interest.
-
-### 24.6 Confirmation
-
-Before submitting, show:
-
-- irreversible old-deposit transition to `ManualRenewed`;
-- creation of a new active deposit;
-- new deposit and NFT identifiers are assigned on-chain;
-- old NFT remains;
-- new NFT is minted to the current old-certificate owner;
-- the old deposit cannot later be withdrawn or renewed again;
-- required VaultManager funding for positive interest;
-- transaction and gas confirmation.
-
-### 24.7 Success State
-
-After confirmation, refresh and display:
-
-- transaction hash;
-- `Renewed` event;
-- old deposit status `ManualRenewed`;
-- new active deposit;
 - new principal;
-- selected plan snapshots;
-- new maturity;
-- old NFT ownership;
-- new NFT ownership;
-- `InterestPaid` when interest was positive;
-- ERC721 mint `Transfer`;
-- unchanged user MockUSDC balance;
-- unchanged total token supply.
+- new APR;
+- new tenor;
+- new penalty;
+- expected new maturity;
+- renewed NFT recipient.
 
-Do not expect a manual-renewal `DepositOpened` or `Withdrawn` event.
+The user is told that positive interest moves from VaultManager into SavingCore rather than into the wallet.
 
-### 24.8 Error Mapping
+## 22. Permissionless Auto-Renew UX
 
-Map contract failures to clear messages:
+Auto-renew is offered when:
 
-- `DepositNotMatured`:
-  “This deposit has not reached maturity yet.”
-- `ManualRenewalWindowClosed`:
-  “The manual-renewal window has ended.”
-- inactive old deposit:
-  “This deposit has already completed another lifecycle action.”
-- caller is not direct owner:
-  “Only the current certificate owner can renew this deposit.”
-- selected plan does not exist:
-  “The selected renewal plan is unavailable.”
-- selected plan is disabled:
-  “Choose an enabled renewal plan.”
-- compounded principal below or above plan limits:
-  “The renewed principal does not meet this plan’s deposit limits.”
-- VaultManager paused:
-  “The interest vault is paused, so positive-interest renewal cannot
-  complete.”
-- underfunded VaultManager:
-  “The interest vault cannot fully fund this renewal.”
-- unsafe contract-wallet receiver:
-  “The current owner contract cannot receive the renewed NFT.”
-- reentrancy or unexpected callback failure:
-  show a generic safe transaction failure without presenting partial
-  success.
+~~~text
+deposit.status == Active
+blockTimestamp >= graceEndsAt
+SavingCore.paused == false
+~~~
 
-The UI must refresh authoritative contract state after every revert.
+The connected wallet does not need to own the certificate.
 
-## 25. Auto-Renew UX
-
-The implemented contract action is:
-
-`autoRenew(depositId)`
-
-It becomes available when:
-
-`block.timestamp >= maturityAt + GRACE_PERIOD`
-
-The UI must derive eligibility from current contract state and a recent block
-timestamp.
-
-### 25.1 Eligibility
-
-Show Trigger Auto-Renew only when:
-
-- the old deposit exists;
-- the old deposit status is `Active`;
-- the current timestamp is at or after the grace-period end;
-- SavingCore is not paused.
-
-The connected wallet does not need to own the old certificate.
-
-At one second before the grace-period end, the contract reverts with
-`AutoRenewalTooEarly`.
-
-At the exact grace-period end, the action becomes valid.
-
-### 25.2 Permissionless Caller and Recipient
-
-The review must distinguish:
+The review distinguishes:
 
 - transaction caller;
-- current owner of the old certificate;
-- recipient of the new certificate.
-
-The caller may be any wallet.
-
-The new NFT recipient must always be the current old-certificate owner.
-
-The UI must not:
-
-- default the recipient to the caller;
-- allow the caller to edit the recipient;
-- imply that triggering creates ownership rights;
-- require ERC721 approval for permissionless triggering.
-
-Refresh `ownerOf(depositId)` immediately before preparing the transaction.
-
-### 25.3 Preserved Terms
-
-The review must display that the new deposit preserves the old deposit's:
-
-- plan ID;
-- tenor snapshot;
-- APR snapshot;
-- early-withdrawal penalty snapshot.
-
-The UI must not substitute the current plan APR or current enabled state.
-
-The original plan may be disabled and auto-renew may still remain valid.
-
-The original plan minimum and maximum are not reapplied to compounded
-principal.
-
-### 25.4 Delayed Execution
-
-The confirmation must explain:
-
-- time passing alone does not renew the deposit;
-- a real transaction is required;
-- one transaction creates exactly one new term;
-- only one old term of interest is calculated;
-- no retroactive multi-term catch-up occurs;
-- the new term starts at the successful transaction timestamp.
-
-The UI must not display hypothetical accumulated renewal terms.
-
-### 25.5 Interest and Token Movement
-
-For positive interest, explain that:
-
-- interest moves from VaultManager into SavingCore;
-- the user wallet does not receive the interest directly;
-- the funded interest becomes part of the new principal;
-- VaultManager balance decreases;
-- SavingCore balance increases;
-- user wallet balance remains unchanged;
-- total MockUSDC supply remains unchanged.
-
-For zero-rounded interest, explain that:
-
-- no VaultManager payout is requested;
-- no `InterestPaid` event is expected;
-- new principal equals old principal;
-- VaultManager pause alone may not block the action.
-
-### 25.6 Pause and Funding States
-
-When SavingCore is paused:
-
-- auto-renew is blocked.
-
-When VaultManager is paused:
-
-- positive-interest auto-renew is blocked;
-- zero-interest auto-renew may remain valid.
-
-When VaultManager is underfunded or SavingCore is unauthorized:
-
-- no renewed principal is created;
-- no new deposit remains;
-- no new NFT remains;
-- the old deposit remains `Active`;
-- maturity withdrawal may remain available to the owner.
-
-The UI must not present partial success after a revert.
-
-### 25.7 Confirmation
-
-Before wallet submission, show:
-
-- old deposit ID;
 - current old-certificate owner;
-- transaction caller;
-- grace-period end;
-- old principal;
+- renewed NFT recipient.
+
+The recipient is not editable.
+
+The UI explains that auto-renew preserves:
+
 - old plan ID;
 - old tenor snapshot;
 - old APR snapshot;
-- old penalty snapshot;
-- calculated old-term interest;
-- new principal;
-- expected new term start;
-- expected new maturity;
-- new NFT recipient;
-- old NFT retention;
-- irreversible old status transition to `AutoRenewed`;
-- statement that one new active deposit will be created.
+- old penalty snapshot.
 
-### 25.8 Success State
+It also explains:
 
-After confirmation, refresh and display:
+- time passing alone does not renew;
+- one transaction creates one new term;
+- delayed execution does not create multiple retroactive terms;
+- the new term starts at the transaction timestamp.
 
-- transaction hash;
-- `Renewed` event;
-- old status `AutoRenewed`;
-- new active deposit ID;
-- new principal;
-- preserved snapshots;
-- confirmed `startedAt`;
-- confirmed `maturityAt`;
-- old NFT ownership;
-- new NFT ownership;
-- `InterestPaid` only when interest is positive;
-- ERC721 mint `Transfer`;
-- unchanged caller and owner wallet balances where relevant;
-- unchanged total token supply.
+## 23. Pending Interest UX
 
-Do not expect auto-renew to emit:
+Pending interest is displayed when:
 
-- `DepositOpened`;
-- `Withdrawn`.
+~~~text
+pendingInterest[depositId] > 0
+~~~
 
-### 25.9 Competing Maturity Withdrawal
-
-After grace, the current owner may still submit maturity withdrawal while the
-old deposit remains `Active`.
-
-A permissionless auto-renew transaction may compete with it.
-
-The first successfully mined transaction determines the terminal state.
-
-After either transaction confirms, refresh the deposit before offering another
-action.
-
-### 25.10 Error Mapping
-
-Map failures to clear messages:
-
-- `AutoRenewalTooEarly`:
-  “Auto-renew becomes available after the two-day grace period.”
-- inactive deposit:
-  “This deposit has already completed another lifecycle action.”
-- SavingCore paused:
-  “SafeBank deposit operations are temporarily paused.”
-- VaultManager paused with positive interest:
-  “The interest vault is paused, so this positive-interest renewal cannot
-  complete.”
-- underfunded VaultManager:
-  “The interest vault cannot fully fund this renewal.”
-- unauthorized SavingCore:
-  “The interest vault is not configured for this SavingCore contract.”
-- unsafe current-owner contract:
-  “The current owner contract cannot receive the renewed NFT.”
-- reentrancy or callback failure:
-  show a generic safe transaction failure and refresh authoritative state.
-
-The UI must never infer renewal solely because the grace period has passed.
----
-
-## 26. Withdraw After Grace Period
-
-If the deposit remains active after the grace period:
-
-- maturity withdrawal remains available to the owner;
-- auto-renew remains available permissionlessly;
-- both actions may compete;
-- the first successfully mined transaction determines the state.
-
-The UI should not claim that the deposit has already auto-renewed solely because the grace period ended.
-
-The status must be read from the contract.
-
----
-
-## 27. Pending Interest Page
-
-The Phase 11 contract capabilities required by this page are implemented, but the page itself remains planned and has not been built.
-
-## 27.1 Summary
-
-Display:
-
-- total pending interest controlled by the connected wallet;
-- number of pending claims;
-- vault availability;
-- system pause status.
-
-## 27.2 Claim Item
-
-Each item should show:
+Displayed data includes:
 
 - deposit ID;
-- claimant;
 - pending amount;
-- settlement transaction;
-- claim status;
-- whether vault liquidity is sufficient;
-- claim action.
+- fixed claimant;
+- current connected wallet;
+- vault liquidity context;
+- claim availability.
 
-## 27.3 Claim Confirmation
+Claim is offered only when:
 
-Show:
+~~~text
+connectedWallet == interestClaimant[depositId]
+~~~
 
-- claimant;
-- pending amount;
-- vault contract;
-- network;
-- expected transfer;
-- test-token warning.
+The UI does not treat:
 
-## 27.4 Claimed State
+- NFT ownership after settlement;
+- ERC721 approval;
+- original depositor identity
 
-After successful claim:
+as pending-claim authority.
 
-- mark the item claimed;
-- show the transaction link;
-- retain historical information;
-- do not offer the claim action again.
+After a successful claim, pending amount refreshes to zero.
 
----
+## 24. Pause-State UX
 
-## 28. User Activity Page
+SavingCore and VaultManager pause states are displayed separately.
 
-An optional activity page may aggregate:
+### 24.1 SavingCore Pause
 
-- approvals;
-- deposits opened;
-- NFT transfers;
-- withdrawals;
-- renewals;
-- pending-interest settlements;
-- claims.
+The UI blocks:
 
-Each item should show:
+- opening deposits;
+- early withdrawal;
+- maturity withdrawal;
+- manual renewal;
+- auto-renew;
+- pending-interest claim.
 
-- action type;
-- status;
-- timestamp;
-- amount;
-- transaction hash;
-- explorer link.
+### 24.2 VaultManager Pause
 
-The activity page must not infer success only from local UI state.
+The UI explains that VaultManager pause blocks:
 
-It should reconcile with transaction receipts and contract state.
+- positive-interest maturity payout;
+- positive-interest renewal;
+- pending-interest payout;
+- owner vault withdrawal.
 
----
+Early withdrawal remains available when only VaultManager is paused.
 
-## 29. Admin Portal Principles
+Zero-interest renewal may remain contract-valid.
 
-Admin actions may affect all depositors.
+### 24.3 Mixed Pause State
 
-Therefore, the Admin Portal should prioritize:
+The interface does not combine both contracts into one ambiguous status.
 
-- explicit scope;
-- clear consequences;
-- data visibility before action;
-- stronger confirmations;
-- transaction auditability;
-- prevention of accidental clicks;
-- on-chain authorization awareness.
+Each blocked action identifies the relevant contract.
 
-The Admin Portal must not present frontend access as proof of authorization.
+## 25. Admin Portal Overview
 
----
+The Admin Portal is implemented in `AdminDashboard`.
 
-## 30. Admin Dashboard
+Primary areas include:
 
-The admin dashboard should answer:
+- administrator overview;
+- protocol configuration;
+- plan management;
+- vault management;
+- deposit inspection;
+- Risk Assistant.
 
-- Is the system paused?
-- How much interest liquidity exists?
-- How much interest is reserved?
-- How much liquidity is available?
-- Is the vault underfunded?
-- How much active principal exists?
-- How many active deposits exist?
-- Which deposits mature soon?
-- Which plans create the most liabilities?
-- Are there pending-interest debts?
+`AdminDataProvider` is mounted only while the Admin view is active.
 
-## 30.1 Planned Metrics
+The portal remains readable to non-admin users, but write actions require on-chain ownership.
 
-Possible metrics:
+## 26. Admin Overview
 
+The overview displays:
+
+- plan count;
+- deposit count;
 - vault balance;
-- total reserved interest;
-- available liquidity;
-- solvency ratio;
-- funding shortfall;
-- total active principal;
-- active deposit count;
-- pending-interest total;
-- deposits maturing within a selected period;
-- system pause status.
+- loading state;
+- error state;
+- retry action.
 
-## 30.2 Metric Definitions
+Additional panels expose:
 
-The interface must explain each metric.
+- owners;
+- pending owners;
+- pause states;
+- contract relationships;
+- fee receiver;
+- reserve metrics;
+- shortfall.
 
-Example:
+No administrator metric is fabricated when data loading fails.
 
-- Vault balance: token balance held by VaultManager.
-- Reserved interest: aggregate expected active-deposit interest plus unpaid pending-interest liabilities.
-- Available liquidity: maximum amount the administrator may currently withdraw.
-- Funding shortfall: reserved liabilities exceeding vault balance.
-- Solvency ratio: vault balance divided by reserved interest, subject to defined zero-liability behavior.
+## 27. Plan Administration UX
 
----
+Implemented plan actions:
 
-## 31. Plan Management
+- create plan;
+- update APR;
+- enable plan;
+- disable plan.
 
-## 31.1 Plan List
+### 27.1 Create Plan
 
-Display:
-
-- plan ID;
-- tenor;
-- APR;
-- min;
-- max;
-- penalty;
-- enabled state;
-- active-deposit count if available;
-- related reserved liability if available.
-
-## 31.2 Create Plan
-
-The form should include:
+The form accepts:
 
 - tenor days;
 - APR bps;
-- min deposit;
-- max deposit;
+- minimum;
+- maximum;
 - penalty bps;
-- initial enabled state if supported.
+- initial enabled state.
 
-The UI should provide human-readable conversions:
+The review converts basis points to human-readable percentages.
 
-- basis points to percentage;
-- token smallest units to MockUSDC;
-- days to approximate months.
+### 27.2 APR Update
 
-## 31.3 Update APR
-
-Before submission, show:
+The confirmation displays:
 
 - plan ID;
-- old APR;
+- existing APR;
 - new APR;
 - percentage conversion;
-- statement that existing deposits retain old snapshots;
-- statement that only future deposits use the new APR.
+- statement that existing snapshots remain unchanged.
 
-## 31.4 Enable Plan
+### 27.3 Enable and Disable
 
-Show:
+Enable confirmation explains that new deposits may use the plan.
 
-- plan details;
-- consequence for new deposits;
-- no retroactive change to active deposits.
+Disable confirmation explains:
 
-## 31.5 Disable Plan
-
-Show:
-
-- plan details;
-- no new deposit may use it;
+- new deposits cannot use it;
+- manual renewal cannot select it;
 - existing deposits remain valid;
-- existing owners may still withdraw;
-- manual renewal cannot target it;
-- auto-renew may still use old snapshots.
+- snapshot-based auto-renew may continue.
 
-## 31.6 Validation
+## 28. Vault Administration UX
 
-The form should prevent obvious mistakes but must rely on contract validation for final enforcement.
+Implemented vault actions:
 
----
+- exact-amount token approval;
+- vault funding;
+- available-liquidity withdrawal;
+- fee-receiver update;
+- VaultManager pause;
+- VaultManager unpause.
 
-## 32. Vault Management
+### 28.1 Vault Metrics
 
-## 32.1 Vault Overview
+Displayed metrics include:
 
-Display:
-
-- VaultManager address;
-- MockUSDC balance;
+- vault balance;
 - total reserved interest;
 - available liquidity;
 - funding shortfall;
@@ -1832,1606 +809,487 @@ Display:
 - authorized SavingCore;
 - pause state.
 
-## 32.2 Fund Vault
+### 28.2 Funding
 
-The funding flow should show:
+Funding is separated into:
+
+- exact MockUSDC approval;
+- vault funding transaction.
+
+The review displays:
 
 - source wallet;
 - amount;
-- token;
-- vault recipient;
+- VaultManager recipient;
 - network;
-- whether approval is required;
-- new estimated vault balance.
+- expected effect.
 
-Funding is a token transfer and may require approval depending on final implementation.
+### 28.3 Withdrawal
 
-## 32.3 Withdraw Vault Liquidity
+Withdrawal input is constrained by available liquidity.
 
-Before submission, show:
+The confirmation displays:
 
 - requested amount;
-- current vault balance;
-- reserved interest;
-- available liquidity;
-- destination;
-- expected remaining liquidity;
-- warning when close to the maximum.
-
-The input must not present amounts above available liquidity as valid.
+- vault balance;
+- reserve;
+- maximum available;
+- owner recipient;
+- expected remaining balance.
 
 The contract remains the final enforcement layer.
 
-## 32.4 Blocked Withdrawal Explanation
+### 28.4 Fee Receiver
 
-When withdrawal is unavailable, explain the reason:
+The confirmation displays:
 
-- not administrator;
-- system configuration unavailable;
-- amount exceeds available liquidity;
-- vault balance insufficient;
-- wrong network;
-- contract paused if applicable;
-- missing deployment configuration.
+- current fee receiver;
+- new address;
+- effect on future unsettled early withdrawals;
+- no effect on penalty-rate snapshots.
 
-## 32.5 Fee Receiver Update
+## 29. System Control UX
 
-The confirmation must show:
+SavingCore and VaultManager pause controls are independent.
 
-- current receiver;
-- new receiver;
-- address validation;
-- administrator wallet;
-- VaultManager contract address;
-- network;
-- effect on future unsettled early-withdrawal penalties;
-- no change to deposit penalty-rate snapshots;
-- no retroactive change to completed withdrawals.
+Pause and unpause require confirmation.
 
-After a successful update:
+The review identifies:
 
-- refresh `VaultManager.feeReceiver()`;
-- invalidate any stale early-withdrawal confirmation prepared with the old receiver;
-- require the user to review the early-withdrawal summary again;
-- display the transaction hash and decoded `FeeReceiverUpdated` event.
-
-The caller of `earlyWithdraw` cannot choose the penalty recipient.
-
----
-
-## 33. Emergency System Controls
-
-## 33.1 Pause Action
-
-Pause must not be a one-click action.
-
-The planned confirmation should require:
-
-- impact summary;
-- current system state;
-- administrator wallet;
-- network;
-- contract;
-- typed confirmation word such as `PAUSE`;
-- wallet confirmation.
-
-The impact summary should state that pause blocks:
-
-- new deposits;
-- withdrawals;
-- renewals;
-- pending-interest claims;
-- interest payouts.
-
-## 33.2 Unpause Action
-
-Unpause should also require confirmation.
-
-Show:
-
-- current pause state;
 - affected contract;
+- current state;
+- new state;
+- connected wallet;
 - network;
-- statement that user operations will resume.
+- operational impact.
 
-## 33.3 Pause Limitations
+The interface explains that pause does not:
 
-The UI should explain that pause does not:
-
-- reverse prior transactions;
-- restore stolen keys;
-- fund the vault;
-- correct a wrong deployment;
+- reverse transactions;
+- restore keys;
+- fund liabilities;
+- repair a wrong deployment;
 - guarantee recovery.
 
-## 33.4 Multi-Contract State
+## 30. Deposit Inspection UX
 
-SavingCore and VaultManager have separate pause states and the UI must display them separately.
+The Admin Portal includes read-only deposit inspection by ID.
 
-It must not display a single healthy state when one contract remains paused.
+Inspection displays available contract data without allowing direct editing.
 
-Phase 11 operation-specific behavior:
+The administrator cannot use the UI to:
 
-- SavingCore paused: deposit opening, maturity withdrawal, early withdrawal,
-  manual renewal, auto-renew, and pending-interest claims are blocked;
-- VaultManager paused: positive-interest payout operations are blocked;
-- a paused VaultManager does not activate C1 interest deferral because pause
-  is not `InsufficientVaultBalance`;
-- a pending-interest claim fails while VaultManager is paused and remains
-  claimable after unpause;
-- VaultManager paused by itself does not block early withdrawal;
-- VaultManager paused by itself may not block zero-interest manual renewal
-  or zero-interest auto-renew;
-- positive-interest manual renewal and positive-interest auto-renew require
-  an unpaused VaultManager;
-- plan and deposit reads remain available while either contract is paused;
-- certificate and ownership reads remain available;
-- the interface must explain which contract is responsible for the blocked
-  action.
----
+- change principal;
+- change owner;
+- change snapshots;
+- reset status;
+- force settlement;
+- create pending debt manually.
 
-## 34. Admin Audit Page
+Invalid deposit IDs return a clear state instead of editable placeholder data.
 
-The audit page should organize events by category.
+## 31. Transaction Lifecycle UX
 
-## 34.1 Plan Events
+The reusable transaction model includes:
 
-- PlanCreated;
-- PlanUpdated;
-- PlanEnabled;
-- PlanDisabled.
+- idle;
+- wallet confirmation;
+- submitted;
+- confirming;
+- success;
+- error.
 
-## 34.2 Deposit Events
-
-- DepositOpened;
-- Withdrawn;
-- Renewed.
-
-## 34.3 Vault Events
-
-- VaultFunded;
-- VaultWithdrawn;
-- InterestPaid;
-- FeeReceiverUpdated;
-- SavingCoreAuthorized.
-
-## 34.4 System Events
-
-- paused;
-- unpaused;
-- ownership transfer started;
-- ownership accepted.
-
-## 34.5 C1 and C2 Events
-
-- InterestDeferred;
-- PendingInterestClaimed;
-- InterestReserved;
-- ReservedInterestReleased.
-
-## 34.6 Event Detail
-
-Show:
-
-- event name;
-- block number;
-- timestamp;
-- transaction hash;
-- caller where available;
-- decoded parameters;
-- explorer link.
-
-Events support auditability but do not replace state reads.
-
----
-
-## 35. Admin Risk Page
-
-The risk page consumes the implemented C2 solvency reads.
-
-## 35.1 Solvency Summary
-
-Display:
-
-- vault balance;
-- reserved interest;
-- available liquidity;
-- funding shortfall;
-- solvency ratio;
-- risk classification.
-
-## 35.2 Risk Classification
-
-Possible deterministic labels:
-
-- No liabilities;
-- Fully funded;
-- Adequately funded;
-- Near shortfall;
-- Undercollateralized;
-- Data unavailable.
-
-Thresholds must be documented before implementation.
-
-AI must not invent the classification.
-
-## 35.3 Maturity Exposure
-
-Display upcoming interest obligations grouped by:
-
-- next 24 hours;
-- next 7 days;
-- next 30 days;
-- later.
-
-This may require indexed events or aggregated reads depending on contract design.
-
-## 35.4 Funding Recommendation
-
-A deterministic baseline recommendation may be:
-
-`recommended minimum funding = max(totalReservedInterest - vaultBalance, 0)`
-
-AI may explain the result but must not change it.
-
-## 35.5 Withdrawal Recommendation
-
-A deterministic maximum is:
-
-`availableLiquidity`
-
-AI may explain why the amount is limited.
-
----
-
-## 36. Wallet Connection Flow
-
-## 36.1 Disconnected State
-
-Display:
-
-- Connect Wallet action;
-- supported network;
-- educational warning;
-- no fabricated account data.
-
-## 36.2 Connection Request
-
-The app requests account access through the wallet provider.
-
-Possible results:
-
-- connected;
-- user rejected;
-- provider unavailable;
-- unsupported wallet;
-- no account.
-
-## 36.3 Account Change
-
-When the wallet account changes:
-
-- refresh ownership;
-- refresh balances;
-- refresh permissions;
-- close stale confirmations;
-- do not retain previous-wallet financial data as current.
-
-## 36.4 Disconnect
-
-The application may clear its local session state.
-
-It cannot forcibly disconnect the wallet extension in every provider.
-
-## 36.5 Wallet Privacy
-
-The UI should avoid unnecessary collection of wallet-linked personal information.
-
----
-
-## 37. Network Validation
-
-Before reads or writes, validate:
-
-- chain ID;
-- expected environment;
-- contract-address mapping;
-- provider connection.
-
-## 37.1 Unsupported Network
-
-Display:
-
-- current network;
-- expected network;
-- Switch Network action;
-- manual instructions if automatic switching fails.
-
-## 37.2 Network Switch
-
-The app may request a network switch.
-
-It must handle:
+The UI handles:
 
 - user rejection;
-- missing network;
+- contract revert;
 - provider error;
-- account change;
-- delayed update.
+- invalid network;
+- missing wallet;
+- invalid input.
 
-## 37.3 Mainnet Protection
+A confirmed receipt is required before showing success.
 
-Until explicitly supported, the app must not present mainnet as a valid demonstration network.
+Relevant data providers refresh after success.
 
----
+## 32. Confirmation Dialog UX
 
-## 38. Contract Validation
+Confirmation dialogs are used for:
 
-The frontend must not blindly trust environment configuration.
-
-Possible validation checks:
-
-- address format;
-- nonzero address;
-- expected chain;
-- bytecode exists;
-- known contract interface calls succeed;
-- token decimals equal 6;
-- SavingCore and VaultManager dependencies match expected addresses where exposed.
-
-If validation fails:
-
-- disable state-changing actions;
-- show a configuration error;
-- avoid asking users to sign.
-
----
-
-## 39. Test Token Warning
-
-A persistent warning should state:
-
-- MockUSDC is a test token;
-- it is freely mintable for demonstration;
-- it is not USDC;
-- it has no real financial value;
-- SafeBank is not a real banking service.
-
-The warning should appear:
-
-- on the landing page;
-- near wallet balance;
-- in deposit confirmation;
-- in admin vault funding;
-- in demo documentation.
-
----
-
-## 40. Transaction Lifecycle Model
-
-Every transaction action should use a consistent lifecycle.
-
-## 40.1 Idle
-
-No transaction has started.
-
-## 40.2 Preparing
-
-The app is:
-
-- validating network;
-- reading state;
-- calculating values;
-- preparing request data.
-
-## 40.3 Waiting for Wallet
-
-The wallet confirmation is open.
-
-The UI should tell the user to review the wallet.
-
-## 40.4 Rejected
-
-The user rejected the request.
-
-This is not necessarily an application error.
-
-Provide a retry action without showing a false failure alarm.
-
-## 40.5 Submitted
-
-The wallet returned a transaction hash.
-
-Display:
-
-- hash;
-- explorer link;
-- submitted status.
-
-Do not claim success yet.
-
-## 40.6 Confirming
-
-The transaction is waiting for confirmations.
-
-Display:
-
-- confirmation progress;
-- latest known status;
-- ability to copy the transaction hash.
-
-## 40.7 Success
-
-The receipt succeeded and state should be refreshed.
-
-Display:
-
-- result summary;
-- transaction link;
-- updated deposit or vault state.
-
-## 40.8 Reverted
-
-Display:
-
-- decoded custom error if available;
-- plain-language explanation;
-- technical details in an expandable section;
-- safe recovery action.
-
-## 40.9 Replaced
-
-A transaction may be replaced by:
-
-- speed-up;
-- cancellation;
-- same-nonce transaction.
-
-The UI should identify the replacement hash where supported.
-
-## 40.10 RPC Failure
-
-An RPC error does not always mean the transaction failed.
-
-The UI should attempt to reconcile by transaction hash and state.
-
----
-
-## 41. Error Message Principles
-
-Error messages should answer:
-
-1. What happened?
-2. Why might it have happened?
-3. Was any transaction submitted?
-4. Did token state change?
-5. What can the user safely do next?
-
-Avoid raw-only messages such as:
-
-- execution reverted;
-- unknown error;
-- call exception.
-
-Where possible, map custom errors to clear text.
-
-Technical details should remain available for debugging.
-
----
-
-## 42. Planned Error Examples
-
-### Invalid Plan
-
-“This saving plan does not exist or is no longer available.”
-
-### Disabled Plan
-
-“This plan is disabled and cannot accept new deposits.”
-
-### Below Minimum
-
-“The entered amount is below this plan's minimum deposit.”
-
-### Above Maximum
-
-“The entered amount exceeds this plan's maximum deposit.”
-
-### Insufficient Allowance
-
-“SafeBank does not currently have permission to transfer the required MockUSDC amount.”
-
-### Insufficient Balance
-
-“Your wallet does not contain enough MockUSDC for this action.”
-
-### Wrong Owner
-
-“The connected wallet is not the current owner of this deposit certificate.”
-
-### Too Early
-
-“This deposit has not reached maturity.”
-
-### Early Withdrawal No Longer Available
-
-“This deposit has reached maturity. Use maturity withdrawal instead.”
-
-### Manual Renewal Expired
-
-“The manual-renewal window has ended.”
-
-### Auto-Renew Too Early
-
-“Auto-renew becomes available after the two-day grace period.”
-
-### Already Processed
-
-“This deposit has already been withdrawn or renewed.”
-
-### Paused
-
-“SafeBank financial operations are temporarily paused.”
-
-### Vault Underfunded
-
-“The vault cannot currently fund the required interest.”
-
-### Unsupported Network
-
-“Switch to the supported SafeBank demonstration network before continuing.”
-
----
-
-## 43. Loading States
-
-Loading must be represented at the correct scope.
-
-## 43.1 Page Loading
-
-Use a page skeleton for initial data.
-
-## 43.2 Card Loading
-
-Use individual skeletons when one metric is loading.
-
-## 43.3 Button Loading
-
-Disable duplicate submission while a request is preparing or awaiting wallet interaction.
-
-## 43.4 Background Refresh
-
-Show subtle refresh indicators without blocking the page.
-
-## 43.5 Long Blockchain Confirmation
-
-Do not use an indefinite spinner alone.
-
-Show:
-
-- current phase;
-- transaction hash;
-- explorer link;
-- explanatory text.
-
----
-
-## 44. Empty States
-
-Empty states must distinguish valid emptiness from error.
-
-Examples:
-
-- no wallet connected;
-- no active deposits;
-- no matured deposits;
-- no pending interest;
-- no events found;
-- no enabled plans;
-- no vault liabilities;
-- no upcoming maturities.
-
-Each empty state should include:
-
-- clear explanation;
-- relevant next action;
-- no fabricated example data in production mode.
-
----
-
-## 45. Error States
-
-Error states should exist for:
-
-- provider unavailable;
-- network unsupported;
-- contract configuration missing;
-- contract read failed;
-- wallet rejected;
-- transaction reverted;
-- transaction replaced;
-- event query failed;
-- AI unavailable;
-- stale data;
-- partial dashboard failure.
-
-A partial failure should not necessarily blank the entire page.
-
-For example, AI failure must not hide contract balances.
-
----
-
-## 46. Confirmation Patterns
-
-Different actions require different confirmation strength.
-
-## 46.1 Standard Confirmation
-
-Suitable for:
-
-- exact approval;
 - deposit opening;
+- early withdrawal;
 - maturity withdrawal;
 - manual renewal;
-- auto-renew trigger;
-- pending-interest claim.
-
-## 46.2 High-Risk Confirmation
-
-Suitable for:
-
-- early withdrawal;
+- auto-renew;
+- pending-interest claim;
+- plan creation;
+- APR update;
+- plan enable;
+- plan disable;
+- vault funding;
 - vault withdrawal;
-- fee receiver change;
+- fee-receiver update;
 - pause;
-- ownership transfer;
-- SavingCore authorization change.
+- unpause.
 
-High-risk confirmation should include:
+Dialog behavior includes:
 
+- clear title;
 - consequence summary;
-- critical values;
-- typed confirmation where appropriate;
-- final wallet review.
+- cancel action;
+- confirm action;
+- disabled confirm while transaction is active;
+- action-specific details;
+- accessible dialog labeling.
 
----
+The dialog does not sign or submit without explicit confirmation.
 
-## 47. Responsive Design Rules
+## 33. Loading, Empty, and Error States
 
-## 47.1 Mobile
+Reusable state presentation distinguishes:
 
-Priorities:
+- loading;
+- empty;
+- error;
+- informational state.
 
-- one-column layout;
-- financial values remain readable;
-- primary action stays reachable;
-- tables convert to cards or horizontal scrolling;
-- confirmations fit the viewport;
-- wallet addresses remain copyable;
-- no critical information hidden only on hover.
+Examples include:
 
-## 47.2 Tablet
+- public data loading;
+- wallet data loading;
+- no wallet;
+- no deposits;
+- no pending claim;
+- no valid inspected deposit;
+- RPC failure;
+- retryable provider failure;
+- unavailable configuration.
 
-Use:
+Empty state is not presented as an error.
 
-- one or two columns depending on content;
-- responsive navigation;
-- compact metric grids;
-- adaptive forms.
+Error state does not display fake zero values as successful data.
 
-## 47.3 Desktop
+## 34. Banking Assistant UX
 
-Use:
+The Banking Assistant is mounted only when User Banking App data is ready.
 
-- constrained content width;
-- sidebar or top navigation;
-- multi-column dashboards;
-- persistent contextual summaries where helpful.
-
-## 47.4 Small Screens
-
-Buttons must not become too small.
-
-Long contract addresses and hashes should:
-
-- truncate visually;
-- remain copyable;
-- provide full value in a detail view.
-
----
-
-## 48. Accessibility Requirements
-
-The final UI should target practical WCAG-aligned behavior.
-
-Requirements include:
-
-- semantic HTML;
-- keyboard navigation;
-- visible focus states;
-- sufficient color contrast;
-- labels for every form field;
-- accessible error messages;
-- status announcements;
-- no color-only meaning;
-- reduced-motion support;
-- logical heading structure;
-- descriptive button text;
-- accessible modal focus management;
-- screen-reader-friendly financial summaries;
-- touch targets of usable size.
-
-Charts must include textual equivalents.
-
----
-
-## 49. Number Formatting
-
-SafeBank uses MockUSDC with six decimals.
-
-The UI must:
-
-- retain exact token-unit values internally;
-- format human-readable values consistently;
-- avoid unintended floating-point rounding;
-- distinguish 1 token from 1 smallest unit;
-- provide a predictable maximum display precision;
-- allow full precision in advanced details.
-
-Examples:
-
-- `1,000.000000 mUSDC`;
-- compact dashboard display may show `1,000 mUSDC`;
-- transaction review should preserve meaningful precision.
-
-APR display:
-
-- `200 bps`;
-- `2.00% APR`.
-
-Penalty display:
-
-- `750 bps`;
-- `7.50%`.
-
----
-
-## 50. Date and Time Formatting
-
-The UI should display:
-
-- human-readable local time;
-- explicit timezone;
-- exact timestamp in advanced details;
-- relative time only as supplementary text.
-
-Example:
-
-- `Jan 15, 2027, 10:30 AM GMT+7`;
-- `in 12 days`.
-
-Blockchain state should be calculated from timestamps, not from displayed relative text.
-
----
-
-## 51. Status Model
-
-Possible deposit statuses:
-
-- Active;
-- Matured and Active;
-- Manual Renewal Available;
-- Auto-Renew Available;
-- Withdrawn;
-- Manual Renewed;
-- Auto Renewed;
-- Pending Interest;
-- Pending Interest Claimed.
-
-Some labels are UI-derived views.
-
-The underlying contract status remains authoritative.
-
-For example, “Matured and Active” may still correspond to contract status `Active`.
-
----
-
-## 52. System Status Presentation
-
-The interface should display system-wide states:
-
-- Operational;
-- Paused;
-- Configuration Error;
-- Unsupported Network;
-- Vault Underfunded;
-- Data Delayed.
-
-Do not combine unrelated states into one misleading label.
-
-Example:
-
-A system may be operational but underfunded.
-
----
-
-## 53. User Notification Strategy
-
-Notifications may include:
-
-- wallet connected;
-- network changed;
-- approval submitted;
-- approval confirmed;
-- deposit opened;
-- withdrawal completed;
-- renewal completed;
-- pending interest created;
-- claim completed;
-- transaction rejected;
-- transaction reverted.
-
-Important results should remain visible on the page and not rely only on temporary toast messages.
-
----
-
-## 54. Data Refresh Strategy
-
-Refresh contract data after:
-
-- wallet connection;
-- account change;
-- network change;
-- transaction confirmation;
-- NFT transfer detection;
-- manual refresh;
-- selected block interval if appropriate.
-
-Avoid excessive RPC polling.
-
-The final strategy depends on:
-
-- chosen frontend framework;
-- wallet library;
-- RPC provider;
-- event-indexing approach.
-
----
-
-## 55. Event Indexing Strategy
-
-Possible approaches:
-
-- direct log queries;
-- locally cached queries;
-- third-party indexing;
-- backend indexing service.
-
-For the capstone, the simplest reliable solution should be selected.
-
-The UI must distinguish:
-
-- event history;
-- current storage state.
-
-Current state should not be reconstructed solely from incomplete event history when direct reads are available.
-
----
-
-## 56. AI Banking Assistant Placement
-
-The AI Banking Assistant may appear as:
-
-- a contextual side panel;
-- a help drawer;
-- a chat page;
-- inline explanation actions.
-
-Recommended contexts:
+It can explain:
 
 - plans;
-- deposit review;
-- deposit detail;
-- transaction errors;
-- pending interest.
-
-The assistant should receive structured verified values, not only free-form page text.
-
----
-
-## 57. AI Banking Assistant Capabilities
-
-It may explain:
-
-- plan differences;
-- estimated interest;
-- early-withdrawal penalty;
+- APR;
+- tenor;
 - maturity;
-- grace period;
+- penalties;
+- withdrawal;
 - manual renewal;
 - auto-renew;
 - pending interest;
-- NFT-transfer consequences;
-- common transaction errors.
+- claimant rules;
+- vault shortfall.
 
-It must label estimates and assumptions.
+It receives:
 
----
+- serializable dashboard data;
+- connected account when available;
+- selected language;
+- validated question.
 
-## 58. AI Risk Assistant Placement
+It cannot prepare or submit a transaction.
 
-The AI Risk Assistant should remain in the Admin Portal.
+## 35. Risk Assistant UX
 
-Possible placements:
+The Risk Assistant is mounted only when Admin Portal data is ready.
 
-- risk-page summary panel;
-- metric explanation drawer;
-- funding recommendation section;
-- maturity-exposure explanation.
-
-It must not appear as an autonomous operator.
-
----
-
-## 59. AI Risk Assistant Capabilities
-
-It may explain:
+It can explain:
 
 - vault balance;
-- reserved interest;
+- total reserved interest;
 - available liquidity;
-- solvency ratio;
 - funding shortfall;
-- upcoming maturities;
-- plan liability concentration;
-- why a vault withdrawal is blocked.
+- pause states;
+- ownership;
+- pending ownership;
+- fee receiver;
+- contract relationships;
+- plan configuration.
 
-Recommendations must be grounded in deterministic values.
+It does not replace contract reads or administrator confirmations.
 
----
+## 36. Assistant Input and Output UX
 
-## 60. AI Restrictions
+Question handling:
 
-AI must not:
+- replaces control characters;
+- normalizes whitespace;
+- rejects empty input;
+- rejects input over 500 characters;
+- rejects HTTP and HTTPS URLs.
 
-- hold keys;
-- request seed phrases;
-- sign;
-- submit transactions;
-- switch network;
-- change plans;
-- fund the vault;
-- withdraw the vault;
-- pause;
-- unpause;
-- choose a transaction amount without user review;
-- fabricate values;
-- claim guaranteed profit.
+Assistant states include:
 
----
+- idle;
+- answering;
+- answer displayed;
+- validation failure;
+- safe fallback;
+- cancellation.
 
-## 61. AI Fallback
+Every answer contains:
 
-When the AI provider is unavailable:
+1. fact;
+2. explanation;
+3. caution;
+4. next step.
 
-- plans remain visible;
-- balances remain visible;
-- calculators remain available;
-- deposit actions remain available;
-- admin metrics remain visible;
-- deterministic warnings remain active;
-- the user can still complete the demo.
+Responses are rendered as ordinary React text.
 
-An AI error should be isolated from core product functionality.
+## 37. Assistant Launcher UX
 
----
+The assistant launcher uses an external Spline robot scene.
 
-## 62. Security and Privacy UX
+Desktop behavior:
 
-The UI should communicate:
+- floating launcher;
+- responsive dialog;
+- close control;
+- labeled assistant identity.
 
-- never share a seed phrase;
-- SafeBank never requests a private key;
-- wallet confirmation is separate from the website;
-- contract addresses should be verified;
-- MockUSDC is not real money;
-- NFT transfer moves economic rights;
-- administrator controls create risk;
-- AI output is advisory.
+Mobile behavior:
 
-Avoid excessive warning fatigue.
+- compact launcher;
+- bottom-sheet style panel;
+- touch-friendly layout.
 
-Warnings should appear at relevant decision points.
+Motion behavior:
 
----
+- nonessential launcher motion;
+- reduced-motion support;
+- core workflows remain usable without the visual asset.
 
-## 63. Admin Route Guard
+Spline is not:
 
-The Admin Portal may check whether the connected wallet matches the on-chain owner.
+- a source of financial data;
+- a wallet component;
+- an authorization layer;
+- an AI reasoning provider.
 
-Possible UX:
+## 38. Responsive Design
 
-- display read-only metrics to non-admin users;
-- hide or disable state-changing controls;
-- explain that authorization is enforced by the contract.
+The frontend supports desktop and smaller-screen layouts.
 
-The route guard must not be described as a security control.
+Responsive behavior includes:
 
-A direct contract call by a non-owner must still revert.
+- stacked dashboard grids;
+- full-width action panels;
+- responsive cards;
+- compact navigation;
+- flexible financial summaries;
+- scroll-safe dialogs;
+- mobile assistant sheet;
+- touch-friendly control sizing.
 
----
+Responsive behavior does not remove essential financial details.
 
-## 64. Design for Paused State
+Dense technical information may wrap or move below primary values.
 
-When paused:
+## 39. Visual System
 
-- show a prominent global banner;
-- disable blocked transaction buttons;
-- explain which actions are unavailable;
-- continue displaying balances and deposit details;
-- allow administrators to access unpause controls;
-- avoid implying funds are lost.
+The implemented visual direction uses:
 
-If only one contract is paused, show the exact scope.
+- SafeBank original branding;
+- restrained banking-style layout;
+- card-based information grouping;
+- gradient hero treatment;
+- status chips;
+- clear action hierarchy;
+- financial-number emphasis;
+- readable spacing;
+- consistent borders and radii.
 
----
-
-## 65. Design for Undercollateralized State
-
-When vault balance is below reserved interest:
-
-- show a warning in Admin Portal;
-- show funding shortfall;
-- explain C1 behavior after implementation;
-- avoid claiming guaranteed immediate interest;
-- show safe withdrawal as zero when applicable;
-- keep principal and interest amounts visually separated.
-
-User-facing warnings should be factual and not cause unnecessary panic.
-
----
-
-## 66. Design for Historical Certificates
-
-Because NFTs are not burned:
-
-- completed certificates remain listed;
-- status is clearly terminal;
-- financial actions are disabled;
-- the page shows completion type;
-- transaction history remains visible;
-- the certificate may be presented as historical proof.
-
-The UI must not make an old NFT appear to represent active principal.
-
----
-
-## 67. Design for Disabled Plans
-
-Disabled plans should:
-
-- show Disabled status;
-- not accept new deposits;
-- remain visible where useful;
-- explain effects on active deposits;
-- explain manual-renew restriction;
-- explain that snapshot-based auto-renew may remain available.
-
----
-
-## 68. Design for Bot Failure
-
-The UI should never imply that a bank bot is required for fund safety.
-
-After grace:
-
-- show the deposit remains active until a transaction executes;
-- show owner withdrawal;
-- show permissionless auto-renew;
-- explain that bot downtime does not create multiple terms automatically.
-
----
-
-## 69. Demo Mode Considerations
-
-The final demo should make key flows easy to observe.
-
-Useful demo support may include:
-
-- seeded plans;
-- funded test accounts;
-- funded vault;
-- shortened local test terms only in local demo environments if separately configured;
-- visible transaction links;
-- clear account labels;
-- reset instructions.
-
-Personal-variant production logic and official demonstration values must remain documented correctly.
-
-Any local acceleration must not be confused with the required 180-day default tenor.
-
----
-
-## 70. Content Tone
-
-SafeBank copy should be:
-
-- clear;
-- neutral;
-- precise;
-- educational;
-- calm;
-- non-promotional.
-
-Avoid claims such as:
-
-- guaranteed safe;
-- risk-free;
-- impossible to hack;
-- insured;
-- guaranteed returns;
-- real USDC;
-- automatic passive income without transactions.
-
----
-
-## 71. Microcopy Principles
-
-Buttons should use action-specific labels:
-
-- Connect Wallet;
-- Approve MockUSDC;
-- Open Deposit;
-- Review Withdrawal;
-- Withdraw at Maturity;
-- Renew Deposit;
-- Trigger Auto-Renew;
-- Claim Pending Interest;
-- Fund Vault;
-- Withdraw Available Liquidity;
-- Pause System.
-
-Avoid vague labels:
-
-- Go;
-- Submit;
-- Continue;
-- Confirm;
-
-unless the context is already completely clear.
-
----
-
-## 72. User Help Content
-
-Help content should explain:
-
-- basis points;
-- tenor;
-- APR;
-- principal;
-- interest;
-- penalty;
-- maturity;
-- grace period;
-- NFT certificate;
-- current-owner rights;
-- approval;
-- transaction confirmation;
-- pending interest;
-- reserved interest;
-- available liquidity;
-- pause.
-
-Help should not replace visible transaction summaries.
-
----
-
-## 73. Frontend Technology Decision
-
-No frontend framework has been selected as of Phase 11.
-
-Potential options include:
-
-- React with Vite;
-- Next.js;
-- another React-based setup compatible with the capstone.
-
-The final decision should consider:
-
-- wallet-library compatibility;
-- TypeScript support;
-- routing;
-- test setup;
-- environment configuration;
-- deployment simplicity;
-- AI server-side requirements;
-- bundle security;
-- demonstration reliability.
-
-No frontend framework package has been installed yet.
-
----
-
-## 74. Planned Frontend Architecture
-
-The eventual frontend should separate:
-
-- blockchain configuration;
-- wallet state;
-- contract reads;
-- transaction writes;
-- deterministic financial calculations;
-- UI components;
-- route layouts;
-- error mapping;
-- AI integration;
-- formatting utilities.
-
-Contract ABIs and addresses should not be scattered across components.
-
-Financial formulas should not be duplicated inconsistently.
-
----
-
-## 75. Planned Component Categories
-
-Possible component groups:
-
-### Shared
-
-- AppShell;
-- PageHeader;
-- WalletButton;
-- NetworkBadge;
-- AddressDisplay;
-- AmountDisplay;
-- TransactionStatus;
-- ConfirmationDialog;
-- EmptyState;
-- ErrorState;
-- LoadingSkeleton;
-- TestTokenBadge.
-
-### User
-
-- PlanCard;
-- PlanComparison;
-- DepositCard;
-- DepositProgress;
-- DepositTimeline;
-- OpenDepositWizard;
-- ApprovalStep;
-- WithdrawalSummary;
-- RenewalSummary;
-- CertificatePanel;
-- PendingInterestCard.
-
-### Admin
-
-- SolvencyMetric;
-- RiskBanner;
-- PlanForm;
-- VaultFundingForm;
-- VaultWithdrawalForm;
-- PauseConfirmation;
-- AuditTable;
-- LiabilityChart.
-
-These names are planning references, not implemented components.
-
----
-
-## 76. Frontend State Separation
-
-The frontend should distinguish:
-
-- wallet state;
-- network state;
-- server or RPC state;
-- transaction state;
-- form state;
-- contract state;
-- AI state.
-
-One state category should not incorrectly overwrite another.
-
-Example:
-
-An AI request failure must not mark a confirmed blockchain transaction as failed.
-
----
-
-## 77. Form Validation
-
-Client-side validation should provide immediate guidance for:
-
-- required fields;
-- valid addresses;
-- nonzero amounts;
-- decimal precision;
-- min and max;
-- APR format;
-- penalty format;
-- tenor format;
-- supported network.
-
-The contract remains authoritative.
-
-The UI should display contract reverts even when client validation passed.
-
----
-
-## 78. Testing Implications
-
-Future UI tests should cover:
-
-- wallet disconnected;
-- wallet connected;
-- account change;
-- unsupported network;
-- missing contract configuration;
-- empty plans;
+The interface avoids copying a real bank identity.
+
+Semantic visual roles include:
+
+- primary action;
+- neutral surface;
+- success;
+- warning;
+- danger;
+- information;
+- disabled state;
+- focus state.
+
+## 40. Accessibility Characteristics
+
+Implemented accessibility-related characteristics include:
+
+- semantic headings;
+- labeled sections;
+- `aria-labelledby` usage;
+- accessible dialog labels;
+- keyboard-reachable controls;
+- visible button labels;
+- non-color status text;
+- loading and error messages;
+- language metadata;
+- reduced-motion handling.
+
+Known accessibility limitations:
+
+- no independent WCAG audit;
+- no screen-reader laboratory evaluation;
+- no formal contrast certification;
+- external Spline content has separate accessibility constraints.
+
+## 41. Error Translation
+
+Contract, wallet, provider, and validation errors are mapped into user-facing Vietnamese and English messages.
+
+Mapped categories include:
+
+- user rejected transaction;
+- wrong network;
+- missing wallet;
+- missing account;
+- inactive deposit;
+- not current owner;
+- too early;
+- maturity reached;
+- manual window closed;
+- auto-renew too early;
 - disabled plan;
-- amount below min;
-- amount above max;
-- exact approval;
-- rejected approval;
-- deposit success;
-- deposit revert;
-- current NFT owner;
-- old owner rejection;
-- exact maturity UI;
-- exact grace UI;
-- early-withdraw warning;
-- renewal plan filtering;
-- permissionless auto-renew recipient;
-- pending-interest claim;
-- paused state;
-- underfunded state;
-- admin authorization;
-- high-risk confirmation;
-- responsive layout;
-- keyboard navigation;
-- AI failure fallback.
+- plan limit failure;
+- paused contract;
+- underfunded vault;
+- no pending interest;
+- wrong claimant;
+- insufficient allowance;
+- insufficient balance;
+- generic revert.
 
----
+The original contract remains the final source of failure semantics.
 
-## 79. UI Acceptance Criteria
+## 42. Financial Display Rules
 
-The User Banking App will not be considered complete until:
+Financial values use bigint-compatible calculations.
 
-- wallet and network states are clear;
-- all mandatory user flows exist;
-- six-decimal values are correct;
-- plan and deposit snapshots are visible;
-- transaction lifecycle is complete;
-- NFT-transfer warning is prominent;
-- test-token warning is prominent;
-- mobile layouts are usable;
-- core flows work without AI;
-- errors are understandable;
-- explorer links are available.
+The frontend avoids JavaScript floating-point arithmetic for authoritative token values.
 
-The Admin Portal will not be considered complete until:
+Display rules include:
 
-- administrator identity is clear;
-- plan actions exist;
-- vault actions exist;
-- pause controls use strong confirmation;
-- audit information is available;
-- C2 metrics mirror the implemented contract reads;
-- frontend guards are not presented as real authorization;
-- dangerous actions show consequences.
+- mUSDC formatted from six-decimal units;
+- APR shown as percentage and basis points where useful;
+- penalty shown as percentage and amount;
+- timestamps shown in human-readable form;
+- exact values available in supporting details;
+- floor rounding aligned with contract behavior;
+- estimates labeled as estimates.
 
----
+## 43. Ownership Communication
 
-## 80. Phase 15 User Banking App Status
+The interface communicates:
 
-At the current Phase 15 checkpoint, the User Banking App is implemented and
-validated against the tracked Ethereum Sepolia deployment.
+> Transferring the deposit NFT transfers the right to the active deposit principal and interest.
 
-Implemented user-facing capabilities:
+Ownership communication appears around:
 
-- explicit EIP-1193 browser-wallet connection;
-- connected-account and chain-state presentation;
-- Ethereum Sepolia detection and network switching;
-- public protocol reads without requiring a connected wallet;
-- protocol, saving-plan, account, and C2 interest-vault metrics;
-- permissionless minting of freely available test mUSDC;
-- deterministic deposit-amount validation and estimated-interest display;
-- exact-amount MockUSDC approval for SavingCore;
-- saving-deposit opening;
-- owned ERC721 deposit-certificate portfolio;
-- lifecycle availability derived from the latest Sepolia block timestamp;
-- early withdrawal;
-- maturity withdrawal;
-- manual renewal during the grace period;
-- permissionless auto-renewal after grace;
-- C1 deferred-interest visibility and claims;
-- Sepolia Etherscan links for contracts and transactions;
-- Vietnamese and English interfaces with Vietnamese as the default;
-- persisted language preference and synchronized HTML language metadata;
-- localized known validation, wallet, provider, and transaction errors;
-- preservation of external RPC messages and contract revert details.
+- deposit details;
+- current-owner data;
+- lifecycle actions;
+- renewal recipient;
+- assistant explanations.
 
-Implemented technical UI assets include:
+The UI also explains:
 
-- React 19, TypeScript, Vite, and ethers v6;
-- read-only JsonRpcProvider access separated from BrowserProvider signer writes;
-- synchronized production ABIs and tracked Sepolia deployment metadata;
-- reusable wallet, data-provider, transaction, formatting, and localization
-  layers;
-- focused component, provider, hook, contract-client, and utility tests;
-- 32 passing frontend test files and 146 passing frontend tests;
-- zero Oxlint warnings or errors;
-- successful TypeScript validation;
-- successful Vite production build;
-- successful local production-preview smoke test;
-- HTTP 200 responses for the HTML entry point and all generated production
-  CSS and JavaScript assets.
+- old certificates remain historical;
+- historical NFT transfer after C1 settlement does not transfer the pending claim;
+- ERC721 approval alone does not grant direct withdrawal authority.
 
-The User Banking App does not:
+## 44. Solvency Communication
 
-- hold or request private keys or seed phrases;
-- include deployment secrets or privileged administrator credentials;
-- treat frontend checks as authorization;
-- replace on-chain contract validation;
-- claim that Etherscan verification is a security audit;
-- represent MockUSDC as having real-world monetary value.
+C2 metrics are presented with explicit definitions.
 
-Not implemented in Phase 15:
+| Metric | Meaning |
+|---|---|
+| Vault balance | Actual MockUSDC held by VaultManager |
+| Reserved interest | Aggregate expected and pending interest liabilities |
+| Available liquidity | Maximum current administrator withdrawal |
+| Funding shortfall | Reserve amount not covered by current vault balance |
 
-- Admin Portal;
-- AI Banking Assistant;
-- AI Risk Assistant;
-- production frontend hosting;
-- comprehensive manual cross-browser, device, and professional accessibility
-  audit;
-- demonstration video;
-- final submission audit.
+The UI does not describe zero shortfall as a professional solvency guarantee.
 
-This section records the historical Phase 15 checkpoint. The later Phase 16
-Admin Portal and Phase 18 assistant implementation sections supersede its
-then-pending product-status statements.
+Undercollateralization is shown as a visible risk state.
 
----
+## 45. Validation Evidence
 
-## 81. Phase 15 UI/UX Decisions
-
-The following decisions are implemented for the User Banking App:
-
-1. React 19, TypeScript, and Vite are used instead of Next.js.
-2. ethers v6 provides contract access and browser-wallet integration.
-3. An injected EIP-1193 wallet is connected only after explicit user action.
-4. JsonRpcProvider handles public reads, while BrowserProvider and a signer
-   handle user-authorized writes.
-5. React Context, providers, hooks, and local component state are used without
-   an external state-management library.
-6. Contract data is loaded directly without an external query-cache library.
-7. Custom React components and CSS are used without a component library or CSS
-   framework.
-8. Production ABIs and Sepolia addresses are synchronized from tracked project
-   artifacts.
-9. Vietnamese is the default language, English is optional, and the preference
-   is persisted locally.
-10. Vitest, Testing Library, Oxlint, TypeScript, and Vite provide frontend
-    validation.
-
-The following product decisions remain open for later phases:
-
-1. production frontend hosting;
-2. final visual-identity refinements and design-token expansion;
-3. event-indexing infrastructure;
-4. charting requirements and library selection;
-5. production routing and hosting architecture;
-6. any future external-LLM provider or server-side AI architecture;
-7. final production wallet-support policy;
-8. production confirmation and transaction-monitoring policy;
-9. final risk-classification thresholds;
-10. comprehensive cross-browser, device, and professional accessibility
-    validation.
-
-These open decisions do not block the validated Phase 15 User Banking App.
-
----
-
-## 82. Final Product Position
-
-SafeBank should feel like a carefully designed financial education product rather than a raw smart contract interface.
-
-The experience must consistently communicate:
-
-1. what the user owns;
-2. where principal is held;
-3. where interest comes from;
-4. which financial terms were snapshotted;
-5. when each action is available;
-6. what the NFT represents;
-7. what transaction the wallet will sign;
-8. what the administrator can and cannot do;
-9. whether the vault is funded;
-10. whether displayed values are estimates or confirmed state;
-11. that MockUSDC is a test asset;
-12. that AI is advisory only.
-
-Implementation must remain aligned with the actual smart contract behavior and must be revised whenever the on-chain interface changes.
-
-## 83. Phase 18 Assistant UI/UX Status
-
-Phase 18 adds a compact assistant experience without placing a large permanent
-panel inside either dashboard.
-
-### 83.1 Launcher
-
-The launcher:
-
-- is fixed to the lower-right viewport area;
-- uses the provided external Spline 3D robot scene;
-- shows an animated HUD-style `SafeBank Assistant` label;
-- uses a typewriter effect, subtle cyan glow, directional markers, and reduced
-  motion support;
-- remains a normal accessible button even though the visible robot is rendered
-  in an iframe.
-
-Spline provider branding may remain visible because it belongs to the external
-scene.
-
-### 83.2 Dialog Behavior
-
-On desktop, the launcher opens a right-aligned assistant dialog.
-
-On small screens, it opens as a bottom sheet.
-
-Supported closing actions include:
-
-- close button;
-- backdrop click;
-- Escape key.
-
-Opening moves focus to the close button. Closing restores focus to the
-launcher and unmounts the assistant panel.
-
-### 83.3 Banking and Risk Modes
-
-The User Banking view opens the Banking Assistant.
-
-The Admin Portal opens the Risk Assistant.
-
-Only the assistant matching the currently ready dashboard context is mounted.
-
-### 83.4 Response Presentation
-
-Every successful response displays:
-
-- Fact;
-- Explanation;
-- Caution;
-- Next step.
-
-Text is rendered plainly and is not treated as executable HTML.
-
-### 83.5 Honest Product Language
-
-The interface communicates that:
-
-- the assistant is read-only;
-- it cannot connect a wallet, sign, or submit transactions;
-- its answer is explanatory;
-- contract state remains authoritative;
-- MockUSDC is a test asset;
-- zero funding shortfall is an accounting snapshot, not a professional
-  solvency guarantee.
-
-### 83.6 Validation
-
-The current frontend checkpoint reports:
+Last validated frontend checkpoint:
 
 - 65 passing test files;
 - 256 passing tests;
-- zero lint warnings or errors;
+- zero Oxlint warnings or errors;
 - successful TypeScript validation;
-- successful production build;
-- manual User and Admin launcher smoke checks;
-- Vietnamese and English assistant coverage;
-- desktop and responsive launcher review.
+- successful Vite production build.
+
+Validated areas include:
+
+- application view switching;
+- shared shell;
+- wallet events;
+- network handling;
+- public reads;
+- user actions;
+- admin actions;
+- exact approval;
+- transaction lifecycle;
+- confirmations;
+- loading states;
+- empty states;
+- error states;
+- bilingual behavior;
+- responsive components;
+- Banking Assistant;
+- Risk Assistant;
+- assistant validation;
+- assistant cancellation;
+- stale-response protection.
+
+## 46. Known UI/UX Limitations
+
+- The application targets Sepolia only.
+- MockUSDC has no monetary value.
+- There is no React Router or deep-link route model.
+- Browser refresh returns to the default application view.
+- Rich NFT metadata and custom token artwork are not implemented.
+- The assistant supports bounded SafeBank intents rather than unrestricted conversation.
+- Spline depends on an external visual host.
+- RPC data may be delayed or unavailable.
+- The interface has not received an independent accessibility audit.
+- Mobile and browser behavior may vary outside validated environments.
+- The frontend does not replace on-chain authorization.
+- The application is not production banking software.
+
+## 47. Final UI/UX Position
+
+The implemented SafeBank frontend provides:
+
+- one coherent User and Admin application;
+- bilingual operation;
+- public reads without wallet connection;
+- wallet-controlled writes;
+- exact-amount approvals;
+- contract-aligned financial estimates;
+- deposit lifecycle actions;
+- C1 pending-interest UX;
+- C2 solvency visibility;
+- explicit confirmations;
+- loading, empty, and error states;
+- responsive layouts;
+- deterministic read-only assistants.
+
+The final authority remains:
+
+1. contract state;
+2. confirmed transaction receipt;
+3. current wallet ownership and network.
+
+The UI and assistants explain and prepare actions, but they do not override these boundaries.

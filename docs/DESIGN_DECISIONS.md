@@ -4,3567 +4,2294 @@
 
 | Field | Value |
 |---|---|
-| Project | SafeBank / Online Banking System |
-| Document | Architecture and Product Decision Records |
-| Current project phase | Phase 18 — Deterministic Read-Only SafeBank Assistants |
-| Implementation status | Mandatory contracts, Bonus C1, Bonus C2, local and public deployment, User Banking App, Admin Portal, hardened UI-state, and deterministic assistant decisions are reflected in implemented code, tests, and observed execution; rich metadata and final submission remain pending or deferred |
-| Architecture model | Non-upgradeable |
-| Assistant model | Deterministic local rule engine; no external LLM |
-| Deployment models | Guarded local chain ID 31337 and guarded Sepolia chain ID 11155111 |
-| Student ID | 3122560090 |
-| Test token | MockUSDC with 6 decimals |
+| Project | SafeBank — Blockchain Term Deposit System |
+| Document | Final Implemented Design Decision Register |
+| Current documentation phase | Phase 19 — Final Documentation |
+| Smart-contract model | Non-upgradeable |
+| Frontend model | One React single-page application |
+| Public network | Ethereum Sepolia, chain ID `11155111` |
+| Local network | Hardhat and localhost, chain ID `31337` |
+| Student ID | `3122560090` |
+| Selected bonuses | C1 and C2 |
+| Assistant model | Deterministic local rule engines |
 
-This document remains the living record of accepted, implemented, rejected,
-and deferred SafeBank decisions.
+This document records the final design decisions implemented in the repository.
 
-A decision marked implemented is backed by current code and observed evidence.
-Etherscan verification and automated tests are not a professional security
-audit.
+The decision identifiers in this document use the format:
 
-## 2. Decision Categories
+~~~text
+DD-01
+DD-02
+...
+~~~
 
-Each decision belongs to one of four categories.
+They are final-document references only. They are not Solidity identifiers and do not attempt to preserve every temporary phase-local numbering scheme used during development.
 
-### 2.1 Mandatory Requirement
+Each decision records:
 
-A rule explicitly required by the Capstone specification.
+- status;
+- context;
+- selected design;
+- rationale;
+- implementation consequence;
+- tradeoff or residual risk.
 
-Examples:
+## 2. Personal Variant Decision
 
-- MockUSDC uses 6 decimals;
-- SavingCore holds principal;
-- VaultManager holds interest liquidity;
-- APR and penalty are snapshotted;
-- manual and automatic renewal are supported;
-- coverage must exceed 90%.
+### DD-01 — Use MSSV-derived parameters consistently
 
-### 2.2 SafeBank Project Decision
+**Status:** Implemented and verified.
 
-A choice made by this project where the specification permits design freedom.
+**Context**
 
-Examples:
+The assignment derives product parameters from student ID `3122560090`.
 
-- current NFT owner receives the deposit's economic rights;
-- NFTs are retained after completion;
-- exact timestamp boundaries;
-- non-upgradeable architecture;
-- rounding dust remains in the vault.
-
-### 2.3 Bonus Decision
-
-A decision associated with:
-
-- C1 — Principal-First Settlement;
-- C2 — Solvency Guard.
-
-Bonus functionality must not be described as implemented before its designated phase.
-
-### 2.4 Product and AI Extension
-
-A decision affecting:
-
-- User Banking App;
-- Admin Portal;
-- UI/UX;
-- AI Banking Assistant;
-- AI Risk Assistant.
-
-These extensions must not override on-chain rules.
-
----
-
-## 3. Decision Record Format
-
-Each decision record uses the following fields:
-
-| Field | Meaning |
-|---|---|
-| ID | Stable decision identifier |
-| Status | Accepted, Proposed, Deferred, Rejected, or Superseded |
-| Category | Mandatory, SafeBank Decision, Bonus, or Product Extension |
-| Context | Problem or uncertainty requiring a decision |
-| Decision | Selected behavior |
-| Rationale | Why this behavior was selected |
-| Trade-offs | Costs, limitations, or risks |
-| Test implication | Tests required to validate the decision |
-| UI implication | User-interface behavior required by the decision |
-
-Statuses mean:
-
-- **Accepted**: the project must implement this behavior unless a later decision explicitly supersedes it;
-- **Proposed**: preferred direction, but implementation details may still change;
-- **Deferred**: intentionally postponed until a later phase;
-- **Rejected**: evaluated and not selected;
-- **Superseded**: replaced by another decision record.
-
----
-
-## 4. Decision Summary
-
-| ID | Decision | Status |
-|---|---|---|
-| ADR-001 | Use fixed personal-variant values | Accepted |
-| ADR-002 | Separate principal and interest custody | Accepted |
-| ADR-003 | Current NFT owner holds economic rights | Accepted |
-| ADR-004 | Keep completed NFTs as historical certificates | Accepted |
-| ADR-005 | Use exact maturity boundary | Implemented |
-| ADR-006 | Use exact grace-period boundary | Implemented |
-| ADR-007 | Allow maturity withdrawal after grace if still active | Implemented |
-| ADR-008 | Restrict disabled plans appropriately | Accepted |
-| ADR-009 | Make auto-renew permissionless | Implemented |
-| ADR-010 | Preserve tenor, APR, and penalty snapshots during auto-renew | Implemented |
-| ADR-011 | Do not accrue multiple terms while bot is offline | Implemented |
-| ADR-012 | Apply deterministic floor rounding | Implemented |
-| ADR-013 | Pause all financial entry points | Accepted |
-| ADR-014 | Use non-upgradeable contracts | Accepted |
-| ADR-015 | Use basic ERC721 instead of ERC721Enumerable | Accepted |
-| ADR-016 | Match NFT token ID with deposit ID | Accepted |
-| ADR-017 | Start deposit and plan identifiers at one | Accepted |
-| ADR-018 | Use one-time SavingCore authorization in VaultManager | Accepted |
-| ADR-019 | Use Ownable2Step for privileged ownership | Accepted |
-| ADR-020 | Use separate pause states for SavingCore and VaultManager | Accepted |
-| ADR-021 | Keep plan terms immutable except APR and enabled state | Accepted |
-| ADR-022 | Apply explicit plan validation bounds | Accepted |
-| ADR-023 | Use SafeERC20 and nonReentrant financial entry points | Accepted |
-| ADR-024 | Use safe NFT minting with state finalized first | Accepted |
-| ADR-025 | Renewal requires fully funded interest | Implemented |
-| ADR-026 | Implement C1 Principal-First Settlement | Implemented |
-| ADR-027 | Snapshot pending-interest claimant at settlement | Implemented |
-| ADR-028 | Implement C2 Solvency Guard | Implemented |
-| ADR-029 | Permit undercollateralized deposit opening | Implemented |
-| ADR-030 | Preserve pending-interest liabilities in reserve accounting | Implemented |
-| ADR-031 | Frontend approval defaults to exact amount | Accepted |
-| ADR-032 | Frontend route guards are UX only | Accepted |
-| ADR-033 | AI remains read-only and advisory | Implemented |
-| ADR-034 | Use contract state as the source of truth | Accepted |
-| ADR-035 | Use a 365-day simple-interest year | Accepted |
-| ADR-036 | Avoid administrator editing of active deposits | Accepted |
-| ADR-037 | First successfully mined terminal action wins | Accepted |
-| ADR-038 | Treat MockUSDC as a test-only asset | Accepted |
-| ADR-039 | Frontend framework selection remains deferred | Deferred |
-| ADR-040 | Final NFT metadata strategy remains deferred | Deferred |
-| ADR-041 | Resolve the current fee receiver at early settlement | Implemented |
-| ADR-042 | Use atomic user-net-first early settlement with independent pauses | Implemented |
-| ADR-043 | Restrict Phase 13 deployment and seed to local chain ID 31337 | Implemented |
-| ADR-044 | Use deterministic separated local roles and fixed demo targets | Implemented |
-| ADR-045 | Make persistent local deployment and seed idempotent with no default deposits | Implemented |
-| ADR-046 | Ignore local deployment records and export production ABIs only | Implemented |
-| ADR-047 | Separate the guarded Sepolia workflow from local deterministic seeding | Implemented |
-| ADR-048 | Use one dedicated Sepolia deployer as initial owner and fee receiver with two confirmations | Implemented |
-| ADR-049 | Initialize Sepolia with only canonical plan ID 1 and no demo mint, funding, or deposits | Implemented |
-| ADR-050 | Track public deployment records and compact metadata and verify all sources on Etherscan | Implemented |
-| ADR-051 | Use deterministic local assistant engines without an external LLM | Implemented |
-| ADR-052 | Keep the Spline robot isolated as a visual launcher dependency | Implemented |
-
----
-
-# Accepted Decision Records
-
-## ADR-001 — Personal Variant
-
-**Status:** Accepted
-
-**Category:** Mandatory requirement
-
-### Context
-
-The Capstone derives project parameters from student ID `3122560090`.
-
-The final two digits are:
+The final digits are:
 
 - `A = 0`;
 - `B = 9`.
 
-### Decision
+**Decision**
 
-SafeBank must use:
+Use the following values everywhere:
 
-- grace period: 2 days;
-- default APR: 200 bps;
-- early withdrawal penalty: 750 bps;
-- default tenor: 180 days;
-- MockUSDC decimals: 6.
+| Parameter | Value |
+|---|---:|
+| Grace period | `2 days` |
+| Default APR | `200 bps = 2.00%` |
+| Early-withdrawal penalty | `750 bps = 7.50%` |
+| Default tenor | `180 days` |
+| MockUSDC decimals | `6` |
 
-All MockUSDC amounts must use six-decimal conversion.
+**Rationale**
 
-Tests and scripts must use `parseUnits(value, 6)` rather than `parseEther`.
+Contracts, tests, deployment scripts, frontend calculations, and documentation must represent one coherent Personal Variant.
 
-### Rationale
+**Implementation consequence**
 
-These values are fixed by the personal variant and form part of the evaluation requirements.
+The same values appear in:
 
-### Trade-offs
+- contract constants and plan configuration;
+- test fixtures;
+- deterministic local seed;
+- Sepolia canonical plan;
+- frontend formatting;
+- README Design Answers.
 
-The project cannot freely change these defaults for convenience.
+**Tradeoff**
 
-Local demonstration acceleration, if later introduced, must be clearly separated from the official required parameters.
+Changing the student variant requires coordinated code, test, deployment, and documentation changes.
 
-### Test implication
+## 3. Token Decisions
 
-Tests must verify all five values explicitly.
+### DD-02 — Use a six-decimal test token
 
-### UI implication
+**Status:** Implemented.
 
-The UI must consistently display:
+**Context**
 
-- 2-day grace period;
-- 2.00% APR;
-- 7.50% penalty;
-- 180-day default tenor;
-- MockUSDC with six decimals.
+The assignment requires a MockUSDC-style token with six decimals.
 
----
+**Decision**
 
-## ADR-002 — Separation of Principal and Interest
+Implement `MockUSDC` as:
 
-**Status:** Accepted
+- name `Mock USD Coin`;
+- symbol `mUSDC`;
+- 6 decimals;
+- publicly mintable;
+- test-only.
 
-**Category:** Mandatory requirement
+**Rationale**
 
-### Context
+Six decimals mirror common stablecoin-style accounting and directly satisfy the assignment.
 
-Combining user principal and bank-funded interest would make accounting unclear and could allow one user's principal to fund another user's return.
+**Implementation consequence**
 
-### Decision
+All amounts use six-decimal smallest units.
 
-`SavingCore` holds user principal.
+Examples:
 
-`VaultManager` holds bank-funded interest liquidity.
+~~~text
+1 mUSDC = 1,000,000 units
+100 mUSDC = 100,000,000 units
+~~~
 
-Interest is always paid through `VaultManager`.
+Tests and scripts use:
 
-Early-withdrawal penalties are transferred from principal held by `SavingCore` to the fee receiver.
+~~~text
+parseUnits(value, 6)
+~~~
 
-### Rationale
+**Tradeoff**
 
-This creates a clear custody boundary and makes solvency, payouts, and security analysis easier.
+Public minting means MockUSDC has no scarcity, backing, redemption, or real-world value.
 
-### Trade-offs
+### DD-03 — Do not support arbitrary ERC20 economics
 
-The system requires cross-contract calls and more deployment configuration.
+**Status:** Implemented scope decision.
 
-### Test implication
+**Context**
 
-Balance tests must prove that:
+Fee-on-transfer, rebasing, reflective, or independently mutating ERC20 tokens complicate exact principal accounting.
 
-- opening a deposit increases the SavingCore token balance;
-- funding the vault increases the VaultManager balance;
-- maturity interest leaves VaultManager;
-- principal leaves SavingCore;
-- another user's principal is never used as interest.
+**Decision**
 
-### UI implication
+Design SafeBank for the implemented conventional MockUSDC behavior.
 
-The product must explain principal and interest as separate pools.
+**Rationale**
 
----
+The Capstone requires one test token, not a universal token-adapter framework.
 
-## ADR-003 — Current NFT Owner Holds Economic Rights
+**Implementation consequence**
 
-**Status:** Accepted
+Token flows use `SafeERC20`, but the financial model assumes the transferred amount equals the requested amount.
 
-**Category:** SafeBank project decision
+**Tradeoff**
 
-### Context
+Replacing MockUSDC with another token requires a new accounting and security review.
 
-The specification requires an ERC721 certificate but leaves the exact economic effect of transfer open.
+## 4. Custody Decisions
 
-### Decision
+### DD-04 — Separate principal from bank-funded interest
 
-The current result of `ownerOf(depositId)` determines who may:
+**Status:** Implemented.
 
-- withdraw early;
-- withdraw at maturity;
-- manually renew.
+**Context**
 
-The current owner receives principal and interest.
+Combining depositor principal and bank interest liquidity would make accounting and administrative withdrawals harder to reason about.
 
-The original depositor loses those rights after transferring the certificate.
+**Decision**
 
-### Rationale
+Use:
 
-This gives the ERC721 certificate real ownership meaning and provides a clear answer to the required design question.
+- `SavingCore` for user principal;
+- `VaultManager` for bank-funded interest.
 
-### Trade-offs
+**Rationale**
 
-Users may transfer valuable economic rights accidentally.
+The split creates a clear custody invariant:
 
-A transfer race may cause a prepared transaction from the former owner to revert.
+> User principal is not the bank's interest reserve.
 
-### Test implication
+**Implementation consequence**
 
-Tests must transfer the NFT from Alice to Bob and verify:
+- deposits transfer principal into SavingCore;
+- maturity and early withdrawal return principal from SavingCore;
+- interest is requested from VaultManager;
+- VaultManager owner withdrawals cannot directly access principal.
 
-- Bob can withdraw or renew;
-- Alice can no longer do so;
-- unrelated users are rejected.
+**Tradeoff**
 
-### UI implication
+The architecture uses an additional contract and requires correct one-time relationship configuration.
 
-Display the warning:
+### DD-05 — Keep VaultManager authorization one-time
 
-> Transferring the NFT transfers the right to receive the deposit principal and interest.
+**Status:** Implemented.
 
----
+**Context**
 
-## ADR-004 — Keep Completed NFTs
+A replaceable authorized SavingCore would let a privileged actor redirect vault interest payouts to another contract.
 
-**Status:** Accepted
+**Decision**
 
-**Category:** SafeBank project decision
+Allow VaultManager to authorize SavingCore once and reject later replacement.
 
-### Context
+**Rationale**
 
-A completed deposit no longer needs an actionable certificate, but burning the NFT removes its usefulness as historical proof.
+One-time authorization reduces the long-term administrative attack surface.
 
-### Decision
+**Implementation consequence**
 
-SafeBank will not burn the NFT after:
+An incorrect authorization cannot be repaired in place.
 
-- maturity withdrawal;
-- early withdrawal;
-- auto-renewal.
+**Tradeoff**
 
-The associated deposit status makes the old NFT non-actionable.
+Misconfiguration or a critical SavingCore defect requires redeployment.
 
-### Rationale
+## 5. Upgradeability Decision
 
-The NFT remains a historical certificate and improves demonstration value.
+### DD-06 — Use non-upgradeable contracts
 
-### Trade-offs
+**Status:** Implemented.
 
-Wallets will continue showing completed certificates.
+**Context**
 
-The UI must clearly distinguish active and historical certificates.
+Upgradeable proxies add:
 
-### Test implication
+- initializer risk;
+- storage-layout risk;
+- proxy administration;
+- upgrade governance;
+- implementation replacement risk.
 
-Tests must verify that:
+**Decision**
 
-- ownership still exists after settlement;
-- old-deposit actions revert because status is terminal;
-- the old NFT cannot be used twice.
+Deploy ordinary non-upgradeable contracts.
 
-### UI implication
+**Rationale**
 
-Completed certificates appear in a historical section with disabled actions.
+The Capstone benefits more from transparent immutable code than from upgrade machinery.
 
----
+**Implementation consequence**
 
-## ADR-005 — Exact Maturity Boundary
+The deployed bytecode and constructor configuration remain fixed.
 
-**Status:** Implemented
+**Tradeoff**
 
-**Category:** SafeBank project decision
+A critical defect cannot be patched in place and requires migration to a new deployment.
 
-### Context
+## 6. Administrative Decisions
 
-The exact second of maturity must be classified consistently.
+### DD-07 — Use Ownable2Step for privileged ownership
 
-### Decision
+**Status:** Implemented.
 
-Early withdrawal is valid only when:
+**Context**
 
-`block.timestamp < maturityAt`
+A one-step ownership transfer may permanently assign control to an incorrect address.
 
-Maturity withdrawal is valid when:
+**Decision**
 
-`block.timestamp >= maturityAt`
+Use OpenZeppelin `Ownable2Step` for SavingCore and VaultManager.
 
-At exactly `maturityAt`, the deposit is mature.
+**Rationale**
 
-The maturity side was implemented in Phase 6 by `withdrawAtMaturity`, which accepts `block.timestamp >= maturityAt`.
+The proposed new owner must explicitly accept ownership.
 
-The early side was implemented in Phase 7 by `earlyWithdraw`, which accepts only `block.timestamp < maturityAt` and reverts with `DepositAlreadyMatured` at the exact maturity timestamp or later.
+**Implementation consequence**
 
-The implemented flows are mutually exclusive at the boundary and keep maturity withdrawal available at the exact grace-period end and after grace while the deposit remains `Active`.
+The frontend displays:
 
-### Rationale
+- current owner;
+- pending owner.
 
-The rules are mutually exclusive and easy to test.
+**Tradeoff**
 
-### Trade-offs
+Ownership transfer requires an additional transaction.
 
-Frontend wall-clock time may differ slightly from the next mined block timestamp.
+### DD-08 — Keep SavingCore and VaultManager pause states independent
 
-### Test implication
+**Status:** Implemented.
 
-Test:
+**Context**
 
-- one second before maturity;
-- exact maturity;
-- one second after maturity.
+Deposit lifecycle operations and interest-vault operations have different failure modes.
 
-### UI implication
+**Decision**
 
-The UI must refresh state at maturity and must not rely only on a local countdown.
+Give each contract its own `Pausable` state.
 
----
+**Rationale**
 
-## ADR-006 — Exact Grace-Period Boundary
+Operators can contain a problem in one subsystem without automatically treating both contracts as one unit.
 
-**Status:** Implemented
+**Implementation consequence**
 
-**Category:** SafeBank project decision
+The frontend displays both pause states separately.
 
-### Context
+**Tradeoff**
 
-Manual renewal and auto-renew must not overlap ambiguously at the grace boundary.
+A complete operational pause requires two transactions and mixed states must be understood correctly.
 
-### Decision
+### DD-09 — Allow vault funding while paused
 
-Manual renewal is valid when:
+**Status:** Implemented.
 
-`maturityAt <= block.timestamp < maturityAt + gracePeriod`
+**Context**
 
-Auto-renew is valid when:
+A paused vault may still need liquidity restoration.
 
-`block.timestamp >= maturityAt + gracePeriod`
+**Decision**
 
-At the exact grace-period end:
+Do not block owner funding merely because VaultManager is paused.
 
-- manual renewal is invalid;
-- auto-renew is valid.
+**Rationale**
 
-### Rationale
+Funding is a recovery action, not a value-extraction action.
 
-This creates one exact transition point without overlapping conditions.
+**Implementation consequence**
 
-### Trade-offs
+Interest payouts and owner withdrawals may remain blocked while liquidity can still be added.
 
-A manual-renew transaction submitted near the boundary may be mined too late and revert.
+**Tradeoff**
 
-### Phase 9 implementation status
+Operational documentation must clearly distinguish funding from payout or withdrawal.
 
-Both sides of the exact grace-period boundary are implemented and validated.
+### DD-10 — Use the current fee receiver at early settlement
 
-`manualRenew` accepts:
+**Status:** Implemented.
 
-`maturityAt <= block.timestamp < maturityAt + GRACE_PERIOD`
+**Context**
 
-It reverts:
+The penalty rate is part of the deposit's financial promise, but the receiving operational address may need to change.
 
-- before maturity with `DepositNotMatured`;
-- at the exact grace-period end with `ManualRenewalWindowClosed`;
-- after the grace-period end with `ManualRenewalWindowClosed`.
+**Decision**
 
-`autoRenew` accepts:
+Snapshot the penalty rate, but resolve the current VaultManager fee receiver when early withdrawal occurs.
 
-`block.timestamp >= maturityAt + GRACE_PERIOD`
+**Rationale**
 
-It reverts before that boundary with:
+Existing users retain the promised penalty percentage while operations can rotate the collection address.
 
-`AutoRenewalTooEarly(depositId, graceEndsAt, currentTimestamp)`
+**Implementation consequence**
 
-Validated timestamps include:
+Changing the fee receiver affects future unsettled early withdrawals.
 
-- one second before maturity;
-- exact maturity;
-- one second before the grace-period end;
-- exact grace-period end;
-- one second after the grace-period end;
-- delayed execution after multiple hypothetical terms.
+**Tradeoff**
 
-At the exact grace-period end:
+The eventual penalty recipient is not immutable at deposit opening.
 
-- manual renewal is invalid;
-- permissionless auto-renew is valid;
-- maturity withdrawal remains valid for the direct current owner while the
-  deposit remains `Active`;
-- the first successfully mined terminal transaction determines the final
-  state.
+## 7. Saving Plan Decisions
 
-ADR-006 is fully implemented as of Phase 9.
+### DD-11 — Snapshot financial terms per deposit
 
-### Test implication
+**Status:** Implemented.
 
-Test exact boundary timestamps and surrounding seconds.
+**Context**
 
-### UI implication
+Administrators may update or disable plans after deposits are opened.
 
-Display the grace deadline and warn users that transaction mining time determines validity.
+**Decision**
 
----
-
-## ADR-007 — Withdraw After Grace Period
-
-**Status:** Implemented
-
-**Category:** SafeBank project decision
-
-### Context
-
-Passing the grace period does not execute a transaction automatically.
-
-The system must decide whether an owner remains able to withdraw.
-
-### Decision
-
-If the deposit remains `Active`, maturity withdrawal remains valid after the grace period.
-
-After grace, both may be valid:
-
-- owner maturity withdrawal;
-- permissionless auto-renew.
-
-The first successfully mined transaction determines the final status.
-
-### Rationale
-
-Bot failure must not lock user principal.
-
-Time alone cannot change Solidity state.
-
-### Trade-offs
-
-A valid owner withdrawal and bot auto-renew can compete in the mempool.
-
-### Test implication
-
-Test withdrawal after grace and conflicting transaction ordering.
-
-### UI implication
-
-Do not display a deposit as renewed merely because time has passed.
-
-Read the actual status from the contract.
-
----
-
-## ADR-008 — Disabled Plan Behavior
-
-**Status:** Accepted
-
-**Category:** SafeBank project decision
-
-### Context
-
-Disabling a plan should stop future use without invalidating existing deposits.
-
-### Decision
-
-A disabled plan:
-
-- cannot accept new deposits;
-- cannot be selected for manual renewal;
-- does not prevent early withdrawal of existing deposits;
-- does not prevent maturity withdrawal;
-- does not prevent snapshot-based auto-renew.
-
-### Rationale
-
-Plan administration must not confiscate or invalidate existing user rights.
-
-### Trade-offs
-
-A disabled plan may still have active liabilities and snapshot-based auto-renewals.
-
-### Test implication
-
-Test every allowed and blocked operation after plan disablement.
-
-### UI implication
-
-Explain that disabled status affects new deposits and manual renewal, not existing settlement rights.
-
----
-
-## ADR-009 — Permissionless Auto-Renew
-
-**Status:** Implemented
-
-### Context
-
-Auto-renew requires a real on-chain transaction.
-
-Restricting execution to one bank-controlled bot would create an unnecessary
-single point of liveness failure.
-
-### Decision
-
-Any address may call:
-
-`autoRenew(depositId)`
-
-The function is available when:
-
-`block.timestamp >= maturityAt + GRACE_PERIOD`
-
-The caller does not gain ownership or financial value merely by submitting the
-transaction.
-
-The renewed NFT is always minted to the current owner of the old certificate.
-
-The caller cannot choose or redirect:
-
-- the renewed NFT recipient;
-- the plan ID;
-- the tenor;
-- the APR;
-- the penalty;
-- the principal;
-- any token payout.
-
-### Rationale
-
-Permissionless execution allows:
-
-- the owner;
-- another user;
-- a low-privilege automation wallet;
-- a third-party keeper;
-- a compatible smart contract
-
-to provide transaction liveness without gaining economic rights.
-
-Economic ownership continues to follow:
-
-`ownerOf(oldDepositId)`
-
-### Consequences
-
-After the grace-period end, a permissionless auto-renew transaction may
-compete with a maturity-withdrawal transaction from the owner.
-
-The first successfully mined terminal action determines the old deposit's
-final status.
-
-A user cannot guarantee that its withdrawal transaction will be mined before
-a competing auto-renew transaction.
-
-### Phase 9 implementation evidence
-
-The implementation validates that:
-
-- an unrelated account may call `autoRenew`;
-- the unrelated caller receives no NFT or token value;
-- the current old-certificate owner receives the new NFT;
-- transferring the old certificate before execution changes the recipient;
-- ERC721 approval is not required for permissionless triggering;
-- the caller cannot replace the recipient;
-- successful execution changes the old status to `AutoRenewed`;
-- repeated auto-renew is rejected;
-- maturity withdrawal after successful auto-renew is rejected;
-- auto-renew after successful maturity withdrawal is rejected;
-- the first successfully mined terminal transaction wins;
-- the old NFT remains as a historical certificate.
-
-### Test implication
-
-Tests cover:
-
-- unrelated caller execution;
-- old-certificate owner receipt;
-- certificate transfer before execution;
-- repeated auto-renew rejection;
-- conflicting withdrawal ordering;
-- old and new NFT ownership;
-- token-balance conservation.
-
-### UI implication
-
-The interface must distinguish:
-
-- transaction caller;
-- current certificate owner;
-- renewed NFT recipient.
-
-The recipient must be read from the contract and must not be editable.
-
----
-
-## ADR-010 — Auto-Renew Snapshot Behavior
-
-**Status:** Implemented
-
-### Context
-
-The system must determine which financial terms apply when an existing
-deposit is auto-renewed after its grace period.
-
-Reading current plan settings would allow later administrator actions to
-retroactively change the economic continuation of an existing deposit.
-
-### Decision
-
-Auto-renew preserves the old deposit's:
+Store in every deposit:
 
 - plan ID;
 - tenor snapshot;
 - APR snapshot;
-- early-withdrawal penalty snapshot.
+- penalty snapshot;
+- principal;
+- start and maturity timestamps.
 
-The auto-renewed deposit does not read or reapply the current plan's:
+**Rationale**
 
-- APR;
-- enabled state;
-- minimum deposit;
-- maximum deposit.
+An existing depositor's promised term must not change after opening.
 
-Interest is calculated for exactly one old snapshotted term.
+**Implementation consequence**
 
-The new deposit starts at the successful auto-renew transaction timestamp.
+APR updates affect future deposits and selected manual renewals only.
 
-Its maturity is:
+**Tradeoff**
 
-`newStartedAt + oldTenorDays * 1 day`
+More storage is used per deposit.
 
-### Rationale
+### DD-12 — Keep most plan terms immutable after creation
 
-Auto-renew continues the already accepted contractual terms without allowing
-later plan administration to alter them.
+**Status:** Implemented.
 
-This also allows auto-renew when:
+**Context**
 
-- the original plan has been disabled;
-- the plan APR has changed;
-- compounded principal exceeds the original plan maximum.
+Editing tenor, limits, or penalty in place would make plan history harder to interpret.
 
-The old deposit snapshots remain the authoritative financial terms.
+**Decision**
 
-### Consequences
+After creation:
 
-Administrator plan changes affect future manual selections and new deposits,
-but do not retroactively affect an existing deposit's auto-renew continuation.
+- APR may change;
+- enabled state may change;
+- tenor remains immutable;
+- minimum and maximum remain immutable;
+- penalty remains immutable.
 
-Auto-renew does not provide a mechanism for selecting a different plan.
+**Rationale**
 
-A compounded principal may be outside the current minimum or maximum of the
-original plan.
+Materially different product terms should use a new plan ID.
 
-### Phase 9 implementation evidence
+**Implementation consequence**
 
-The implementation validates that:
+Plan history remains easier to audit.
 
-- old plan ID is preserved;
-- old tenor is preserved;
-- old APR is preserved;
-- old penalty is preserved;
-- changing the original plan APR does not alter auto-renew;
-- disabling the original plan does not block auto-renew;
-- current plan minimum and maximum are not reapplied;
-- compounded principal above the old maximum is accepted;
-- the new term begins at execution time;
-- the new maturity uses the old tenor snapshot;
-- one old term of interest is calculated;
-- no current plan value replaces an old snapshot.
+**Tradeoff**
 
-### Test implication
+The administrator may need to create additional plans rather than editing one record.
 
-Tests update and disable the original plan before auto-renew and verify that
-the renewed deposit still uses the old snapshots.
+### DD-13 — Disabled plans do not invalidate existing deposits
 
-Tests also verify that plan deposit limits are not reapplied.
+**Status:** Implemented.
 
-### UI implication
+**Context**
 
-The interface must display the old deposit snapshots as authoritative.
+Disabling a product should stop new use without destroying existing contractual rights.
 
-It must not substitute live plan settings into the auto-renew preview.
+**Decision**
 
-It should explain that the original plan may now be disabled or modified
-without changing the renewed terms.
+Existing deposits retain their stored snapshots and lifecycle rights.
 
----
+**Rationale**
 
-## ADR-011 — Bot Offline Behavior
+Administrative product availability must not retroactively alter active deposits.
 
-**Status:** Implemented
+**Implementation consequence**
 
-**Category:** SafeBank project decision
+Existing owners may still:
 
-### Context
+- withdraw early;
+- withdraw at maturity;
+- participate in snapshot-based auto-renew.
 
-A keeper, bot, or other transaction submitter may remain offline for days or
-months after auto-renew becomes eligible.
+**Tradeoff**
 
-Solidity does not execute state changes merely because time passes.
+A disabled plan may still appear in historical and auto-renew state.
 
-### Decision
+### DD-14 — Manual renewal may select enabled plans only
 
-No renewal and no additional-term interest occurs while no transaction is
-executed.
+**Status:** Implemented.
 
-The old deposit remains `Active`.
+**Context**
 
-After the grace-period end:
+Manual renewal is a new user-selected product decision.
 
-- the current certificate owner may withdraw at maturity;
-- the owner may trigger auto-renew;
-- any other address may trigger auto-renew.
+**Decision**
 
-One delayed auto-renew transaction:
+Reject manual renewal into a disabled target plan.
 
-- creates exactly one new deposit;
-- creates exactly one new NFT;
-- calculates exactly one old snapshotted term of interest;
-- does not create multiple retroactive terms;
-- starts the new term at the successful transaction timestamp;
-- sets the new maturity one preserved tenor after that timestamp.
+**Rationale**
 
-### Rationale
+A disabled plan should not accept new elective business.
 
-Retroactively generating several compounded terms would:
+**Implementation consequence**
 
-- create unpredictable liabilities;
-- complicate token funding;
-- increase storage and gas usage;
-- make transaction results depend heavily on keeper downtime;
-- imply automatic execution that does not exist on-chain.
+`manualRenew` verifies:
 
-One transaction creating one new term is deterministic and auditable.
+~~~solidity
+if (!newPlan.enabled) {
+    revert PlanNotEnabled(newPlanId);
+}
+~~~
 
-### Consequences
+**Tradeoff**
 
-Users do not receive interest for hypothetical unexecuted renewal terms during
-keeper downtime.
+A user may need to choose another enabled plan or withdraw.
 
-A long delay does not automatically close or renew the old deposit.
+## 8. NFT Certificate Decisions
 
-The owner may still choose maturity withdrawal while the old deposit remains
-`Active`.
+### DD-15 — Represent each deposit with an ERC721 certificate
 
-The first successfully mined withdrawal or auto-renew transaction determines
-the terminal state.
+**Status:** Implemented.
 
-### Phase 9 implementation evidence
+**Context**
 
-The implementation validates execution after several hypothetical terms have
-passed.
+The assignment requires a transferable deposit certificate.
 
-A single delayed `autoRenew(depositId)` call produces:
+**Decision**
 
-- one increment of `depositCount`;
-- one new `Active` deposit;
-- one new ERC721 certificate;
-- one old-term interest calculation;
-- one `Renewed` event;
-- old status `AutoRenewed`;
-- new `startedAt` equal to the execution timestamp;
-- new `maturityAt` based on one preserved tenor.
+Mint one ERC721 for each deposit.
 
-It does not produce:
+Collection:
 
-- multiple deposit records;
-- multiple NFT mints;
-- multiple interest payouts;
-- retroactive start timestamps;
-- accumulated hypothetical terms.
+- name `SafeBank Deposit Certificate`;
+- symbol `SBDC`.
 
-### Test implication
+Identity rule:
 
-Advance time beyond several hypothetical tenors and verify that one
-auto-renew transaction creates exactly one new term.
+~~~text
+tokenId == depositId
+~~~
 
-Verify the new term starts at the transaction timestamp rather than at the old
-grace-period end.
+**Rationale**
 
-### UI implication
+One-to-one identity simplifies ownership and lifecycle lookup.
 
-The interface must not display accumulated unexecuted renewal terms.
+**Implementation consequence**
 
-It should explain that:
+The certificate can be transferred using standard ERC721 behavior.
 
-- time passing alone does not renew the deposit;
-- a transaction is required;
-- one transaction creates one new term;
-- the new term begins when that transaction confirms.
+**Tradeoff**
 
----
+Users must understand that transfer has financial consequences.
 
-## ADR-012 — Rounding Dust
+### DD-16 — Current direct NFT owner controls active economic rights
 
-**Status:** Implemented
+**Status:** Implemented.
 
-**Category:** SafeBank project decision
+**Context**
 
-### Context
+A transferable certificate must define who may withdraw or manually renew after transfer.
 
-Solidity integer division rounds down.
+**Decision**
 
-### Decision
+Owner-restricted actions resolve:
 
-Users receive rounded-down interest and penalty calculations.
+~~~solidity
+address currentOwner = ownerOf(depositId);
+~~~
 
-Interest rounding dust remains in `VaultManager`.
+The caller must equal `currentOwner`.
 
-No additional token is minted to compensate for rounding.
+**Rationale**
 
-### Rationale
+Economic rights follow the current certificate owner.
 
-This is deterministic, simple, and compatible with ERC20 integer accounting.
+**Implementation consequence**
 
-### Trade-offs
+After Alice transfers the certificate to Bob:
 
-A very small residual amount remains in the vault.
+- Bob may withdraw;
+- Bob may manually renew;
+- Alice loses those rights.
 
-### Test implication
+**Tradeoff**
 
-Use non-divisible examples and verify exact token conservation.
+An accidental NFT transfer may also transfer principal and interest rights.
 
-### UI implication
+### DD-17 — ERC721 approval does not grant direct deposit authority
 
-Show contract-equivalent values and optionally explain that blockchain token calculations round down.
+**Status:** Implemented.
 
+**Context**
 
-### Implementation evidence
+ERC721 operators are often approved for marketplace transfer convenience.
 
-Phase 6 validates floor-rounded simple interest and retained vault dust.
+**Decision**
 
-Phase 7 validates:
+Do not treat token approval or operator approval as sufficient for withdrawal or manual renewal.
 
-- floor-rounded early-withdrawal penalties;
-- positive fractional penalties rounded down to an integer token unit;
-- fractional penalties rounded down to zero;
-- exact conservation of principal between user receipt and fee receipt;
-- zero and maximum penalty boundaries;
-- no compensating token mint.
----
+**Rationale**
 
-## ADR-013 — Pause Scope
+Direct financial settlement should require the actual current owner.
 
-**Status:** Accepted
+**Implementation consequence**
 
-**Category:** SafeBank security decision
+The contract compares `msg.sender` with `ownerOf(depositId)` rather than using `_isAuthorized`.
 
-### Context
+**Tradeoff**
 
-An emergency pause is useful only when all relevant financial entry points respect it.
+Approved custodial or marketplace operators cannot settle on behalf of the owner.
 
-### Decision
+### DD-18 — Retain terminal NFTs as historical certificates
 
-When the relevant contract is paused, SafeBank blocks:
+**Status:** Implemented.
 
-- opening deposits;
-- maturity withdrawal;
-- early withdrawal;
-- auto-renew;
-- pending-interest claims;
-- interest payout.
+**Context**
 
-Read-only functions remain available.
+Burning a certificate would remove a useful visible record.
 
-### Rationale
+**Decision**
 
-This reduces additional state changes during incident investigation.
+Do not burn the old NFT after withdrawal or renewal.
 
-### Trade-offs
+**Rationale**
 
-Legitimate users may temporarily be unable to recover funds.
+The NFT remains evidence that a deposit once existed.
 
-Pause does not solve insolvency or recover compromised keys.
+**Implementation consequence**
 
-### Test implication
+The old deposit status prevents all later financial reuse.
 
-Every blocked function requires its own pause test.
+**Tradeoff**
 
-### UI implication
+Interfaces must not imply that possession of a historical NFT means the old deposit is still active.
 
-Display exact pause scope and disable affected actions.
+### DD-19 — Do not implement rich NFT metadata
 
----
+**Status:** Intentionally not implemented.
 
-## ADR-014 — Non-Upgradeable Architecture
+**Context**
 
-**Status:** Accepted
+A custom `tokenURI`, hosted artwork, or dynamic metadata would increase presentation scope.
 
-**Category:** SafeBank architecture decision
+**Decision**
 
-### Context
+Use base ERC721 behavior without a project-specific metadata system.
 
-Upgradeable proxies introduce proxy administration, initializer, storage-layout, and upgrade-governance risks.
+**Rationale**
 
-The project removed upgradeable dependencies during Phase 0.
+Core custody, settlement, renewal, bonuses, frontend workflows, and testing have higher priority.
 
-### Decision
+**Implementation consequence**
 
-SafeBank uses ordinary non-upgradeable contract deployments.
+Deposit details are read from SavingCore and presented by the frontend.
 
-The project will not reinstall upgrade plugins unless a later accepted decision explicitly changes the architecture.
+**Tradeoff**
 
-### Rationale
+Wallets and marketplaces do not receive rich SafeBank certificate artwork or metadata.
 
-The model is easier to reason about, test, demonstrate, and defend orally.
+### DD-20 — Do not use ERC721Enumerable
 
-### Trade-offs
+**Status:** Implemented scope decision.
 
-A deployed contract bug requires a new deployment rather than an in-place patch.
+**Context**
 
-### Test implication
+On-chain enumeration increases storage writes and contract complexity.
 
-No proxy-specific tests are needed.
+**Decision**
 
-Constructor configuration must be tested carefully.
+Use base ERC721 and perform owned-deposit discovery off-chain.
 
-### UI implication
+**Rationale**
 
-Deployment addresses may change when a corrected version is redeployed.
+The Capstone already exposes deposit IDs and ownership can be reconciled with `ownerOf`.
 
----
+**Implementation consequence**
 
-## ADR-015 — Basic ERC721 Instead of ERC721Enumerable
+The frontend scans candidate deposit IDs and checks current ownership.
 
-**Status:** Accepted
+**Tradeoff**
 
-**Category:** SafeBank architecture decision
+Discovery cost moves to the client and RPC layer.
 
-### Context
+## 9. Lifecycle Decisions
 
-The frontend needs to display owned certificates, but enumeration adds storage writes and gas cost to every mint and transfer.
+### DD-21 — Permit exactly one successful terminal transition
 
-### Decision
+**Status:** Implemented.
 
-`SavingCore` will use standard OpenZeppelin `ERC721`, not `ERC721Enumerable`.
+**Context**
 
-Owned-deposit discovery will use:
+Maturity withdrawal, early withdrawal, manual renewal, and auto-renew may compete for the same active deposit.
 
-- deposit events;
-- NFT transfer events;
-- direct ownership verification;
-- optional off-chain indexing.
+**Decision**
 
-No unbounded on-chain owner-deposit loop will be added.
+Every terminal function requires status `Active` and changes it before completion.
 
-### Rationale
+Valid transitions:
 
-This keeps the contract smaller and reduces gas and denial-of-service concerns.
+~~~text
+Active -> Withdrawn
+Active -> ManualRenewed
+Active -> AutoRenewed
+~~~
 
-### Trade-offs
+**Rationale**
 
-The frontend cannot call a built-in `tokenOfOwnerByIndex`.
+A single old deposit must not be processed twice.
 
-It must query events or use indexing.
+**Implementation consequence**
 
-### Test implication
+Later conflicting transactions revert.
 
-Tests focus on ownership and transfer correctness rather than enumeration.
+**Tradeoff**
 
-### UI implication
+Users and keepers may still pay gas for a transaction that loses a race.
 
-The frontend data layer must reconcile event-derived lists with current `ownerOf` values.
+### DD-22 — Renewal creates a new deposit and new NFT
 
----
+**Status:** Implemented.
 
-## ADR-016 — NFT Token ID Equals Deposit ID
+**Context**
 
-**Status:** Accepted
+Reusing the old deposit record would overwrite history.
 
-**Category:** SafeBank architecture decision
+**Decision**
 
-### Context
+Manual and auto-renew:
 
-Using separate NFT and deposit identifiers would create unnecessary mapping and UI complexity.
+- terminate the old deposit;
+- allocate a new deposit ID;
+- create a new active deposit;
+- safely mint a new certificate.
 
-### Decision
+**Rationale**
 
-For every deposit:
+Each term remains independently inspectable.
 
-`tokenId == depositId`
+**Implementation consequence**
 
-### Rationale
+A renewal chain consists of multiple linked historical certificates.
 
-This simplifies:
+**Tradeoff**
 
-- ownership checks;
-- events;
-- frontend routing;
-- debugging;
-- oral explanation.
+Deposit and NFT counts increase with each renewal.
 
-### Trade-offs
+## 10. Time-Boundary Decisions
 
-NFT and deposit lifecycles remain tightly coupled.
+### DD-23 — Treat exact maturity as mature
 
-### Test implication
+**Status:** Implemented and tested.
 
-Every deposit-opening and renewal test must verify token ID and deposit ID equality.
+**Context**
 
-### UI implication
+The system must classify the exact second `maturityAt`.
 
-The UI may display one identifier as both Deposit ID and Certificate ID while explaining the equivalence.
+**Decision**
 
----
+Early withdrawal is valid only when:
 
-## ADR-017 — Identifiers Start at One
+~~~text
+block.timestamp < maturityAt
+~~~
 
-**Status:** Accepted
+Maturity withdrawal is valid when:
 
-**Category:** SafeBank implementation decision
+~~~text
+block.timestamp >= maturityAt
+~~~
 
-### Context
+**Rationale**
 
-Solidity mappings return zero-value structures for nonexistent keys.
+The exact maturity timestamp must belong to one clear side of the boundary.
 
-Starting identifiers at zero makes a default mapping entry easier to confuse with a real first entry.
+**Implementation consequence**
 
-### Decision
+At exact maturity:
 
-Plan IDs and deposit IDs start at `1`.
+- early withdrawal is rejected;
+- maturity withdrawal is allowed;
+- manual renewal begins.
 
-ID `0` is always invalid.
+**Tradeoff**
 
-### Rationale
+Users cannot obtain the early-withdrawal path at the exact maturity second.
 
-This simplifies existence validation and debugging.
+### DD-24 — Use a half-open manual-renewal window
 
-### Trade-offs
+**Status:** Implemented and tested.
 
-Counters require an initial increment or initial value of one.
+**Context**
 
-### Test implication
+Manual renewal and auto-renew must not both start at an ambiguous boundary.
 
-Verify that:
+**Decision**
 
-- first plan ID is 1;
-- first deposit ID is 1;
-- ID 0 reverts.
+Manual renewal is valid during:
 
-### UI implication
+~~~text
+maturityAt <= timestamp < graceEndsAt
+~~~
 
-No user-facing item uses ID zero.
+Auto-renew becomes valid when:
 
----
+~~~text
+timestamp >= graceEndsAt
+~~~
 
-## ADR-018 — One-Time SavingCore Authorization
+**Rationale**
 
-**Status:** Accepted
+The half-open interval creates a precise complementary boundary.
 
-**Category:** SafeBank security decision
+**Implementation consequence**
 
-### Context
+At exact grace end:
 
-VaultManager must authorize SavingCore, but VaultManager is deployed before SavingCore in the planned sequence.
+- manual renewal is closed;
+- auto-renew is allowed.
 
-Allowing unrestricted replacement creates vault-drain risk.
+**Tradeoff**
 
-### Decision
+A manual-renewal transaction mined at the boundary may revert even if prepared earlier.
 
-VaultManager will provide a one-time owner-only authorization function.
+### DD-25 — Keep maturity withdrawal available after grace
 
-The function must:
+**Status:** Implemented.
 
-- reject zero address;
-- reject authorization when already configured;
-- require a deployed contract address where practical;
-- emit `SavingCoreAuthorized`.
+**Context**
 
-After successful setup, the authorized SavingCore address cannot be replaced in the current architecture.
+A user should not lose the ability to exit merely because the manual-renewal window ended.
 
-### Rationale
+**Decision**
 
-This resolves deployment ordering while reducing long-term administrator power.
+Allow maturity withdrawal at any timestamp at or after maturity while the deposit remains active.
 
-### Trade-offs
+**Rationale**
 
-Incorrect configuration requires redeployment.
+The owner retains an exit path even if the bot is offline.
 
-### Test implication
+**Implementation consequence**
 
-Test:
+After grace, maturity withdrawal and auto-renew may both be valid.
 
-- owner authorization;
-- non-owner rejection;
-- zero address;
-- externally owned account if code validation is used;
-- second authorization rejection;
-- only configured SavingCore may request payout.
+**Tradeoff**
 
-### UI implication
+Transaction ordering determines which action wins.
 
-The Admin Portal displays the configured address as immutable and does not offer a replacement action.
+## 11. Interest and Rounding Decisions
 
----
+### DD-26 — Use one-term simple interest
 
-## ADR-019 — Ownable2Step
+**Status:** Implemented.
 
-**Status:** Accepted
+**Context**
 
-**Category:** SafeBank security decision
+The Capstone specifies APR-based term interest.
 
-### Context
+**Decision**
 
-A one-step ownership transfer may permanently transfer control to an incorrect address.
+Calculate:
 
-### Decision
+~~~text
+interest =
+    principal × aprBps × tenorSeconds
+    ÷ (365 days × 10,000)
+~~~
 
-Privileged contracts use OpenZeppelin `Ownable2Step`.
+Use `Math.mulDiv`.
 
-### Rationale
+**Rationale**
 
-The new owner must explicitly accept control.
+This matches the assignment and avoids floating-point arithmetic.
 
-### Trade-offs
+**Implementation consequence**
 
-Ownership transfer requires two transactions.
+Interest is deterministic in smallest token units.
 
-A pending transfer may remain unaccepted.
+**Tradeoff**
 
-### Test implication
+The model does not represent continuously compounded or variable-rate interest.
 
-Test initiation, acceptance, non-pending acceptance, and previous-owner loss of authority.
+### DD-27 — Round interest down
 
-### UI implication
+**Status:** Implemented and tested.
 
-Show pending owner and provide separate start and accept states if ownership management is exposed.
+**Context**
 
----
+Solidity integer division cannot represent fractional smallest token units.
 
-## ADR-020 — Separate Contract Pause States
+**Decision**
 
-**Status:** Accepted
+Use floor rounding.
 
-**Category:** SafeBank architecture and security decision
+**Rationale**
 
-### Context
+The contract must never transfer more token units than the formula produces.
 
-SavingCore and VaultManager have different responsibilities and are independently deployed.
-
-A single pause variable shared across contracts would require unnecessary coupling.
-
-### Decision
-
-SavingCore and VaultManager each maintain their own pause state.
-
-The same administrator is expected to own both contracts.
-
-An operational “global pause” means pausing both contracts.
-
-### Rationale
-
-Each contract enforces its own security boundary.
-
-### Trade-offs
-
-The states may become inconsistent if only one transaction succeeds.
-
-### Test implication
-
-Test each contract separately and test system behavior under mixed pause states.
-
-### UI implication
-
-Display both pause states explicitly.
-
-The Admin Portal must not show one global “Operational” label when one contract is paused.
-
----
-
-## ADR-021 — Plan Mutability
-
-**Status:** Accepted
-
-**Category:** Mandatory and SafeBank decision
-
-### Context
-
-The required administration includes updating APR and enabling or disabling plans.
-
-Allowing every field to change would make plan history difficult to understand.
-
-### Decision
-
-After plan creation:
-
-- tenor is immutable;
-- min deposit is immutable;
-- max deposit is immutable;
-- penalty is immutable;
-- APR may be updated for future deposits;
-- enabled state may change.
-
-To offer different tenor, limits, or penalty, the administrator creates a new plan.
-
-### Rationale
-
-This preserves clear plan identity while meeting the required APR-update behavior.
-
-### Trade-offs
-
-More plan records may exist over time.
-
-### Test implication
-
-Verify APR updates and enabled-state changes while ensuring deposit snapshots remain unchanged.
-
-### UI implication
-
-Only APR and status have edit actions.
-
-Other changes require creating a new plan.
-
----
-
-## ADR-022 — Plan Validation Bounds
-
-**Status:** Accepted
-
-**Category:** SafeBank implementation and security decision
-
-### Context
-
-Unbounded APR, penalty, and tenor values can create arithmetic risk or nonsensical products.
-
-### Decision
-
-The planned validation bounds are:
-
-- tenor: 1 to 3,650 days;
-- APR: 1 to 10,000 bps;
-- penalty: 0 to 10,000 bps;
-- amount: greater than zero;
-- when min and max are both nonzero, min must not exceed max;
-- min zero means no lower plan limit;
-- max zero means no upper plan limit.
-
-These are contract validation bounds, not claims that every allowed value is financially sensible.
-
-### Rationale
-
-The bounds prevent zero-term plans, interest above 100% APR, and penalties above principal.
-
-### Trade-offs
-
-Changing these limits after deployment is impossible in the non-upgradeable model.
-
-### Test implication
-
-Test every lower bound, upper bound, and one value outside each bound.
-
-### UI implication
-
-Admin forms display allowed ranges and percentage conversions.
-
----
-
-## ADR-023 — SafeERC20 and ReentrancyGuard
-
-**Status:** Accepted
-
-**Category:** SafeBank security decision
-
-### Context
-
-ERC20 transfers are external interactions and may return false, return no value, or revert.
-
-Financial functions may be targeted by reentrancy.
-
-### Decision
-
-SafeBank will use:
-
-- OpenZeppelin `SafeERC20`;
-- `ReentrancyGuard`;
-- checks-effects-interactions;
-- state changes before external settlement interactions where appropriate.
-
-State-changing user financial entry points will use `nonReentrant`.
-
-### Rationale
-
-These controls reduce token-compatibility and reentrancy risks.
-
-### Trade-offs
-
-They do not make arbitrary malicious ERC20 tokens safe.
-
-### Test implication
-
-Use malicious or failing token mocks and reentrant receiver mocks where applicable.
-
-### UI implication
-
-External-call failures must be mapped to understandable transaction errors.
-
----
-
-## ADR-024 — Safe NFT Minting
-
-**Status:** Accepted
-
-**Category:** SafeBank security and compatibility decision
-
-### Context
-
-Minting to a contract using ordinary minting can permanently lock an NFT in a contract that cannot receive ERC721 tokens.
-
-Safe minting invokes an external receiver hook and therefore introduces reentrancy considerations.
-
-### Decision
-
-SafeBank will use safe minting for deposit certificates.
-
-Before safe minting:
-
-- the deposit record is created;
-- its status is valid;
-- counters are updated;
-- the function is protected by `nonReentrant`.
-
-If the recipient contract rejects the NFT, the entire transaction reverts.
-
-### Rationale
-
-This protects recipients from accidentally receiving an unusable certificate while maintaining atomicity.
-
-### Trade-offs
-
-Minting costs more gas and invokes an external callback.
-
-### Test implication
-
-Test:
-
-- EOA recipient;
-- valid ERC721 receiver;
-- invalid receiver;
-- receiver reentrancy attempt;
-- complete transaction rollback on rejection.
-
-### UI implication
-
-A contract wallet that cannot receive ERC721 certificates must receive a clear failure explanation.
-
----
-
-## ADR-025 — Renewal Requires Funded Interest
-
-**Status:** Implemented
-
-**Category:** SafeBank financial decision
-
-### Context
-
-Renewal compounds old deposit interest into the principal of a new active
-deposit.
-
-Adding calculated but unpaid interest would create principal that is not
-backed by tokens held in SavingCore.
-
-### Decision
-
-For both:
-
-- `manualRenew(depositId, newPlanId)`;
-- `autoRenew(depositId)`;
-
-positive old-term interest must be fully transferred from VaultManager into
-SavingCore before the renewed principal may remain committed.
-
-The payout call is:
-
-`vaultManager.payInterest(address(this), interest)`
-
-If positive-interest funding fails:
-
-- the renewal reverts;
-- the old deposit remains `Active`;
-- `depositCount` is restored;
-- no new deposit remains;
-- no new NFT remains;
-- the old NFT ownership remains unchanged;
-- token balances are restored;
-- no unfunded interest is added to principal.
-
-When calculated interest rounds down to zero:
-
-- no VaultManager payout is required;
-- `payInterest` is not called;
-- no `InterestPaid` event is emitted;
-- new principal equals old principal;
-- VaultManager pause alone does not block the renewal.
-
-### Rationale
-
-Every principal amount recorded by SavingCore must be fully backed by tokens
-held by SavingCore.
-
-A positive-interest renewal must move the interest tokens from the
-bank-funded VaultManager into SavingCore.
-
-A zero-interest renewal does not need a meaningless zero-value external call.
-
-### Consequences
-
-An underfunded, paused, or incorrectly authorized VaultManager can prevent a
-positive-interest renewal.
-
-This behavior preserves solvency but may leave the old deposit `Active` until
-another valid action succeeds.
-
-Zero-rounded-interest renewal can succeed without depending on VaultManager
-availability.
-
-### Phase 9 implementation evidence
-
-Both manual and permissionless renewal paths are implemented and validated.
-
-For positive interest:
-
-- new principal equals old principal plus funded old-term interest;
-- VaultManager balance decreases by the interest;
-- SavingCore balance increases by the same amount;
-- user wallet balance remains unchanged;
-- transaction caller balance remains unchanged for auto-renew;
-- token total supply remains unchanged;
-- the new deposit is fully backed.
-
-For zero-rounded interest:
-
-- new principal equals old principal;
-- VaultManager balance is unchanged;
-- SavingCore receives no payout;
-- no `InterestPaid` event is emitted;
-- renewal may succeed while only VaultManager is paused.
-
-Validated failure cases include:
-
-- underfunded VaultManager;
-- unauthorized SavingCore;
-- paused VaultManager during positive-interest renewal;
-- failed ERC721 safe mint after a successful payout attempt;
-- ERC20 callback reentrancy during the payout.
-
-Every failed transaction restores:
-
-- the old deposit status;
-- deposit count;
-- new-deposit absence;
-- new-NFT absence;
-- old NFT ownership;
-- SavingCore balance;
-- VaultManager balance;
-- total token supply.
-
-ADR-025 is fully implemented as of Phase 9.
-
-### Test implication
-
-Test both manual and auto-renew with:
-
-- sufficient positive-interest funding;
-- zero-rounded interest;
-- underfunded VaultManager;
-- paused VaultManager;
-- unauthorized SavingCore;
-- failed safe mint;
-- payout callback reentrancy;
-- complete state and balance rollback.
-
-### UI implication
-
-The interface must explain that:
-
-- positive-interest compounding requires full VaultManager funding;
-- interest moves into SavingCore rather than the user wallet;
-- zero-interest renewal may not require VaultManager;
-- a failed funding transaction does not partially renew the deposit;
-- maturity withdrawal may remain available while the old deposit is still
-  `Active`.
-
----
-
-## ADR-026 — Bonus C1 Principal-First Settlement
-
-**Status:** Implemented
-
-**Category:** Bonus C1
-
-### Context
-
-The original maturity flow could revert the complete transaction when
-VaultManager lacked sufficient bank-funded interest.
-
-That behavior could indirectly keep depositor principal locked even though the
-principal remained fully held by `SavingCore`.
-
-### Decision
-
-SafeBank implements principal-first maturity settlement.
-
-When maturity interest is positive:
-
-- principal is transferred from `SavingCore` to the direct current NFT owner;
-- a successful VaultManager payout pays the full calculated interest
-  immediately;
-- an exact VaultManager `InsufficientVaultBalance` error defers the full
-  calculated interest;
-- no partial interest payment is attempted;
-- the deposit becomes terminal with status `Withdrawn`;
-- deferred interest is stored in `pendingInterest[depositId]`;
-- the claimant is stored in `interestClaimant[depositId]`;
-- `InterestDeferred` is emitted for the deferred amount;
-- `Withdrawn.interest` records only interest paid immediately and is therefore
-  zero for a deferred settlement.
-
-Zero-rounded interest continues to skip VaultManager.
-
-Paused, unauthorized, malformed, empty-revert, and other unexpected
-VaultManager failures are not converted into pending debt. They revert the
-complete transaction and EVM atomicity restores all state and balances.
-
-C1 applies only to maturity withdrawal.
-
-Manual renewal and permissionless auto-renew continue to require fully funded
-positive interest before creating compounded principal.
-
-### Rationale
-
-Principal and interest have separate custody sources:
-
-- depositor principal is held by `SavingCore`;
-- bank-funded interest is held by VaultManager.
-
-A temporary interest-liquidity shortfall should not be the sole reason
-principal remains unavailable.
-
-Restricting deferral to the exact liquidity error prevents configuration,
-authorization, pause, malformed-revert, and unexpected contract failures from
-being misclassified as normal underfunding.
-
-### Consequences
-
-Benefits:
-
-- depositor principal can be recovered despite insufficient interest
-  liquidity;
-- unpaid interest remains an explicit on-chain liability;
-- no depositor principal is used to satisfy bank-funded interest;
-- settlement remains deterministic and auditable.
-
-Trade-offs:
-
-- pending interest may remain unpaid until VaultManager is funded;
-- C1 does not prevent the administrator from withdrawing liquidity expected
-  for other obligations;
-- aggregate reserve protection is enforced by the implemented Phase 12 C2 model.
-
-### Phase 11 implementation evidence
-
-The implementation validates:
-
-- fully funded maturity settlement;
-- principal-first settlement with an underfunded VaultManager;
-- full-value deferral without partial payout;
-- zero-rounded interest;
-- terminal deposit state;
-- historical NFT retention;
-- no second maturity settlement;
-- exact error-selector handling;
-- rollback for paused, unauthorized, empty, and unexpected VaultManager
-  failures;
-- no pending-interest fallback for manual or auto-renewal.
-
-ADR-026 is fully implemented and validated as of Phase 11.
-
-### Test implication
-
-Test:
-
-- full interest funding;
-- zero-rounded interest;
-- vault balance below the full interest amount;
-- principal and claimant balances;
-- pending amount;
-- terminal status;
-- `InterestDeferred`;
-- `Withdrawn` immediate-interest semantics;
-- double settlement;
-- VaultManager pause;
-- unauthorized SavingCore;
-- empty revert data;
-- callback reentrancy;
-- renewal regression.
-
-### UI implication
-
-Show principal settlement and deferred interest as separate outcomes.
-
-The interface must clearly explain that principal has already been returned,
-while interest remains an unpaid VaultManager liability.
-
----
-
-## ADR-027 — Pending-Interest Claimant Snapshot
-
-**Status:** Implemented
-
-**Category:** Bonus C1
-
-### Context
-
-The ERC721 certificate remains transferable after maturity settlement and is
-retained as a historical certificate.
-
-The project must prevent a post-settlement NFT transfer from unexpectedly
-transferring an already-created pending-interest claim.
-
-### Decision
-
-At deferred maturity settlement, SafeBank snapshots:
-
-- the full unpaid interest amount in `pendingInterest[depositId]`;
-- the direct current NFT owner in `interestClaimant[depositId]`.
-
-The claimant snapshot is fixed after settlement.
-
-Consequently:
-
-- transferring the historical NFT does not transfer the pending claim;
-- the previous owner cannot claim when ownership was transferred before
-  settlement;
-- the new direct owner at settlement becomes claimant;
-- an ERC721-approved operator does not inherit claim authority;
-- an unrelated caller cannot claim;
-- the claimant cannot select another payout recipient;
-- the claim is always for the complete recorded pending amount.
-
-The implemented function is:
-
-`claimPendingInterest(uint256 depositId)`
-
-It is:
-
-- `external`;
-- protected by `whenNotPaused`;
-- protected by `nonReentrant`;
-- claimant-only;
-- full-value only.
-
-The function clears `pendingInterest[depositId]` before the external
-VaultManager payout.
-
-If payout fails, EVM rollback restores the pending amount.
-
-After a successful claim:
-
-- `pendingInterest[depositId]` is zero;
-- `interestClaimant[depositId]` remains stored as historical information;
-- `PendingInterestClaimed` is emitted;
-- a second claim is rejected with `NoPendingInterest`.
-
-### Rationale
-
-Claim rights become a fixed receivable when maturity settlement occurs.
-
-Keeping that receivable separate from later NFT ownership avoids ambiguous
-economic-right transfers and makes event history, UI presentation, and claim
-authorization deterministic.
-
-Clearing debt before interaction follows checks-effects-interactions, while EVM
-rollback prevents debt loss when VaultManager payout fails.
-
-### Consequences
-
-Benefits:
-
-- post-settlement NFT transfer cannot steal a pending claim;
-- approved operators cannot claim;
-- duplicate claims are prevented;
-- failed payout does not erase the liability;
-- historical claimant information remains queryable.
-
-Trade-offs:
-
-- a user transferring the historical NFT must understand that the pending claim
-  remains with the snapshotted claimant;
-- claims cannot be partially withdrawn;
-- claims cannot be redirected to another recipient.
-
-### Phase 11 implementation evidence
-
-The implementation validates:
-
-- NFT transfer before settlement changes the future claimant;
-- NFT transfer after settlement does not change the recorded claimant;
-- approved-operator rejection;
-- unrelated-caller rejection;
-- previous-owner rejection when no longer the settlement owner;
-- successful claim after later vault funding;
-- underfunded claim rollback;
-- paused VaultManager rollback and later retry;
-- SavingCore pause;
-- double-claim rejection;
-- pending-interest payout callback reentrancy protection;
-- historical claimant retention after payment.
-
-ADR-027 is fully implemented and validated as of Phase 11.
-
-### Test implication
-
-Test:
-
-- claimant snapshot at settlement;
-- transfer before settlement;
-- transfer after settlement;
-- approved operator;
-- unrelated caller;
-- invalid deposit;
-- zero pending amount;
-- successful later claim;
-- underfunded claim;
-- paused claim;
-- retry after funding or unpause;
-- duplicate claim;
-- callback reentrancy;
-- event arguments;
-- retained historical claimant.
-
-### UI implication
-
-Display separately:
-
-- historical NFT owner;
-- snapshotted pending-interest claimant;
-- pending amount;
-- claim status;
-- VaultManager funding and pause status.
-
-The UI must warn that transferring a historical certificate does not transfer
-an already-snapshotted pending-interest claim.
-
----
-
-## ADR-028 — Bonus C2 Solvency Guard
-
-**Status:** Implemented
-
-**Category:** Bonus C2
-
-### Context
-
-Without liability accounting, the administrator could withdraw vault tokens
-that are economically expected to cover active or pending interest.
-
-### Decision
-
-`SavingCore` is the authoritative liability ledger and stores:
-
-`totalReservedInterest`
-
-`VaultManager` reads that value from the one-time authorized SavingCore.
-
-Available liquidity is:
-
-`max(vaultBalance - totalReservedInterest, 0)`
-
-Funding shortfall is:
-
-`max(totalReservedInterest - vaultBalance, 0)`
-
-Owner withdrawal cannot exceed available liquidity.
-
-Before SavingCore authorization, VaultManager reports zero aggregate reserve.
-
-### Rationale
-
-Keeping reserve mutations inside SavingCore avoids making deposit opening,
-early withdrawal, and zero-interest lifecycle actions depend on a VaultManager
-authorization call.
-
-VaultManager remains focused on:
-
-- bank-funded token custody;
-- interest payouts;
-- balance reporting;
-- administrator-withdrawal enforcement.
-
-### Trade-offs
-
-- the vault may remain underfunded;
-- correct one-time SavingCore authorization remains critical;
-- reserve lifecycle accounting increases state-machine complexity;
-- VaultManager's reserve getter depends on the authorized SavingCore read.
-
-### Phase 12 implementation evidence
-
-Validated behavior includes:
-
-- zero reserve before authorization;
-- aggregate reserve read after authorization;
-- balance greater than, equal to, and below reserve;
-- saturating available-liquidity and shortfall calculations;
-- exact available withdrawal;
-- rejection one unit above available;
-- balance changes from funding and direct transfers without liability changes;
-- 55 VaultManager tests;
-- 100% VaultManager statements, functions, and lines.
-
-### Test implication
-
-Tests must preserve reservation, release, consumption, renewal transitions,
-undercollateralization, withdrawal limits, and rollback invariants.
-
-### UI implication
-
-Display vault balance, reserved interest, available liquidity, solvency ratio,
-and funding shortfall. Never present an amount above available liquidity as a
-valid administrator withdrawal.
-
-## ADR-029 — Permit Undercollateralized Deposit Opening
-
-**Status:** Implemented
-
-**Category:** Bonus C2 and business decision
-
-### Context
-
-The system must decide whether a new deposit should revert when VaultManager
-does not currently hold enough liquidity for the deposit's expected interest.
-
-### Decision
-
-A valid deposit may open while the vault is undercollateralized.
-
-The positive expected-interest liability is still added to
-`SavingCore.totalReservedInterest`.
-
-VaultManager exposes the resulting funding shortfall, and the administrator
-cannot withdraw reserved liquidity.
-
-### Rationale
-
-This demonstrates transparent liability accounting and the intended C1/C2
-interaction:
-
-- user principal remains separated in SavingCore;
-- C1 can return principal if interest is unavailable at maturity;
-- C2 prevents administrator withdrawal from worsening the shortfall;
-- funding can be restored later.
-
-### Trade-offs
-
-Interest may be delayed, and the product must not promise immediate payment.
-
-### Phase 12 implementation evidence
-
-Tests open a positive-interest deposit against an empty VaultManager and verify:
-
-- deposit creation succeeds;
-- reserve increases;
-- available liquidity is zero;
-- funding shortfall equals the reserve.
-
-### Test implication
-
-Continue testing undercollateralized opening, later funding, and settlement.
-
-### UI implication
-
-Display clear underfunding warnings and distinguish principal protection from
-immediate interest availability.
-
-## ADR-030 — Reserve Treatment of Pending Interest
-
-**Status:** Implemented
-
-**Category:** Bonus integration decision
-
-### Context
-
-When C1 defers interest, releasing the reserve would allow later administrator
-withdrawal of tokens still economically owed to the fixed claimant.
-
-### Decision
-
-Unpaid C1 interest remains included in `totalReservedInterest`.
-
-Implemented reserve behavior:
-
-- funded maturity payout: consume the old reserve;
-- C1 deferred settlement: preserve the unpaid reserve;
-- successful pending-interest claim: consume the remaining reserve;
-- failed pending claim: EVM rollback restores both pending debt and reserve;
-- early withdrawal: release active-term reserve;
-- manual renewal: consume old reserve and create selected-plan reserve;
-- auto-renew: consume old reserve and create snapshot-based reserve.
-
-### Rationale
-
-Pending interest remains a real liability until successfully paid.
-
-### Trade-offs
-
-C1 and C2 lifecycle integration is more complex and must remain atomic.
-
-### Phase 12 implementation evidence
-
-Tests verify reserve values:
-
-- before deferral;
-- after principal-first settlement;
-- after later funding;
-- after successful claim;
-- after a failed underfunded claim;
-- through manual and auto-renew transitions.
-
-### Test implication
-
-Any future change to maturity, claim, or renewal logic must prove reserve
-conservation and rollback.
-
-### UI implication
-
-Reserved interest includes both expected active-deposit interest and unpaid
-pending-interest debt.
-
-## ADR-031 — Exact-Amount Approval
-
-**Status:** Accepted
-
-**Category:** Product security extension
-
-### Context
-
-Unlimited ERC20 approvals increase the amount a compromised spender could transfer.
-
-### Decision
-
-The SafeBank frontend defaults to approving the exact deposit amount.
-
-It will not default to unlimited approval.
-
-### Rationale
-
-This limits approval exposure and makes the transaction easier to explain.
-
-### Trade-offs
-
-Each new deposit may require another approval transaction.
-
-### Test implication
-
-Frontend tests verify spender and exact amount.
-
-### UI implication
-
-Approval and deposit opening are shown as two distinct steps.
-
----
-
-## ADR-032 — Frontend Guards Are UX Only
-
-**Status:** Accepted
-
-**Category:** Product security extension
-
-### Context
-
-A user can bypass frontend routes and call a contract directly.
-
-### Decision
-
-Frontend admin route guards may hide or disable controls but are not treated as security.
-
-Solidity access control is authoritative.
-
-### Rationale
-
-Client-side code cannot enforce blockchain authorization.
-
-### Trade-offs
-
-Read-only admin data may remain publicly accessible on-chain.
-
-### Test implication
-
-Contract tests must reject unauthorized callers independently of frontend behavior.
-
-### UI implication
-
-The Admin Portal may state that authorization is enforced on-chain.
-
----
-
-## ADR-033 — AI Is Read-Only and Advisory
-
-**Status:** Implemented
-
-**Category:** AI extension
-
-### Context
-
-Allowing an assistant to sign or submit financial transactions would create
-key, authorization, and incorrect-action risks.
-
-Phase 18 also needed an assistant implementation that did not expose a
-browser-side provider secret or make core SafeBank behavior depend on an
-external AI service.
-
-### Decision
-
-SafeBank implements deterministic local explanation engines.
-
-The Banking and Risk Assistants may:
-
-- explain;
-- compare;
-- summarize;
-- calculate from verified deterministic inputs;
-- warn;
-- recommend a next review step.
-
-They may not:
-
-- hold keys;
-- request seed phrases;
-- connect a wallet;
-- request a signer;
-- import or use write clients;
-- sign or submit transactions;
-- modify plans;
-- withdraw;
-- fund;
-- pause;
-- fabricate authoritative financial values.
-
-Every response contains fact, explanation, caution, and next-step sections.
-
-### Rationale
-
-This keeps the assistant outside the financial authorization boundary and
-avoids browser-side AI secrets, paid-provider dependency, and autonomous
-transaction risk.
-
-### Trade-offs
-
-The assistant supports defined SafeBank intents rather than unrestricted
-general conversation.
-
-Unsupported questions may receive a safe overview rather than a fully
-open-ended answer.
-
-### Test implication
-
-Tests cover:
-
-- context serialization;
-- input validation;
-- Vietnamese and English behavior;
-- supported intents and safe fallback;
-- cancellation;
-- plain-text response rendering;
-- absence of signer, transaction, and write-layer access;
-- absence of assistant-engine network calls.
-
-### UI implication
-
-Assistant output is labeled as read-only explanation.
-
-Every user and administrator financial action continues through the existing
-deterministic UI, explicit confirmation, wallet, and on-chain validation.
-
-## ADR-034 — Contract State Is the Source of Truth
-
-**Status:** Accepted
-
-**Category:** Architecture and product decision
-
-### Context
-
-Frontend caches, RPC data, event indexes, and AI responses may be stale or incomplete.
-
-### Decision
-
-Current contract storage and transaction receipts are authoritative.
-
-Events support history and indexing but do not replace storage for critical current state.
-
-### Rationale
-
-This prevents the product from treating off-chain interpretation as final truth.
-
-### Trade-offs
-
-The UI must refresh and reconcile data after transactions.
-
-### Test implication
-
-Frontend tests must handle stale cached data and refresh from contract state.
-
-### UI implication
-
-Distinguish estimates, submitted state, confirmed receipts, and current on-chain state.
-
----
-
-## ADR-035 — Interest Year and Compounding Model
-
-**Status:** Accepted
-
-**Category:** Mandatory financial decision
-
-### Context
-
-Interest calculations require a consistent year basis and compounding rule.
-
-### Decision
-
-SafeBank uses:
-
-- 365 days per year;
-- 86,400 seconds per day;
-- 10,000 basis points per 100%;
-- simple interest inside one term;
-- multiplication before division;
-- compounding only after successful renewal.
-
-Formula:
-
-`principal × aprBps × tenorSeconds ÷ (365 days × 10,000)`
-
-### Rationale
-
-This matches the Capstone formula and is deterministic.
-
-### Trade-offs
-
-The model does not account for leap years or variable day-count conventions.
-
-### Test implication
-
-Use fixed known examples and exact integer results.
-
-### UI implication
-
-The calculator must mirror integer floor behavior.
-
----
-
-## ADR-036 — No Administrator Editing of Active Deposits
-
-**Status:** Accepted
-
-**Category:** SafeBank security decision
-
-### Context
-
-An administrator function that edits active deposit principal, owner, maturity, APR, or penalty would undermine snapshots and ownership guarantees.
-
-### Decision
-
-SafeBank will not provide an administrator function to mutate active deposit financial terms or ownership.
-
-Deposit state changes occur only through defined user and renewal flows.
-
-### Rationale
-
-This protects user expectations and reduces privileged attack surface.
-
-### Trade-offs
-
-Mistaken deposits cannot be manually corrected by an administrator.
-
-### Test implication
-
-No administrative path may change active deposit data.
-
-### UI implication
-
-The Admin Portal provides read-only deposit inspection, not deposit editing.
-
----
-
-## ADR-037 — First Mined Terminal Action Wins
-
-**Status:** Accepted
-
-**Category:** SafeBank concurrency decision
-
-### Context
-
-Two conflicting transactions may be valid when submitted but cannot both settle one deposit.
-
-### Decision
-
-The first successfully mined terminal action changes the status.
-
-Every later conflicting transaction reverts because the deposit is no longer active.
-
-SafeBank does not attempt to impose an off-chain priority rule.
-
-### Rationale
-
-This matches blockchain transaction ordering and keeps the state machine deterministic.
-
-### Trade-offs
-
-Users cannot guarantee ordering between competing mempool transactions.
-
-### Test implication
-
-Test multiple action sequences and terminal-state rejection.
-
-### UI implication
-
-Refresh status immediately after confirmation and explain possible transaction competition after grace.
-
----
-
-## ADR-038 — MockUSDC Is Test-Only
-
-**Status:** Accepted
-
-**Category:** Mandatory and product decision
-
-### Context
-
-MockUSDC has public minting and no real backing.
-
-### Decision
-
-MockUSDC is used only for:
-
-- local tests;
-- local demos;
-- Sepolia demos.
-
-The project must never describe it as real USDC or a real stablecoin.
-
-### Rationale
-
-This prevents financial misrepresentation.
-
-### Trade-offs
-
-The system does not demonstrate production-token risk completely.
-
-### Test implication
-
-Verify 6 decimals and mint behavior.
-
-### UI implication
-
-Display a persistent test-token warning.
-
----
-
-# Deferred Decisions
-
-## ADR-039 — Frontend Framework
-
-**Status:** Deferred
-
-**Category:** Product extension
-
-### Context
-
-The frontend has not yet been created.
-
-Potential options include React Vite and Next.js.
-
-### Decision
-
-No framework is selected during Phase 1.
-
-The decision will be made before Phase 15 based on:
-
-- React requirement;
-- wallet compatibility;
-- routing;
-- testing;
-- AI server requirements;
-- deployment simplicity;
-- environment security.
-
-### Rationale
-
-Contract APIs should stabilize before frontend dependencies are selected.
-
-### Trade-offs
-
-Detailed frontend folder structure remains provisional.
-
-### Test implication
-
-None during Phase 1.
-
-### UI implication
-
-Routes and components in UI documentation are plans, not existing implementation.
-
----
-
-## ADR-040 — NFT Metadata Strategy
-
-**Status:** Deferred
-
-**Category:** Product and architecture decision
-
-### Context
-
-The certificate needs a name and symbol, but rich metadata is not required by the core specification.
-
-Mutable metadata introduces additional administrator and hosting concerns.
-
-### Decision
-
-Phase 5 does not implement a custom `tokenURI` override or rich per-token metadata.
-
-The remaining rich metadata and external presentation strategy stays deferred to a later product phase.
-
-The implemented direction is:
-
-- use the fixed collection name `SafeBank Deposit Certificate`;
-- use the fixed collection symbol `SBDC`;
-- rely on the inherited basic ERC721 metadata behavior;
-- avoid mutable administrator-controlled financial metadata;
-- derive all authoritative financial information from `getDeposit`;
-- treat any future external metadata as presentation only.
-
-### Rationale
-
-Financial state must not depend on a metadata server.
-
-### Trade-offs
-
-Wallet marketplace presentation may remain basic.
-
-### Test implication
-
-Phase 5 tests validate deposit rights through stored deposit data and NFT ownership.
-
-Any future metadata tests must ensure metadata cannot alter deposit terms, status, ownership, or economic rights.
-
-### UI implication
-
-SafeBank UI reads financial details directly from SavingCore.
-
----
-
-# Phase 13 Deployment Decision Records
-
-## ADR-043 — Local-Only Phase 13 Deployment Guard
-
-**Status:** Implemented
-
-**Category:** Deployment and security decision
-
-### Context
-
-The repository already contains Sepolia and mainnet network concepts, but
-Phase 13 is limited to local deployment and deterministic demo seed.
-
-Running the local public-mint and deterministic-account workflow on another
-network would be unsafe and outside scope.
-
-### Decision
-
-Every Phase 13 deployment and seed script accepts only:
-
-- `hardhat`;
-- `localhost`.
-
-The chain ID must equal `31337`.
-
-A mismatch fails before the deployment is accepted.
-
-Sepolia deployment and Etherscan verification are deferred to Phase 14.
-
-### Rationale
-
-Network-name and chain-ID checks reduce accidental broadcast risk and keep the
-local demo workflow separate from public-testnet operations.
-
-### Trade-offs
-
-The Phase 13 scripts cannot be reused directly for Sepolia. Phase 14 requires a
-separate reviewed configuration and secret-management process.
-
-### Test implication
-
-Deployment regression tests execute the tagged local fixture, while real
-localhost validation proves both reset and rerun behavior.
-
-### UI implication
-
-Local addresses must never be presented as public or Sepolia deployment
-configuration.
-
----
-
-## ADR-044 — Deterministic Local Roles and Demo Targets
-
-**Status:** Implemented
-
-**Category:** Deployment and demonstration decision
-
-### Context
-
-A repeatable demo requires stable local roles and balances while preserving
-separation between administrator, fee receiver, users, and keeper.
-
-### Decision
-
-The standard Hardhat accounts are assigned as:
-
-- account 0: deployer and administrator;
-- account 1: fee receiver;
-- account 2: demo user one;
-- account 3: demo user two;
-- account 4: permissionless keeper.
-
-Target balances are:
-
-- demo user one: 5,000 mUSDC;
-- demo user two: 10,000 mUSDC;
-- VaultManager: 25,000 mUSDC.
-
-The canonical plan uses:
-
-- 180-day tenor;
-- 200-bps APR;
-- 100 mUSDC minimum;
-- 10,000 mUSDC maximum;
-- 750-bps early-withdrawal penalty;
-- enabled status.
-
-### Rationale
-
-Separated deterministic roles make ownership, fee receipt, user activity, and
-permissionless automation easy to demonstrate and verify.
-
-### Trade-offs
-
-The addresses are tied to the standard local Hardhat mnemonic and must never be
-treated as secure public keys.
-
-### Test implication
-
-Deployment tests verify role distinction, exact plan values, balances,
-ownership, fee receiver, and Personal Variant constants.
-
-### UI implication
-
-A future local frontend may use these roles for development fixtures but must
-derive current contract addresses from deployment configuration rather than
-hard-code them as public addresses.
-
----
-
-## ADR-045 — Idempotent Local Seed Without Default Deposits
-
-**Status:** Implemented
-
-**Category:** Deployment and state-management decision
-
-### Context
-
-A persistent localhost node may be reused across commands. Blind reseeding
-would duplicate plans, authorization attempts, token balances, or liabilities.
-
-Creating default deposits would also introduce timestamp-sensitive state and
-reserved-interest liabilities into the base environment.
-
-### Decision
-
-The persistent local workflow is idempotent:
-
-- matching contracts are reused;
-- expected existing authorization is skipped;
-- a different existing authorization fails;
-- plan ID `1` is created only when `planCount == 0` and is always verified;
-- demo users receive only the balance delta below their targets;
-- the vault receives only the delta below its exact target;
-- a vault balance above the target fails;
-- the base seed creates no deposits.
-
-### Rationale
-
-The result is deterministic, rerunnable, and suitable as a clean baseline for
-manual demonstrations and frontend development.
-
-### Trade-offs
-
-The seed intentionally does not reset arbitrary user-created state. Use the
-reset workflow or restart the node when a fresh chain is required.
-
-### Test implication
-
-Real localhost validation runs reset deployment, verification, idempotent
-rerun, and a second verification. The fixture test mutates token state and
-proves snapshot restoration.
-
-### UI implication
-
-A future demo script must create deposits explicitly and must not assume the
-base seed already contains a certificate.
-
----
-
-## ADR-046 — Local Deployment Record and Production ABI Policy
-
-**Status:** Implemented
-
-**Category:** Repository and integration decision
-
-### Context
-
-Persistent deployment metadata is useful locally but is generated state.
-Unrestricted ABI export also produced test-mock and internal-interface files
-that are not part of the public product interface.
-
-### Decision
-
-The repository ignores:
-
-- `deployments/hardhat/`;
-- `deployments/localhost/`.
-
-No separate local address file is committed in Phase 13.
-
-The ABI exporter retains exactly:
-
-- MockUSDC;
-- VaultManager;
-- SavingCore.
-
-Local addresses are read from hardhat-deploy records or emitted by the
-verification script.
-
-### Rationale
-
-This keeps Git focused on reproducible source and avoids presenting local
-addresses or internal test interfaces as stable public integration artifacts.
-
-### Trade-offs
-
-A frontend cannot rely on a committed Phase 13 address file. A later phase must
-define environment-specific public address configuration.
-
-### Test implication
-
-Clean compilation and post-coverage audits verify an ABI count of exactly
-three and the absence of mock or internal-interface ABI output.
-
-### UI implication
-
-The Phase 15 User Banking App uses explicit environment-aware address
-configuration. Frontend product areas must validate bytecode, chain ID, and
-contract relationships where those checks are required by their runtime scope.
-
-# Phase 14 Public Deployment Decision Records
-
-## ADR-047 — Separate Public Sepolia Workflow
-
-**Status:** Implemented
-
-**Category:** Deployment and security decision
-
-### Context
-
-The Phase 13 local workflow intentionally mints demo balances and funds a local
-vault target. Reusing it on Sepolia would mix development-only identities and
-state with public testnet configuration.
-
-### Decision
-
-Use a separate Sepolia script with explicit network, chain-ID, signer, and
-public-address guards. Keep every Phase 13 deploy and seed script local-only.
-
-### Rationale
-
-This prevents accidental public execution of deterministic local seed logic.
-
-### Trade-offs
-
-Two deployment workflows must keep shared constructor assumptions synchronized.
-
-### Test implication
-
-Reject the wrong network and independently verify every public relationship.
-
-### UI implication
-
-Select addresses by chain ID and never use local deterministic addresses on
-Sepolia.
-
----
-
-## ADR-048 — Dedicated Sepolia Administrative Identity
-
-**Status:** Implemented
-
-**Category:** Deployment and operational security decision
-
-### Decision
-
-Use
-`0xA998526b0A5F23680f50fa3677f5c6576Dba89d9`
-as Sepolia deployer, initial SavingCore owner, initial VaultManager owner, and
-initial fee receiver.
-
-Require exactly one configured signer and two confirmations for new
-transactions.
-
-### Rationale
-
-One explicit testnet identity avoids unreviewed local-account assumptions.
-
-### Trade-offs
-
-The account is a centralized single-key operational dependency.
-
-### Test implication
-
-Verify signer identity, ownership, fee receiver, pending owner, nonce, balance,
-and receipts.
-
-### UI implication
-
-Read admin authorization from on-chain ownership.
-
----
-
-## ADR-049 — Minimal Sepolia Initialization
-
-**Status:** Implemented
-
-**Category:** Public deployment and demo decision
-
-### Decision
-
-Create canonical plan ID `1` only.
-
-Do not mint demo balances, fund VaultManager, or create a default deposit.
-
-### Rationale
-
-Minimal public initialization is easier to verify and avoids misleading
-funding claims.
-
-### Trade-offs
-
-A later public demo requires separate explicit token and deposit transactions.
-
-### Test implication
-
-Verify plan count `1`, deposit count `0`, and zero vault and reserve
-metrics.
-
-### UI implication
-
-Display the actual zero-balance and zero-liability state until later actions
-occur.
-
----
-
-## ADR-050 — Public Records, Metadata, and Explorer Verification
-
-**Status:** Implemented
-
-**Category:** Deployment transparency decision
-
-### Decision
-
-Track public hardhat-deploy records under `deployments/sepolia/` and compact
-metadata at `data/deployments/sepolia.json`.
-
-Continue ignoring generated `solcInputs/`.
-
-Verify all three production contracts on Etherscan with exact constructor
-arguments.
-
-### Rationale
-
-This provides machine-readable configuration and human-verifiable source
-transparency without committing secrets.
-
-### Trade-offs
-
-Deployment records are large and require explicit audit before commit.
-
-### Test implication
-
-Audit addresses, transaction hashes, blocks, arguments, receipts, ABI,
-bytecode, ignored generated inputs, and secret-related fields.
-
-### UI implication
-
-Consume compact metadata but still validate chain ID, bytecode, and contract
-relationships at runtime.
-
-# Phase 18 Assistant Decision Records
-
-## ADR-051 — Deterministic Local Assistant Engines
-
-**Status:** Implemented
-
-**Category:** Product and AI extension
-
-### Context
-
-The project needed Banking and Risk explanations while preserving a no-secret,
-no-autonomous-transaction architecture.
-
-### Decision
-
-Use local deterministic intent classification and rule-based response builders
-over structured dashboard context.
-
-Do not add an external LLM SDK, backend proxy, AI API key, or paid-provider
-dependency in Phase 18.
-
-### Rationale
-
-This architecture is deterministic, testable, bilingual, offline-capable after
-dashboard data is loaded, and compatible with the existing frontend security
-boundary.
-
-### Trade-offs
-
-It is not a general-purpose LLM chatbot and cannot answer arbitrary questions
-outside supported SafeBank concepts.
-
-### Test implication
-
-Test supported intents, fallback, state-aware wording, bilingual output,
-validation, cancellation, and no-network boundaries.
-
-### UI implication
-
-Describe the feature truthfully as a deterministic read-only SafeBank
-assistant.
-
----
-
-## ADR-052 — Spline Robot Is a Visual Launcher Only
-
-**Status:** Implemented
-
-**Category:** Product and UI extension
-
-### Context
-
-A permanent assistant panel increased dashboard length. A floating launcher
-provided a clearer entry point and stronger demonstration identity.
-
-### Decision
-
-Embed the selected Spline robot scene in a pointer-disabled iframe and place an
-accessible transparent launcher button over the scene.
-
-The launcher opens the existing assistant panel inside a responsive dialog.
-
-The Spline scene:
-
-- does not receive assistant context;
-- does not receive wallet secrets;
-- does not authorize transactions;
-- may remain externally hosted;
-- may display Spline branding.
-
-### Rationale
-
-This preserves the tested assistant engine and panel while improving discoverability
-without adding a 3D package or changing financial workflows.
-
-### Trade-offs
-
-The animation depends on an external host, adds network cost, and may fail or
-show provider branding.
-
-### Test implication
-
-Test initial closed state, open and close controls, Escape behavior, focus
-restoration, and assistant unmounting.
-
-### UI implication
-
-Provide responsive dimensions, reduced-motion behavior, and a usable launcher
-button independently of the iframe's internal interaction model.
-
-# Rejected Alternatives
-
-## 5. Upgradeable Proxy Contracts
-
-**Status:** Rejected
-
-Reasons:
-
-- greater deployment complexity;
-- proxy-admin risk;
-- initializer risk;
-- storage-layout risk;
-- unnecessary for the Capstone scope;
-- upgrade dependencies were removed during Phase 0.
-
----
-
-## 6. ERC721Enumerable
-
-**Status:** Rejected
-
-Reasons:
-
-- additional storage writes;
-- higher transfer and mint gas;
-- unnecessary on-chain enumeration;
-- possible reliance on large loops;
-- event indexing is sufficient for the planned frontend.
-
----
-
-## 7. Burn NFT After Settlement
-
-**Status:** Rejected
-
-Reasons:
-
-- removes the historical certificate;
-- reduces demonstration and audit value;
-- status already prevents reuse.
-
----
-
-## 8. Original Depositor Retains Rights
-
-**Status:** Rejected
-
-Reasons:
-
-- makes NFT transfer economically misleading;
-- conflicts with the selected certificate-ownership model;
-- complicates the required transfer design answer.
-
----
-
-## 9. Auto-Renew Restricted to Bank Bot
-
-**Status:** Rejected
-
-Reasons:
-
-- creates liveness dependence;
-- increases operational-key importance;
-- provides no ownership-security advantage.
-
----
-
-## 10. Unlimited Approval by Default
-
-**Status:** Rejected
-
-Reasons:
-
-- unnecessarily increases token allowance exposure;
-- makes transaction intent less clear;
-- exact approval is sufficient for the demonstration.
-
----
-
-## 11. Automatic Multi-Term Catch-Up
-
-**Status:** Rejected
-
-Reasons:
-
-- time alone cannot execute state;
-- creates unpredictable compounded liabilities;
-- increases arithmetic and reserve complexity;
-- makes bot downtime economically ambiguous.
-
----
-
-## 12. Administrator Can Withdraw Reserved Interest
-
-**Status:** Rejected by the implemented C2 design
-
-Reasons:
-
-- defeats solvency accounting;
-- can worsen undercollateralization;
-- conflicts with the purpose of the bonus.
-
----
-
-## 13. AI Autonomous Transactions
-
-**Status:** Rejected
-
-Reasons:
-
-- private-key risk;
-- hallucination risk;
-- unclear authorization;
-- difficult auditability;
-- unnecessary for the Capstone.
-
----
-
-# Cross-Decision Invariants
-
-## 14. Principal Invariant
-
-For every active deposit, its principal must be backed by tokens held in SavingCore.
-
-## 15. Interest Invariant
-
-Interest is paid from VaultManager, not from unrelated principal.
-
-## 16. Ownership Invariant
-
-Current NFT ownership controls active-deposit economic actions.
-
-## 17. State Invariant
-
-One active deposit reaches one terminal state.
-
-## 18. Snapshot Invariant
-
-Later plan updates do not alter old deposit terms.
-
-## 19. Renewal Invariant
-
-A new principal includes interest only after the interest is actually funded.
-
-## 20. Historical NFT Invariant
-
-Retaining an NFT does not permit reuse of a terminal deposit.
-
-## 21. C1 Invariant
-
-Principal and pending interest cannot each be paid more than once.
-
-## 22. C2 Invariant
-
-Reserved liabilities cannot be released, consumed, or created twice.
-
-## 23. Pause Invariant
-
-Every intended financial entry point checks the appropriate pause state.
-
-## 24. Conservation Invariant
-
-Every successful flow reconciles exact token balance changes.
-
----
-
-# Required Design Answers Mapping
-
-## 25. Transferable Certificate
-
-Question:
-
-If Alice transfers the NFT to Bob, who may withdraw?
-
-Answer:
-
-Bob, because current `ownerOf(depositId)` controls the economic rights.
-
-Implementation evidence and exact source lines will be added after SavingCore exists.
-
----
-
-## 26. Empty Vault
-
-Question:
-
-What happens when the vault lacks interest?
-
-Base behavior:
-
-The maturity transaction may revert.
-
-Final SafeBank behavior after C1:
-
-- principal is returned;
-- unpaid interest becomes pending;
-- the claimant may claim later.
-
----
-
-## 27. Dead Bot
-
-Question:
-
-What happens if the bot is offline for one month?
-
-Answer:
-
-- deposit remains active;
-- principal remains in SavingCore;
-- owner may withdraw;
-- any account may trigger auto-renew;
-- no multiple retroactive terms are created.
-
----
-
-## 28. Rounding Dust
-
-Question:
-
-Who owns rounding dust?
-
-Answer:
+**Implementation consequence**
 
 Rounding dust remains in VaultManager.
 
-Exact token-balance tests will prove this behavior.
+The test `"keeps integer-rounding dust inside VaultManager"` verifies this behavior.
 
----
+**Tradeoff**
 
-## 29. Boundary Times
+A user may receive slightly less than the real-number result by less than one smallest token unit.
 
-Question:
+### DD-28 — Skip zero-value interest payout calls
 
-What happens at exact maturity?
+**Status:** Implemented.
 
-Answer:
+**Context**
 
-The deposit is mature.
+Very small positive mathematical interest may round to zero.
 
-Question:
+**Decision**
 
-What happens at exact grace-period end?
+Do not call VaultManager for a zero calculated interest amount.
 
-Answer:
+**Rationale**
 
-Manual renewal ends and auto-renew begins.
+A zero-value external call is unnecessary and may interact poorly with a paused vault.
 
----
+**Implementation consequence**
 
-## 30. Disabled Plan
+Zero-interest settlement and renewal avoid a meaningless payout call.
 
-Question:
+**Tradeoff**
 
-What can an existing user still do after a plan is disabled?
+The distinction between mathematically positive and token-unit-zero interest must be documented.
 
-Answer:
+## 12. Early-Withdrawal Decisions
 
-- withdraw early when not mature;
-- withdraw at maturity;
-- auto-renew using snapshots.
+### DD-29 — Pay no interest on early withdrawal
 
-The user cannot:
+**Status:** Implemented.
 
-- open a new deposit using the plan;
-- manually renew into the disabled plan.
+**Context**
 
----
+The assignment defines a penalty-based early exit.
 
-## 31. Attack Thinking
+**Decision**
 
-Planned primary oral-defense example:
+Early withdrawal returns:
 
-A malicious contract attempts to re-enter withdrawal before the first withdrawal completes.
+~~~text
+principal - penalty
+~~~
 
-Planned defenses:
+and pays zero interest.
 
-- `nonReentrant`;
-- active-status validation;
-- terminal status update before external transfers;
-- transaction atomicity;
-- reentrancy tests.
+**Rationale**
 
-The final answer must cite actual code and tests after implementation.
+The user exits before completing the agreed term.
 
----
+**Implementation consequence**
 
-# Implementation Consequences
+The expected-interest reserve is released.
 
-## 32. Expected SavingCore Storage Direction
+**Tradeoff**
 
-The implementation is expected to include:
+The user forfeits all accrued but unmatured interest.
 
-- plan counter starting at one;
-- deposit counter starting at one;
-- mapping from plan ID to plan;
-- mapping from deposit ID to deposit;
-- ERC721 ownership;
-- VaultManager reference;
-- MockUSDC reference;
-- fixed two-day grace period;
-- pending-interest data after C1.
+### DD-30 — Snapshot the penalty rate
 
-Exact Solidity struct layout remains an implementation detail and must be reviewed before coding.
+**Status:** Implemented.
 
----
+**Context**
 
-## 33. Expected VaultManager Storage Direction
+An administrator may create new plans or change product offerings later.
 
-The implementation is expected to include:
+**Decision**
 
-- MockUSDC reference;
-- fee receiver;
-- one-time authorized SavingCore;
-- pause state;
-- total reserved interest.
+Store `penaltyBpsAtOpen` in the deposit.
 
-Exact variable ordering is not constrained by proxy storage because the contracts are non-upgradeable.
+**Rationale**
 
----
+The penalty promise must not change retroactively.
 
-## 34. Expected Event Direction
+**Implementation consequence**
 
-Mandatory events remain:
+Early withdrawal uses the deposit snapshot, not current plan configuration.
 
-- PlanCreated;
-- PlanUpdated;
-- DepositOpened;
-- Withdrawn;
-- Renewed.
+**Tradeoff**
 
-Additional accepted event direction includes:
+A later more favorable plan penalty does not benefit an existing deposit.
 
-- plan enabled and disabled;
-- vault funded and withdrawn;
-- fee receiver updated;
-- SavingCore authorized;
-- interest paid;
-- interest deferred;
-- pending interest claimed;
-- interest reserved;
-- reserve released;
-- pause and unpause events inherited or supplemented where necessary.
+## 13. Manual-Renewal Decisions
 
-Exact indexed fields will be finalized during implementation.
+### DD-31 — Manual renewal uses current selected-plan terms
 
----
+**Status:** Implemented.
 
-## 35. Expected Custom Error Direction
+**Context**
 
-The project prefers custom errors for:
+Manual renewal is an active user choice during grace.
 
-- invalid address;
-- invalid amount;
-- invalid plan;
-- disabled plan;
-- invalid APR;
-- invalid tenor;
-- invalid penalty;
-- min greater than max;
-- deposit not found;
-- deposit not active;
-- not certificate owner;
-- too early;
-- manual-renew window closed;
-- auto-renew too early;
-- insufficient vault liquidity;
-- unauthorized SavingCore;
-- SavingCore already configured;
-- no pending interest;
-- wrong claimant;
-- withdrawal exceeds available liquidity.
+**Decision**
 
-Exact names are intentionally deferred until the associated contract phase.
+Use the selected target plan's current:
 
----
+- plan ID;
+- tenor;
+- APR;
+- penalty;
+- limits.
 
-## ADR-041 — Current Fee Receiver at Early Settlement
+**Rationale**
 
-**Status:** Implemented
+The user is entering a new product term.
 
-**Category:** SafeBank financial and administration decision
+**Implementation consequence**
 
-### Context
+The renewed deposit receives fresh snapshots.
 
-The fee receiver may be changed by the VaultManager owner after a deposit is opened.
+**Tradeoff**
 
-The system must decide whether an early-withdrawal deposit snapshots that address or resolves the current configuration during settlement.
+The renewed terms may differ from the old deposit.
 
-### Decision
+### DD-32 — Positive-interest manual renewal must be fully funded
 
-Early withdrawal resolves:
+**Status:** Implemented.
 
-`vaultManager.feeReceiver()`
+**Context**
 
-at execution time.
+Compounding without receiving the old-term interest would create unsupported principal.
 
-The fee-receiver address is not stored in the deposit snapshot.
+**Decision**
 
-The caller cannot supply or override the penalty recipient.
+Require VaultManager to transfer the complete positive old-term interest into SavingCore.
 
-A valid fee-receiver update affects later unsettled early withdrawals but does not modify the snapshotted penalty rate.
+**Rationale**
 
-### Rationale
+The new principal must correspond to actual tokens held by SavingCore.
 
-The penalty percentage is part of the depositor's immutable financial terms.
+**Implementation consequence**
 
-The receiver address is operational bank configuration and may require controlled rotation.
+An underfunded or paused vault causes positive-interest manual renewal to revert.
 
-Keeping these concerns separate avoids adding mutable recipient data to every deposit.
+**Tradeoff**
 
-### Trade-offs
+C1 principal-first deferral is not applied to renewal because renewal would otherwise create an unfunded deposit.
 
-A compromised VaultManager owner may redirect future penalty receipts.
+## 14. Auto-Renew Decisions
 
-Users and monitoring tools should inspect fee-receiver changes.
+### DD-33 — Make auto-renew permissionless
 
-### Test implication
+**Status:** Implemented.
 
-Tests must verify:
+**Context**
 
-- the original receiver stops receiving penalties after an update;
-- the current receiver receives the exact penalty;
-- the user still receives `principal - penalty`;
-- callers cannot select the receiver.
+A single authorized bot creates a liveness dependency.
 
-### UI implication
+**Decision**
 
-The early-withdrawal review should show the current fee receiver in advanced details.
+Allow any address to call `autoRenew(depositId)` after grace.
 
-The UI must refresh this address immediately before transaction preparation.
+**Rationale**
 
----
+The owner, another keeper, or any account can restore progress when one bot is offline.
 
-## ADR-042 — Atomic Early Settlement and Independent Pause Semantics
+**Implementation consequence**
 
-**Status:** Implemented
+No privileged keeper key is required.
 
-**Category:** SafeBank security and settlement decision
+**Tradeoff**
 
-### Context
+A third party may auto-renew before the owner’s competing withdrawal transaction is mined.
 
-Early withdrawal makes two possible token transfers:
+### DD-34 — Mint the auto-renewed certificate to the current owner
 
-1. net principal to the current NFT owner;
-2. penalty to the fee receiver.
+**Status:** Implemented.
 
-The project must define call order, zero-value behavior, failure atomicity, reentrancy protection, and the relationship between SavingCore and VaultManager pause states.
+**Context**
 
-### Decision
+A permissionless caller must not gain the deposit.
 
-The implemented early-withdrawal sequence is:
+**Decision**
 
-1. validate deposit existence and `Active` status;
-2. resolve and validate the direct current NFT owner;
-3. validate `block.timestamp < maturityAt`;
-4. calculate penalty and user receipt from deposit snapshots;
-5. resolve the current fee receiver;
-6. set status to `Withdrawn`;
-7. transfer nonzero user net principal;
-8. transfer nonzero penalty;
-9. emit `Withdrawn` with zero interest and `isEarly = true`.
+Resolve the current owner of the old certificate and mint the new certificate to that address.
 
-SavingCore pause blocks early withdrawal.
+**Rationale**
 
-VaultManager pause alone does not block early withdrawal because the flow reads only the public fee-receiver configuration and does not call `payInterest`.
+The caller provides liveness only.
 
-If a required later transfer fails, the entire transaction reverts, including:
+**Implementation consequence**
 
-- the earlier user transfer;
-- the status transition;
-- all token balances;
-- event emission.
+The caller cannot redirect principal, interest, snapshots, or NFT recipient.
 
-Both direct reentry into `earlyWithdraw` and cross-function reentry into `withdrawAtMaturity` are blocked by `nonReentrant`.
+**Tradeoff**
 
-### Rationale
+A malicious caller may still influence timing by choosing when to submit the transaction.
 
-User-net-first ordering makes the economic result easy to read while preserving full EVM atomicity.
+### DD-35 — Auto-renew preserves old snapshots
 
-Skipping zero-value transfers avoids unnecessary external calls.
+**Status:** Implemented.
 
-Independent pause semantics match the separation between principal settlement and interest-vault operations.
+**Context**
 
-### Trade-offs
+Permissionless auto-renew must not make an unapproved product-selection decision for the owner.
 
-The early path still depends on correct ERC20 behavior and correct fee-receiver configuration.
+**Decision**
 
-VaultManager being paused does not suspend penalty collection.
+Preserve:
 
-### Test implication
+- old plan ID;
+- old tenor snapshot;
+- old APR snapshot;
+- old penalty snapshot.
 
-Tests must cover:
+Ignore current plan:
 
-- zero and maximum penalty;
-- floor rounding;
-- SavingCore pause;
-- VaultManager-only pause;
-- failure of the later penalty transfer;
-- direct and cross-function reentrancy;
-- terminal-action exclusion;
-- exact token conservation.
+- enabled state;
+- APR;
+- minimum;
+- maximum.
 
-### UI implication
+**Rationale**
 
-Disable early withdrawal when SavingCore is paused.
+Auto-renew continues the already accepted economic terms.
 
-Do not disable it solely because VaultManager is paused.
+**Implementation consequence**
 
-Show no interest in the confirmation and clearly separate user receipt from penalty.
+A disabled or changed plan does not alter snapshot-based auto-renew.
 
----
-# Decision Change Process
+**Tradeoff**
 
-## 36. Changing an Accepted Decision
+The renewed term may use terms the administrator no longer offers to new users.
 
-An accepted decision may change only when:
+### DD-36 — One delayed call creates one term
 
-1. a conflict with the Capstone requirement is found;
-2. implementation reveals a technical limitation;
-3. a security review identifies a safer alternative;
-4. testing proves the current behavior is incorrect;
-5. the user explicitly approves the change.
+**Status:** Implemented and tested.
 
-The change must:
+**Context**
 
-- create a new decision record or update the existing record;
-- explain what changed;
-- explain why;
-- identify affected files;
-- update tests;
-- update UI behavior;
-- update README and demo material.
+A bot may remain offline for weeks or months.
 
----
+**Decision**
 
-## 37. No Silent Architecture Changes
+A later auto-renew transaction creates exactly one new term starting at the transaction timestamp.
 
-The project must not silently change:
+**Rationale**
 
-- NFT ownership rights;
-- financial formulas;
-- time boundaries;
-- reserve accounting;
-- claimant behavior;
-- administrator authority;
-- pause scope;
-- contract upgradeability;
-- principal and interest custody.
+Retroactively creating many terms would require assumptions about compounding, funding, gas, and historical execution.
 
-Any such change requires explicit documentation and user confirmation.
+**Implementation consequence**
 
----
+The owner does not receive automatic catch-up compounding.
 
-# Phase 1 Decision Status
+**Tradeoff**
 
-## 38. Decisions Finalized During Phase 1
+A delayed bot may reduce the number of completed renewal terms compared with continuous execution.
 
-Phase 1 has finalized the planned behavior for:
+## 15. Bonus C1 Decisions
 
-- personal variant;
-- principal and interest separation;
-- current NFT owner rights;
-- historical NFT retention;
-- maturity and grace boundaries;
-- withdrawal after grace;
-- disabled plans;
-- permissionless auto-renew;
-- auto-renew APR, tenor, and penalty snapshots;
-- bot failure;
-- rounding;
-- pause;
+### DD-37 — Return principal before deferring underfunded interest
+
+**Status:** Implemented.
+
+**Context**
+
+The base specification's full revert can indirectly lock principal when the vault lacks interest liquidity.
+
+**Decision**
+
+Implement C1 Principal-First Settlement.
+
+At maturity:
+
+1. return principal;
+2. attempt full interest payout;
+3. on exact vault-balance insufficiency, record the full interest as pending.
+
+**Rationale**
+
+The bank's failure to fund interest should not block recovery of principal already held by SavingCore.
+
+**Implementation consequence**
+
+The deposit becomes terminal and emits `InterestDeferred`.
+
+**Tradeoff**
+
+The unpaid interest may remain outstanding indefinitely.
+
+### DD-38 — Defer the full interest amount, not a partial payment
+
+**Status:** Implemented.
+
+**Context**
+
+Partial payout would require more complex remaining-debt accounting.
+
+**Decision**
+
+Use full-or-defer behavior.
+
+**Rationale**
+
+One pending value is simpler to authorize, reserve, test, and claim.
+
+**Implementation consequence**
+
+If the vault cannot pay the complete amount, no interest is paid during settlement.
+
+**Tradeoff**
+
+Available partial liquidity remains in VaultManager until a later complete claim succeeds.
+
+### DD-39 — Catch only the exact insufficient-balance failure
+
+**Status:** Implemented and tested.
+
+**Context**
+
+Broadly catching every VaultManager error could hide pause, authorization, or unexpected contract failures.
+
+**Decision**
+
+Activate C1 only when the revert selector is:
+
+~~~text
+VaultManager.InsufficientVaultBalance
+~~~
+
+Rethrow other failures.
+
+**Rationale**
+
+Only ordinary liquidity insufficiency should convert into deferred debt.
+
+**Implementation consequence**
+
+Paused and malformed failures revert the entire settlement.
+
+**Tradeoff**
+
+Any new legitimate liquidity error type would require deliberate code support.
+
+### DD-40 — Snapshot a fixed pending-interest claimant
+
+**Status:** Implemented.
+
+**Context**
+
+After principal settlement, the historical NFT may later transfer.
+
+**Decision**
+
+Store the current NFT owner at settlement in:
+
+~~~text
+interestClaimant[depositId]
+~~~
+
+**Rationale**
+
+The receivable should belong to the person whose interest was unpaid during settlement.
+
+**Implementation consequence**
+
+A later NFT transfer does not transfer the pending claim.
+
+**Tradeoff**
+
+NFT ownership and pending-claim ownership may diverge.
+
+### DD-41 — Clear pending debt before external claim payout
+
+**Status:** Implemented.
+
+**Context**
+
+A malicious token callback could attempt to claim again.
+
+**Decision**
+
+Clear pending state and consume reserve before calling VaultManager.
+
+**Rationale**
+
+Checks-effects-interactions and `nonReentrant` jointly block duplicate execution.
+
+**Implementation consequence**
+
+A failed payout relies on EVM rollback to restore the debt and reserve.
+
+**Tradeoff**
+
+Correctness depends on transaction atomicity, which is an accepted EVM property.
+
+## 16. Bonus C2 Decisions
+
+### DD-42 — Keep aggregate reserved interest in SavingCore
+
+**Status:** Implemented.
+
+**Context**
+
+SavingCore creates, settles, renews, and defers interest obligations.
+
+**Decision**
+
+Use:
+
+~~~text
+SavingCore.totalReservedInterest
+~~~
+
+as the authoritative aggregate liability.
+
+**Rationale**
+
+The lifecycle-owning contract has the context required to update liabilities atomically.
+
+**Implementation consequence**
+
+VaultManager reads the reserve from the authorized SavingCore.
+
+**Tradeoff**
+
+Vault solvency reads depend on the configured contract relationship.
+
+### DD-43 — Reserve active expected interest and pending debt
+
+**Status:** Implemented.
+
+**Context**
+
+Both active deposits and C1 pending claims represent interest obligations.
+
+**Decision**
+
+Include:
+
+- positive expected interest for active deposits;
+- unpaid pending interest.
+
+**Rationale**
+
+Available-liquidity calculations must consider both categories.
+
+**Implementation consequence**
+
+Deferred interest remains reserved until successfully claimed.
+
+**Tradeoff**
+
+Aggregate reserve does not identify individual liabilities without reading deposits and pending mappings.
+
+### DD-44 — Permit undercollateralized deposit opening
+
+**Status:** Implemented.
+
+**Context**
+
+A strict solvency check at opening would reject users whenever the bank had not pre-funded all expected interest.
+
+**Decision**
+
+Allow an otherwise valid deposit to open even when vault balance is below total reserve.
+
+**Rationale**
+
+The assignment's core product remains usable while C2 exposes the shortfall and C1 protects principal later.
+
+**Implementation consequence**
+
+`fundingShortfall` may become positive.
+
+**Tradeoff**
+
+Interest payment is not guaranteed at maturity.
+
+### DD-45 — Limit administrator withdrawal to available liquidity
+
+**Status:** Implemented.
+
+**Context**
+
+The owner must not withdraw tokens already reserved for expected or pending interest.
+
+**Decision**
+
+Calculate:
+
+~~~text
+availableLiquidity =
+    max(vaultBalance - totalReservedInterest, 0)
+~~~
+
+Reject withdrawal above that value.
+
+**Rationale**
+
+C2 must contain administrator extraction.
+
+**Implementation consequence**
+
+When reserve exceeds balance, available liquidity is zero.
+
+**Tradeoff**
+
+Reserved liquidity may remain unused until liabilities are settled or released.
+
+### DD-46 — Expose funding shortfall explicitly
+
+**Status:** Implemented.
+
+**Context**
+
+A saturating available-liquidity result of zero does not show the size of underfunding.
+
+**Decision**
+
+Expose:
+
+~~~text
+fundingShortfall =
+    max(totalReservedInterest - vaultBalance, 0)
+~~~
+
+**Rationale**
+
+Users and administrators need visible liability information.
+
+**Implementation consequence**
+
+The Admin Portal and assistants can explain the shortfall.
+
+**Tradeoff**
+
+The metric is informational and does not automatically add funds.
+
+## 17. Reentrancy and Failure Decisions
+
+### DD-47 — Protect financial entry points with ReentrancyGuard
+
+**Status:** Implemented and tested.
+
+**Context**
+
+ERC20 transfers and ERC721 safe minting may invoke external code.
+
+**Decision**
+
+Use `nonReentrant` on state-changing financial flows.
+
+**Rationale**
+
+Nested execution must not process the same or related state twice.
+
+**Implementation consequence**
+
+Malicious callback tests verify rejection of reentry.
+
+**Tradeoff**
+
+Protected functions cannot safely call one another through external reentry.
+
+### DD-48 — Use SafeERC20
+
+**Status:** Implemented.
+
+**Context**
+
+ERC20 implementations differ in return behavior.
+
+**Decision**
+
+Use OpenZeppelin `SafeERC20`.
+
+**Rationale**
+
+False-return, no-return, and reverting tokens require consistent handling.
+
+**Implementation consequence**
+
+Failed token interactions revert atomically.
+
+**Tradeoff**
+
+SafeERC20 cannot make unsupported token economics compatible with SafeBank accounting.
+
+### DD-49 — Use safe ERC721 minting
+
+**Status:** Implemented and tested.
+
+**Context**
+
+Minting to a contract that cannot receive ERC721 may trap the certificate.
+
+**Decision**
+
+Use safe minting for deposit and renewed certificates.
+
+**Rationale**
+
+Receiver compatibility must be checked.
+
+**Implementation consequence**
+
+Receiver rejection reverts the whole opening or renewal.
+
+**Tradeoff**
+
+Receiver callbacks add an external-call surface, mitigated by `nonReentrant`.
+
+## 18. Frontend Architecture Decisions
+
+### DD-50 — Use one SPA with local User/Admin view state
+
+**Status:** Implemented.
+
+**Context**
+
+The product has two closely related demonstration areas and does not require deep-link routing for the Capstone.
+
+**Decision**
+
+Use local:
+
+~~~text
+ApplicationView = user | admin
+~~~
+
+in `App.tsx`.
+
+**Rationale**
+
+This keeps navigation simple and avoids unnecessary routing architecture.
+
+**Implementation consequence**
+
+There is no React Router.
+
+**Tradeoff**
+
+Browser refresh returns to the default view and there are no deep-link URLs.
+
+### DD-51 — Use no Redux or Zustand
+
+**Status:** Implemented scope decision.
+
+**Context**
+
+Application state is limited to focused providers and component state.
+
+**Decision**
+
+Use React context, hooks, and local state.
+
+**Rationale**
+
+An external global-state framework would add complexity without solving a demonstrated need.
+
+**Implementation consequence**
+
+Wallet, language, user data, and admin data use dedicated providers.
+
+**Tradeoff**
+
+A much larger future product might require a different state architecture.
+
+### DD-52 — Separate public reads from signer writes
+
+**Status:** Implemented.
+
+**Context**
+
+Users should see public data before connecting a wallet.
+
+**Decision**
+
+Use:
+
+- `JsonRpcProvider` for public reads;
+- `BrowserProvider` and connected signer for writes.
+
+**Rationale**
+
+Wallet access is required only for user-authorized state changes.
+
+**Implementation consequence**
+
+Dashboard loading can begin without an account.
+
+**Tradeoff**
+
+Public RPC state may differ briefly from the user's wallet provider due to propagation delay.
+
+### DD-53 — Validate wallet and Sepolia before writes
+
+**Status:** Implemented.
+
+**Context**
+
+Preparing a transaction without an account or on the wrong chain creates confusing failures.
+
+**Decision**
+
+Before returning a signer, verify:
+
+- browser wallet exists;
+- account is connected;
+- chain ID is Sepolia.
+
+**Rationale**
+
+Fail early with a clear UI message.
+
+**Implementation consequence**
+
+Wrong-network writes are blocked before contract preparation.
+
+**Tradeoff**
+
+Users must explicitly switch networks.
+
+### DD-54 — Use exact-amount approval
+
+**Status:** Implemented.
+
+**Context**
+
+Unlimited approval increases exposure if a spender is compromised.
+
+**Decision**
+
+Request the exact amount required for deposit opening or vault funding.
+
+**Rationale**
+
+The allowance should match the immediate action.
+
+**Implementation consequence**
+
+Approval and financial action are separate transactions.
+
+**Tradeoff**
+
+Repeated actions may require repeated approvals.
+
+### DD-55 — Require explicit action confirmation
+
+**Status:** Implemented.
+
+**Context**
+
+Financial and administrator actions may be irreversible.
+
+**Decision**
+
+Display an in-app review before opening the wallet.
+
+**Rationale**
+
+Users should understand the action and consequence before signing.
+
+**Implementation consequence**
+
+Confirmations cover user and administrator workflows.
+
+**Tradeoff**
+
+The workflow requires an additional interaction step.
+
+### DD-56 — Treat confirmed receipts as success
+
+**Status:** Implemented.
+
+**Context**
+
+Transaction submission is not final execution.
+
+**Decision**
+
+Do not show final success until the receipt confirms.
+
+**Rationale**
+
+A submitted transaction may revert or be replaced.
+
+**Implementation consequence**
+
+The UI distinguishes wallet, submitted, confirming, success, and error states.
+
+**Tradeoff**
+
+Users wait longer before seeing final success.
+
+## 19. Language and UX Decisions
+
+### DD-57 — Use Vietnamese as the default language
+
+**Status:** Implemented.
+
+**Context**
+
+The primary intended demonstration language is Vietnamese.
+
+**Decision**
+
+Default the application to Vietnamese and provide English as a secondary language.
+
+**Rationale**
+
+The main user experience should match the project audience.
+
+**Implementation consequence**
+
+Language selection is persisted locally and document metadata is updated.
+
+**Tradeoff**
+
+Translations must remain synchronized as features change.
+
+### DD-58 — Implement explicit loading, empty, and error states
+
+**Status:** Implemented.
+
+**Context**
+
+Blank or fabricated zero-value UI can misrepresent unavailable blockchain data.
+
+**Decision**
+
+Represent loading, empty, error, retry, and ready states separately.
+
+**Rationale**
+
+The interface must distinguish no data from failed data.
+
+**Implementation consequence**
+
+Reusable state panels are used in User and Admin areas.
+
+**Tradeoff**
+
+More UI state and test coverage are required.
+
+### DD-59 — Keep frontend authorization advisory
+
+**Status:** Implemented.
+
+**Context**
+
+Client code can be modified or bypassed.
+
+**Decision**
+
+Use frontend owner and claimant checks for UX only.
+
+**Rationale**
+
+Only Solidity can enforce financial and administrator authority.
+
+**Implementation consequence**
+
+All protected contract functions independently validate callers.
+
+**Tradeoff**
+
+The frontend may occasionally display stale action availability until refreshed.
+
+## 20. Assistant Decisions
+
+### DD-60 — Use deterministic local assistants
+
+**Status:** Implemented.
+
+**Context**
+
+A general external LLM would introduce:
+
+- nondeterministic output;
+- provider availability;
+- API secrets;
+- data disclosure concerns;
+- hallucination risk;
+- cost and rate limits.
+
+**Decision**
+
+Implement local deterministic Banking and Risk Assistants.
+
+**Rationale**
+
+The Capstone benefits from explainable, testable, repository-contained behavior.
+
+**Implementation consequence**
+
+Assistant answers are produced from coded intents and verified application context.
+
+**Tradeoff**
+
+The assistants support bounded SafeBank questions rather than unrestricted conversation.
+
+### DD-61 — Keep assistants strictly read-only
+
+**Status:** Implemented and tested.
+
+**Context**
+
+An assistant must not silently become a transaction agent.
+
+**Decision**
+
+Assistants do not:
+
+- connect a wallet;
+- obtain a signer;
+- import transaction clients;
+- sign transactions;
+- submit transactions;
+- modify contract state.
+
+**Rationale**
+
+Explanation and financial authority must remain separate.
+
+**Implementation consequence**
+
+Assistant suggestions require the user to use normal application controls.
+
+**Tradeoff**
+
+The assistant cannot complete an action for the user.
+
+### DD-62 — Validate assistant questions
+
+**Status:** Implemented.
+
+**Context**
+
+Unbounded or malformed input may create poor UX or unsafe rendering assumptions.
+
+**Decision**
+
+Assistant questions:
+
+- replace control characters;
+- normalize whitespace;
+- reject empty input;
+- reject input above 500 characters;
+- reject external URLs.
+
+**Rationale**
+
+The input domain should remain controlled and deterministic.
+
+**Implementation consequence**
+
+Validation errors are displayed safely.
+
+**Tradeoff**
+
+Users cannot submit long or URL-based questions.
+
+### DD-63 — Use structured assistant answers
+
+**Status:** Implemented.
+
+**Context**
+
+Free-form text may hide caution or next action.
+
+**Decision**
+
+Every answer contains:
+
+1. fact;
+2. explanation;
+3. caution;
+4. next step.
+
+**Rationale**
+
+The structure promotes consistent risk communication.
+
+**Implementation consequence**
+
+Both assistants use a shared answer model.
+
+**Tradeoff**
+
+Responses are less stylistically flexible.
+
+### DD-64 — Render assistant output as ordinary React text
+
+**Status:** Implemented.
+
+**Context**
+
+Rendering assistant-generated HTML would create injection risk.
+
+**Decision**
+
+Do not use `dangerouslySetInnerHTML` in the checked assistant rendering path.
+
+**Rationale**
+
+Structured text does not require raw HTML.
+
+**Implementation consequence**
+
+Assistant content is rendered through normal React escaping.
+
+**Tradeoff**
+
+Rich arbitrary HTML formatting is not supported.
+
+### DD-65 — Treat Spline as visual-only
+
+**Status:** Implemented.
+
+**Context**
+
+The assistant launcher uses an externally hosted Spline scene.
+
+**Decision**
+
+Keep Spline outside:
+
+- financial data;
+- wallet access;
+- authorization;
+- assistant reasoning.
+
+**Rationale**
+
+A visual dependency must not become a security dependency.
+
+**Implementation consequence**
+
+Core assistant and application behavior remains separate from the scene.
+
+**Tradeoff**
+
+The visual launcher may degrade if the external host is unavailable.
+
+## 21. Deployment Decisions
+
+### DD-66 — Use deterministic local deployment and seed
+
+**Status:** Implemented.
+
+**Context**
+
+Local demonstrations must be repeatable.
+
+**Decision**
+
+Deploy in a fixed order and reconcile deterministic target state.
+
+Deployment order:
+
+1. MockUSDC;
+2. VaultManager;
+3. SavingCore;
+4. authorization;
+5. demo seed.
+
+**Rationale**
+
+A clean repository should reproduce the same useful local state.
+
+**Implementation consequence**
+
+Local scripts enforce chain ID `31337`.
+
+**Tradeoff**
+
+Local deployment records are environment-specific and should not be confused with Sepolia.
+
+### DD-67 — Do not seed public Sepolia balances or deposits
+
+**Status:** Implemented.
+
+**Context**
+
+Automatically minting balances, funding the vault, or opening deposits on public deployment would create unnecessary irreversible transactions.
+
+**Decision**
+
+Sepolia deployment creates:
+
+- contracts;
+- authorization;
+- canonical plan.
+
+It does not create:
+
+- demo balances;
+- vault funding;
+- default deposits.
+
+**Rationale**
+
+Public setup should remain minimal and auditable.
+
+**Implementation consequence**
+
+The verified initial deposit count and vault balance are zero.
+
+**Tradeoff**
+
+Demonstrations require explicit later test-token minting and vault funding.
+
+### DD-68 — Use guarded Sepolia deployment
+
+**Status:** Implemented.
+
+**Context**
+
+Public deployment mistakes may spend real testnet gas and create unusable addresses.
+
+**Decision**
+
+Validate:
+
+- Sepolia chain ID;
+- deployment sequence;
+- relationships;
+- transaction receipts;
+- canonical plan;
+- initial state.
+
+Use a two-confirmation policy.
+
+**Rationale**
+
+Deployment should fail early when configuration is inconsistent.
+
+**Implementation consequence**
+
+Tracked compact metadata records addresses, transactions, blocks, and verification evidence.
+
+**Tradeoff**
+
+Deployment and verification require additional scripts and checks.
+
+### DD-69 — Treat Etherscan verification as source evidence, not audit evidence
+
+**Status:** Implemented documentation decision.
+
+**Context**
+
+Source verification proves source-to-bytecode correspondence but not security.
+
+**Decision**
+
+State explicitly that verified source is not a professional audit.
+
+**Rationale**
+
+Submission documentation must avoid overstating assurance.
+
+**Implementation consequence**
+
+README and docs use qualified wording.
+
+**Tradeoff**
+
+No independent audit evidence is available.
+
+## 22. Testing Decisions
+
+### DD-70 — Use tests as executable specification
+
+**Status:** Implemented.
+
+**Context**
+
+Boundary and rollback behavior are easy to describe incorrectly.
+
+**Decision**
+
+Write focused tests for:
+
+- exact maturity;
+- exact grace end;
+- NFT transfer rights;
+- rounding dust;
+- reentrancy;
+- C1 fallback classification;
+- pending claimant;
+- C2 reserve lifecycle;
+- deployment regression;
+- frontend state and assistants.
+
+**Rationale**
+
+Tests provide repeatable evidence that implementation matches decisions.
+
+**Implementation consequence**
+
+The latest validated checkpoints report:
+
+- 258 contract tests;
+- 65 frontend test files;
+- 256 frontend tests.
+
+**Tradeoff**
+
+Tests cannot prove the absence of all vulnerabilities.
+
+### DD-71 — Maintain production-contract coverage above assignment minimum
+
+**Status:** Implemented.
+
+**Context**
+
+The assignment requires test coverage above 90%.
+
+**Decision**
+
+Maintain high statement, function, line, and branch coverage.
+
+**Rationale**
+
+Critical lifecycle and financial branches should be exercised directly.
+
+**Implementation consequence**
+
+Last validated production coverage:
+
+- 100% statements;
+- 98.40% branches;
+- 100% functions;
+- 100% lines.
+
+**Tradeoff**
+
+Coverage percentage does not measure test quality by itself.
+
+## 23. Required Design Answers Mapping
+
+The root README contains the exact required section:
+
+~~~text
+## Design Answers
+~~~
+
+It contains all seven required questions and answers.
+
+This register maps them to the implemented decisions.
+
+| Required question | Main decisions |
+|---|---|
+| Transferable certificate | DD-15, DD-16, DD-17, DD-18 |
+| Empty vault | DD-37, DD-38, DD-39, DD-40, DD-41 |
+| Dead bot | DD-25, DD-33, DD-34, DD-36 |
+| Rounding dust | DD-26, DD-27, DD-28 |
+| Boundary times | DD-23, DD-24, DD-25 |
+| Disabled plan with active deposits | DD-11, DD-13, DD-14, DD-35 |
+| Attack thinking | DD-21, DD-47, DD-48, DD-49 |
+
+## 24. Rejected Alternatives
+
+### 24.1 Combined Principal and Interest Vault
+
+**Rejected because:**
+
+- custody boundaries would be weaker;
+- administrator withdrawal would be harder to contain;
+- C1 principal recovery would be less clear.
+
+### 24.2 Upgradeable Proxy Contracts
+
+**Rejected because:**
+
+- more privileged infrastructure;
+- initializer and storage-layout risk;
+- unnecessary Capstone complexity.
+
+### 24.3 Original Depositor Keeps Rights Forever
+
+**Rejected because:**
+
+- it conflicts with a financially transferable certificate;
+- the current NFT owner would not receive the represented economic value.
+
+### 24.4 ERC721 Approved Operators May Withdraw
+
+**Rejected because:**
+
+- marketplace approval should not automatically authorize direct financial settlement.
+
+### 24.5 Burn NFT at Settlement
+
+**Rejected because:**
+
+- historical certificate evidence would disappear.
+
+### 24.6 Full Revert on Vault Underfunding
+
+**Rejected by C1 because:**
+
+- it can lock principal due to missing interest funding.
+
+### 24.7 Partial Interest Settlement
+
+**Rejected because:**
+
+- remaining-debt accounting and testing would be more complex than full-value deferral.
+
+### 24.8 Auto-Renew Restricted to One Bot
+
+**Rejected because:**
+
+- one dead key or process would create unnecessary liveness failure.
+
+### 24.9 Auto-Renew Uses Current Plan Terms
+
+**Rejected because:**
+
+- an untrusted caller would indirectly apply changed product terms to the owner.
+
+### 24.10 Retroactive Multi-Term Catch-Up
+
+**Rejected because:**
+
+- it requires assumptions about funding, compounding, and historical execution.
+
+### 24.11 Strictly Block Undercollateralized Deposit Opening
+
+**Rejected because:**
+
+- C2 visibility and C1 principal protection provide a more usable Capstone tradeoff.
+
+### 24.12 React Router
+
+**Rejected for current scope because:**
+
+- the application only needs two closely related views;
+- deep links are not required by the assignment.
+
+### 24.13 Redux or Zustand
+
+**Rejected for current scope because:**
+
+- focused providers and hooks are sufficient.
+
+### 24.14 Unlimited Token Approval
+
+**Rejected because:**
+
+- exact approval limits exposure.
+
+### 24.15 External General-Purpose LLM
+
+**Rejected because:**
+
+- nondeterminism;
+- secret management;
+- provider dependency;
+- hallucination;
+- data disclosure;
+- difficult automated verification.
+
+### 24.16 Assistant Transaction Agent
+
+**Rejected because:**
+
+- financial authority must remain in explicit wallet-confirmed application controls.
+
+### 24.17 Public Sepolia Demo Seed
+
+**Rejected because:**
+
+- it would create extra irreversible public transactions and state.
+
+## 25. Decision Consistency Rules
+
+Future maintenance must preserve consistency among:
+
+- Solidity behavior;
+- tests;
+- deployment scripts;
+- tracked metadata;
+- frontend availability logic;
+- assistant explanations;
+- README Design Answers;
+- architecture documentation;
+- security documentation;
+- UI/UX documentation.
+
+A change is incomplete when one layer contradicts another.
+
+Examples:
+
+- changing the grace period requires contract, test, UI, assistant, and documentation updates;
+- changing NFT authority requires withdrawal, renewal, test, and warning updates;
+- changing C1 fallback requires reserve and claimant review;
+- changing C2 requires vault-withdrawal and dashboard-metric review;
+- adding an external AI provider requires a new privacy, secret, availability, and safety decision;
+- adding routes requires a new navigation and state-persistence decision.
+
+## 26. Known Decision Tradeoffs
+
+Accepted tradeoffs include:
+
+- centralized administrator ownership;
+- non-upgradeable bug recovery;
+- vault underfunding remains possible;
+- pending interest may remain unpaid;
+- floor rounding favors the vault by less than one smallest unit;
+- transaction ordering may decide withdrawal versus auto-renew;
+- off-chain NFT discovery requires RPC work;
+- historical NFTs may confuse users;
+- browser refresh does not preserve active User/Admin view;
+- deterministic assistants have bounded intent coverage;
+- Spline is an external visual dependency;
+- Sepolia is not a production environment;
+- automated tests do not replace an audit.
+
+## 27. Final Decision Summary
+
+SafeBank's implemented design is defined by these major choices:
+
+- six-decimal MockUSDC;
+- separated principal and interest custody;
 - non-upgradeable contracts;
-- basic ERC721;
-- identifier strategy;
+- Ownable2Step administration;
 - one-time SavingCore authorization;
-- ownership model;
-- plan mutability and bounds;
-- safe token and NFT interactions;
-- renewal funding;
-- C1;
-- C2;
-- undercollateralization;
-- pending-interest reserve treatment;
-- frontend approval;
-- route-guard limitations;
-- AI limitations.
+- transferable ERC721 economic rights;
+- direct current-owner settlement authority;
+- immutable deposit snapshots;
+- exact maturity and grace boundaries;
+- permissionless ownership-safe auto-renew;
+- one delayed call producing one term;
+- floor-rounded simple interest;
+- C1 principal-first settlement;
+- fixed pending-interest claimant;
+- C2 aggregate reserved-interest accounting;
+- available-liquidity administrator withdrawal limit;
+- one SPA with User and Admin views;
+- read-only public provider and signer-only writes;
+- exact token approval;
+- explicit transaction confirmation;
+- Vietnamese-first bilingual UX;
+- deterministic read-only assistants;
+- deterministic local deployment;
+- minimal guarded Sepolia deployment;
+- Etherscan verification described accurately as non-audit evidence.
 
-## 39. Decisions Still Deferred
-
-The following remain deferred until their relevant phases:
-
-- final frontend framework;
-- wallet library;
-- styling system;
-- NFT metadata implementation;
-- AI provider;
-- frontend deployment provider;
-- event-indexing technology.
-
-The current Solidity storage layout, custom errors, function signatures, deployment relationships, and implemented event-indexing parameters are defined by the Phase 13 contracts, deployment scripts, tests, and exported ABIs.
-
-Deferred details must not contradict accepted financial and security behavior.
-
----
-
-## 40. Current Decision Implementation Status
-
-Implemented and validated through Phase 15:
-
-- ADR-005, ADR-006, ADR-007, ADR-009, ADR-010, ADR-011, ADR-025,
-  ADR-026, ADR-027, ADR-028, ADR-029, ADR-030, ADR-041, ADR-042,
-  ADR-043, ADR-044, ADR-045, ADR-046, ADR-047, ADR-048, ADR-049,
-  and ADR-050;
-- mandatory deposit, withdrawal, and renewal lifecycle decisions;
-- C1 principal-first settlement and fixed pending claims;
-- C2 aggregate reserve creation, release, consumption, and renewal
-  replacement;
-- undercollateralized opening with explicit shortfall;
-- available-liquidity withdrawal enforcement;
-- atomic rollback and reserve-underflow protection;
-- local-only deployment and chain-ID guards;
-- deterministic separated local roles;
-- exact constructor and dependency configuration;
-- one-time authorization before deployment readiness;
-- canonical plan and deterministic demo funding;
-- idempotent persistent localhost reconciliation;
-- no default deposits in the base seed;
-- ignored local deployment records;
-- production-only ABI export;
-- read-only local deployment verification;
-- separate guarded Sepolia deployment and preflight;
-- dedicated public administrative identity and two-confirmation policy;
-- minimal canonical-plan-only public initialization;
-- public state and receipt verification;
-- separation of read-only public RPC access from wallet-authorized writes;
-- explicit wallet connection and Ethereum Sepolia network guards;
-- exact-amount token approval before deposit opening;
-- user access to deposit certificates, lifecycle actions, C1 claims, and C2
-  transparency metrics;
-- Vietnamese-first bilingual presentation with persisted language preference;
-- localization of known internal errors while retaining external RPC and
-  contract revert details;
-- frontend automated tests, lint, typecheck, production build, and preview
-  smoke validation;
-- tracked public deployment records and compact metadata;
-- idempotent public deployment reuse;
-- Etherscan verification for all production contracts;
-- 5 deployment workflow tests;
-- 185 SavingCore tests;
-- 55 VaultManager tests;
-- 13 MockUSDC tests;
-- 258 full-suite tests;
-- 100% statements, branches, functions, and lines for SavingCore;
-- 100% statements, functions, and lines for VaultManager;
-- production coverage of 100% statements, 98.40% branches,
-  100% functions, and 100% lines;
-- complete project coverage of 99.11% statements, 97.17% branches,
-  96.97% functions, and 96.98% lines;
-- SavingCore deployed bytecode approximately `12.654 KiB`;
-- SavingCore initcode approximately `13.905 KiB`;
-- VaultManager deployed bytecode approximately `3.483 KiB`;
-- VaultManager initcode approximately `3.897 KiB`.
-
-Not implemented:
-
-- rich NFT metadata;
-- frontend;
-- AI assistants;
-- demo video and final submission audit.
-
-This file records both accepted design decisions and their verified
-implementation status.
-
-## 41. Final Decision Position
-
-SafeBank will be implemented as a non-upgradeable, three-contract savings system in which:
-
-1. SavingCore holds principal.
-2. VaultManager holds interest liquidity.
-3. MockUSDC is a six-decimal test token.
-4. ERC721 ownership represents active economic rights.
-5. Deposit terms are snapshotted.
-6. Exact timestamp boundaries control valid actions.
-7. One successful terminal action ends an old deposit.
-8. Auto-renew is permissionless but cannot steal ownership.
-9. Renewal cannot create unfunded principal.
-10. C1 returns principal before deferring unpaid interest.
-11. C2 prevents withdrawal of reserved liquidity.
-12. The frontend and AI never replace on-chain authorization.
-13. Every implemented decision must be proven through tests and actual execution output.
-14. Phase 13 deploy and seed scripts are local-only and require chain ID 31337.
-15. Local roles and demo targets are deterministic and separated by responsibility.
-16. Persistent local deployment and seed behavior is idempotent and creates no default deposits.
-17. Local deployment records remain generated artifacts and production ABI export is restricted to three contracts.
+These decisions match the current contracts, tests, frontend, assistants, deployment records, and root README.
