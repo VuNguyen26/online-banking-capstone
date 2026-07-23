@@ -303,6 +303,9 @@ The assistant panels support:
 - safe failure fallback;
 - cancellation;
 - stale-response protection;
+- localized suggested questions aligned with supported deterministic intents;
+- suggestion selection that fills the question input without submitting automatically;
+- smooth scrolling to the generated answer;
 - Vietnamese;
 - English.
 
@@ -454,7 +457,7 @@ src/
 Last validated frontend checkpoint:
 
 - `65` passing test files;
-- `256` passing tests;
+- `262` passing tests;
 - zero Oxlint warnings or errors;
 - successful TypeScript validation;
 - successful Vite production build.

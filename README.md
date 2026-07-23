@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="#compile-and-test-contracts"><img src="https://img.shields.io/badge/Contract_tests-258_passing-2E7D32?style=flat-square" alt="258 contract tests passing"></a>
-  <a href="#run-the-frontend"><img src="https://img.shields.io/badge/Frontend_tests-256_passing-2E7D32?style=flat-square" alt="256 frontend tests passing"></a>
+  <a href="#run-the-frontend"><img src="https://img.shields.io/badge/Frontend_tests-262_passing-2E7D32?style=flat-square" alt="262 frontend tests passing"></a>
   <a href="#compile-and-test-contracts"><img src="https://img.shields.io/badge/Production_coverage-98.40%25_branches-1565C0?style=flat-square" alt="98.40 percent production branch coverage"></a>
   <a href="#sepolia-deployment"><img src="https://img.shields.io/badge/Etherscan-3_contracts_verified-1565C0?style=flat-square" alt="Three contracts verified on Etherscan"></a>
 </p>
@@ -84,7 +84,7 @@ All MockUSDC calculations use six-decimal smallest units:
 | Deployment regression | `5` tests passing |
 | Production-contract coverage | `100%` statements, `98.40%` branches, `100%` functions, `100%` lines |
 | Complete-project coverage | `99.11%` statements, `97.17%` branches, `96.97%` functions, `96.98%` lines |
-| Frontend suite | `65` test files and `256` tests passing |
+| Frontend suite | `65` test files and `262` tests passing |
 | Frontend quality gates | `0` Oxlint warnings or errors; TypeScript and production build passing |
 | Sepolia deployment | Three production contracts deployed and verified on Etherscan |
 | Repository audit | Documentation reconciled, repository audited, and tracked source clean |
@@ -959,7 +959,7 @@ Contract artifacts are synchronized automatically before development, testing, t
 Last validated frontend checkpoint:
 
 - `65` passing test files;
-- `256` passing tests;
+- `262` passing tests;
 - zero Oxlint warnings or errors;
 - successful TypeScript validation;
 - successful Vite production build.
